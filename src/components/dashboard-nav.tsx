@@ -10,6 +10,8 @@ const links = [
   { href: "/dashboard/ledger", label: "Ledger" },
   { href: "/dashboard/reconciliation", label: "Reconciliation" },
   { href: "/dashboard/reports", label: "Reports" },
+  { href: "/dashboard/consolidation", label: "Consolidation" },
+  { href: "/dashboard/audit", label: "Audit" },
 ];
 
 export function DashboardNav() {

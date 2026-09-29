@@ -15,8 +15,9 @@ import {
   reconciliationCounts,
   trialBalance,
 } from "@/ledger";
+import type { Books } from "./books";
 import { exampleBooks } from "./example-books";
-import { formatMoney, sourceName } from "./present";
+import { formatMoney } from "./present";
 
 const FIAT_SCALE = 2;
 const SERIES_COLORS = ["#1c6b45", "#3e4c5e", "#9a7340", "#8e2f2c"];
@@ -70,10 +71,14 @@ export interface SourceStatusRow {
 
 const marketName: Record<string, string> = { MY: "Malaysia", SG: "Singapore" };
 
-function market(entityId: string): string {
-  const entity = exampleBooks.entities.find((item) => item.id === entityId);
+function market(books: Books, entityId: string): string {
+  const entity = books.entities.find((item) => item.id === entityId);
   if (!entity) return entityId;
   return marketName[entity.jurisdiction] ?? entity.jurisdiction;
+}
+
+function sourceLabel(books: Books, id: string): string {
+  return books.sources.find((source) => source.id === id)?.name ?? id;
 }
 
 function moneyRow(id: string, label: string, amountMinor: bigint, currency: string, total: bigint): MoneyRow {
@@ -86,10 +91,11 @@ function moneyRow(id: string, label: string, amountMinor: bigint, currency: stri
 }
 
 function panels(
+  books: Books,
   rows: Array<{ id: string; label: string; currency: string; entityId: string; carryingMinor: bigint }>,
   titleFor: (currency: string) => string,
 ): MoneyPanel[] {
-  const order: string[] = exampleBooks.entities.map((entity) => entity.functionalCurrency);
+  const order: string[] = books.entities.map((entity) => entity.functionalCurrency);
   const currencies = [...new Set(rows.map((row) => row.currency))].sort(
     (a, b) => order.indexOf(a) - order.indexOf(b),
   );
@@ -111,9 +117,10 @@ function panels(
   });
 }
 
-export function assetAllocationPanels(): MoneyPanel[] {
+export function assetAllocationPanels(books: Books = exampleBooks): MoneyPanel[] {
   return panels(
-    carryingByAsset(exampleBooks.journalEntries, exampleBooks.accounts).map((row) => ({
+    books,
+    carryingByAsset(books.journalEntries, books.accounts).map((row) => ({
       id: `${row.entityId}-${row.assetCode}`,
       label: `${row.assetCode} · ${row.measurementBasis}`,
       currency: row.currency,
@@ -124,15 +131,16 @@ export function assetAllocationPanels(): MoneyPanel[] {
   );
 }
 
-export function sourceCarryingPanels(): MoneyPanel[] {
+export function sourceCarryingPanels(books: Books = exampleBooks): MoneyPanel[] {
   return panels(
+    books,
     carryingBySource(
-      exampleBooks.journalEntries,
-      exampleBooks.accounts,
-      exampleBooks.sources.map((source) => ({ id: source.id, kind: source.kind })),
+      books.journalEntries,
+      books.accounts,
+      books.sources.map((source) => ({ id: source.id, kind: source.kind })),
     ).map((row) => ({
       id: row.sourceId,
-      label: sourceName(row.sourceId),
+      label: sourceLabel(books, row.sourceId),
       currency: row.currency,
       entityId: row.entityId,
       carryingMinor: row.carryingMinor,
@@ -141,12 +149,13 @@ export function sourceCarryingPanels(): MoneyPanel[] {
   );
 }
 
-export function sourceKindPanels(): MoneyPanel[] {
+export function sourceKindPanels(books: Books = exampleBooks): MoneyPanel[] {
   return panels(
+    books,
     carryingBySourceKind(
-      exampleBooks.journalEntries,
-      exampleBooks.accounts,
-      exampleBooks.sources.map((source) => ({ id: source.id, kind: source.kind })),
+      books.journalEntries,
+      books.accounts,
+      books.sources.map((source) => ({ id: source.id, kind: source.kind })),
     ).map((row) => ({
       id: `${row.entityId}-${row.kind}`,
       label: titleCase(row.kind),
@@ -158,9 +167,10 @@ export function sourceKindPanels(): MoneyPanel[] {
   );
 }
 
-export function chainPanels(): MoneyPanel[] {
+export function chainPanels(books: Books = exampleBooks): MoneyPanel[] {
   return panels(
-    carryingByChain(exampleBooks.journalEntries, exampleBooks.accounts, exampleBooks.assets).map((row) => ({
+    books,
+    carryingByChain(books.journalEntries, books.accounts, books.assets).map((row) => ({
       id: `${row.entityId}-${row.chain}`,
       label: titleCase(row.chain),
       currency: row.currency,
@@ -171,15 +181,15 @@ export function chainPanels(): MoneyPanel[] {
   );
 }
 
-export function carryingSeries(): LinePanel[] {
-  const points = carryingValueSeries(exampleBooks.journalEntries, exampleBooks.accounts);
-  return exampleBooks.entities.flatMap((entity) => {
+export function carryingSeries(books: Books = exampleBooks): LinePanel[] {
+  const points = carryingValueSeries(books.journalEntries, books.accounts);
+  return books.entities.flatMap((entity) => {
     const series = points.filter((point) => point.entityId === entity.id);
     if (series.length === 0) return [];
     return [
       {
         id: entity.id,
-        title: `${market(entity.id)} · ${entity.functionalCurrency}`,
+        title: `${market(books, entity.id)} · ${entity.functionalCurrency}`,
         points: series.map((point) => ({
           id: `${entity.id}-${point.date}`,
           label: point.date,
@@ -199,16 +209,16 @@ const accountShortName: Record<string, string> = {
   "1330": "Stablecoins",
 };
 
-export function compositionPanels(): MoneyPanel[] {
-  return exampleBooks.entities.flatMap((entity) => {
-    const report = trialBalance(exampleBooks.journalEntries, exampleBooks.accounts, entity.id);
+export function compositionPanels(books: Books = exampleBooks): MoneyPanel[] {
+  return books.entities.flatMap((entity) => {
+    const report = trialBalance(books.journalEntries, books.accounts, entity.id);
     const nets = assetAccountNets(report);
     if (!report.currency || nets.length === 0) return [];
     const total = nets.reduce((sum, row) => sum + row.netMinor, 0n);
     return [
       {
         id: entity.id,
-        title: `${market(entity.id)} · ${report.currency}`,
+        title: `${market(books, entity.id)} · ${report.currency}`,
         currency: report.currency,
         rows: nets.map((row) =>
           moneyRow(row.code, accountShortName[row.code] ?? row.name, row.netMinor, report.currency ?? entity.functionalCurrency, total),
@@ -218,14 +228,14 @@ export function compositionPanels(): MoneyPanel[] {
   });
 }
 
-export function reportComposition(entityId: string): MoneyRow[] {
-  return compositionPanels().find((panel) => panel.id === entityId)?.rows ?? [];
+export function reportComposition(entityId: string, books: Books = exampleBooks): MoneyRow[] {
+  return compositionPanels(books).find((panel) => panel.id === entityId)?.rows ?? [];
 }
 
-export function reportAssetBars(entityId: string): MoneyRow[] {
-  const entity = exampleBooks.entities.find((item) => item.id === entityId);
+export function reportAssetBars(entityId: string, books: Books = exampleBooks): MoneyRow[] {
+  const entity = books.entities.find((item) => item.id === entityId);
   if (!entity) return [];
-  const rows = carryingByAsset(exampleBooks.journalEntries, exampleBooks.accounts).filter((row) => row.entityId === entityId);
+  const rows = carryingByAsset(books.journalEntries, books.accounts).filter((row) => row.entityId === entityId);
   const total = rows.reduce((sum, row) => sum + row.carryingMinor, 0n);
   return rows
     .slice()
@@ -233,12 +243,12 @@ export function reportAssetBars(entityId: string): MoneyRow[] {
     .map((row) => moneyRow(`${row.entityId}-${row.assetCode}`, `${row.assetCode} · ${row.measurementBasis}`, row.carryingMinor, entity.functionalCurrency, total));
 }
 
-export function journalActivityChart(): ActivityChart {
-  const activity = journalActivityByMonth(exampleBooks.journalEntries);
+export function journalActivityChart(books: Books = exampleBooks): ActivityChart {
+  const activity = journalActivityByMonth(books.journalEntries);
   const months = [...new Set(activity.map((row) => row.month))];
-  const series = exampleBooks.entities.map((entity, index) => ({
+  const series = books.entities.map((entity, index) => ({
     id: entity.id,
-    label: market(entity.id),
+    label: market(books, entity.id),
     color: SERIES_COLORS[index % SERIES_COLORS.length] ?? "#1c1915",
   }));
   return {
@@ -256,8 +266,8 @@ export function journalActivityChart(): ActivityChart {
   };
 }
 
-export function reconciliationStatus(): { total: number; rows: StatusRow[] } {
-  const counts = reconciliationCounts(exampleBooks.reconciliations);
+export function reconciliationStatus(books: Books = exampleBooks): { total: number; rows: StatusRow[] } {
+  const counts = reconciliationCounts(books.reconciliations);
   return {
     total: counts.matched + counts.exception,
     rows: [
@@ -267,10 +277,10 @@ export function reconciliationStatus(): { total: number; rows: StatusRow[] } {
   };
 }
 
-export function reconciliationBySource(): SourceStatusRow[] {
-  return reconciliationCounts(exampleBooks.reconciliations).bySource.map((row) => ({
+export function reconciliationBySource(books: Books = exampleBooks): SourceStatusRow[] {
+  return reconciliationCounts(books.reconciliations).bySource.map((row) => ({
     id: row.sourceId,
-    label: sourceName(row.sourceId),
+    label: sourceLabel(books, row.sourceId),
     matched: row.matched,
     exception: row.exception,
   }));

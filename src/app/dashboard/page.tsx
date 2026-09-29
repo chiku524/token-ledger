@@ -9,38 +9,45 @@ import {
   journalActivityChart,
   reconciliationStatus,
 } from "@/data/charts";
-import { exampleBooks } from "@/data/example-books";
+import { booksAreWritable, loadBooks } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { trialBalance } from "@/ledger";
 
 export const metadata = { title: "Overview" };
 
-export default function DashboardPage() {
-  const exceptions = exampleBooks.reconciliations.filter((record) => record.status === "exception");
-  const balances = exampleBooks.entities.map((entity) => ({
+export default async function DashboardPage() {
+  const books = await loadBooks();
+  const exceptions = books.reconciliations.filter((record) => record.status === "exception");
+  const balances = books.entities.map((entity) => ({
     entity,
-    report: trialBalance(exampleBooks.journalEntries, exampleBooks.accounts, entity.id),
+    report: trialBalance(books.journalEntries, books.accounts, entity.id),
   }));
   const inBalance = balances.every((item) => item.report.debitTotal === item.report.creditTotal);
-  const recent = [...exampleBooks.journalEntries].sort((a, b) => b.entryDate.localeCompare(a.entryDate)).slice(0, 4);
-  const allocation = assetAllocationPanels();
-  const series = carryingSeries();
-  const composition = compositionPanels();
-  const activity = journalActivityChart();
-  const status = reconciliationStatus();
-  const currencyNote = "Example books. Each panel uses that entity's functional currency, with no translation between MYR and SGD.";
+  const recent = [...books.journalEntries].sort((a, b) => b.entryDate.localeCompare(a.entryDate)).slice(0, 4);
+  const allocation = assetAllocationPanels(books);
+  const series = carryingSeries(books);
+  const composition = compositionPanels(books);
+  const activity = journalActivityChart(books);
+  const status = reconciliationStatus(books);
+  const currencyNote = booksAreWritable()
+    ? "Each panel stays in that entity's functional currency. Group translation is on Consolidation."
+    : "Example books. Each panel uses that entity's functional currency. Group translation, using labelled example rates, is on Consolidation.";
 
   return (
     <>
       <PageHeader
-        kicker={exampleBooks.period.label}
-        title={exampleBooks.organization.name}
-        description="A fictional group with a Malaysian parent and a Singapore subsidiary. These books are the seed data, posted through the double-entry module."
+        kicker={books.period.label}
+        title={books.organization.name}
+        description={
+          books.organization.origin === "example"
+            ? "A fictional group with a Malaysian parent and a Singapore subsidiary. These books are posted through the double-entry module."
+            : "Books read from Postgres for this organization."
+        }
       />
 
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Entities" value={String(exampleBooks.entities.length)} />
-        <Stat label="Sources" value={String(exampleBooks.sources.length)} />
+        <Stat label="Entities" value={String(books.entities.length)} />
+        <Stat label="Sources" value={String(books.sources.length)} />
         <Stat label="Open exceptions" value={String(exceptions.length)} tone={exceptions.length ? "seal" : "pine"} />
         <Stat label="Trial balance" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "pine" : "seal"} />
       </dl>
@@ -63,7 +70,7 @@ export default function DashboardPage() {
           <ChartFrame
             key={panel.id}
             title={`Carrying value · ${panel.title}`}
-            description="Digital-asset carrying amount after each example journal date."
+            description="Digital-asset carrying amount after each journal date."
             rows={panel.points.map((point) => ({ label: point.label, detail: point.formatted }))}
           >
             <MoneyLine panel={panel} />
@@ -87,7 +94,7 @@ export default function DashboardPage() {
       <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_18rem]">
         <ChartFrame
           title="Journal activity"
-          description="Posted example entries by month. Counts, not a converted total."
+          description="Posted entries by month. Counts, not a converted total."
           rows={activity.rows.flatMap((row) =>
             activity.series.map((item) => ({ label: `${row.fullLabel} · ${item.label}`, detail: String(row[item.id] ?? 0) })),
           )}
@@ -125,7 +132,7 @@ export default function DashboardPage() {
         <section className="mt-8 border border-seal/40 bg-paper-raised p-5">
           <h2 className="font-medium text-seal">Reconciliation exception</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            {exampleBooks.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
+            {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
             <Link href="/dashboard/reconciliation" className="text-ink underline">
               Review the match list
             </Link>
@@ -137,7 +144,7 @@ export default function DashboardPage() {
         <h2 className="font-serif text-2xl">Latest journals</h2>
         <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
-            <caption className="sr-only">Latest example journal entries</caption>
+            <caption className="sr-only">Latest journal entries</caption>
             <thead>
               <tr>
                 <th scope="col">Date</th>
@@ -156,7 +163,7 @@ export default function DashboardPage() {
                       {entry.reference}
                     </Link>
                   </td>
-                  <td>{entityName(entry.entityId)}</td>
+                  <td>{entityName(entry.entityId, books.entities)}</td>
                   <td>{entry.memo}</td>
                   <td className="num">{formatMoney(entry.debitMinor, entry.currency)}</td>
                 </tr>

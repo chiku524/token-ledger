@@ -4,8 +4,10 @@
  * Journal entries below are posted through the double-entry module, so the
  * sample cannot contain an unbalanced entry.
  */
-import { ledgerQuantityMovements, postJournalEntry, reconcileMovements, toMinor } from "@/ledger";
+import { postJournalEntry, toMinor } from "@/ledger";
 import type { JournalEntryInput, JournalLineInput, LedgerAccount } from "@/ledger";
+import type { AuditEvent, Books, StoredFxRate } from "./books";
+import { buildReconciliations } from "./reconciliation";
 
 export const EXAMPLE_NOTICE =
   "Example data for the fictional Harbourline Digital group. Not live books, not a price feed, and not accounting advice.";
@@ -235,7 +237,12 @@ const journalInputs: JournalEntryInput[] = [
   },
 ];
 
-export const exampleJournalEntries = journalInputs.map((input) => postJournalEntry(input));
+export const exampleJournalEntries = journalInputs.map((input) => ({
+  ...postJournalEntry(input),
+  postedBy: "example books",
+  postedAt: `${input.entryDate}T00:00:00.000Z`,
+  reversesEntryId: null,
+}));
 
 export const exampleSourceTransactions = [
   txn("stx_my_buy", MY, "src_my_exchange", "ex-fill-example-1001", "2026-04-08", "ETH", "in", eth("2.5"), "Example exchange fill — buy 2.5 ETH."),
@@ -273,28 +280,48 @@ function txn(
   };
 }
 
-const ledgerMovements = ledgerQuantityMovements(exampleJournalEntries);
-const movementById = new Map(ledgerMovements.map((movement) => [movement.id, movement]));
+export const exampleReconciliations = buildReconciliations(
+  ORG_ID,
+  exampleSourceTransactions,
+  exampleJournalEntries,
+  EXAMPLE_PERIOD.start,
+);
 
-export const exampleReconciliations = reconcileMovements(exampleSourceTransactions, ledgerMovements).map((match, index) => {
-  const movement = match.ledgerMovementId ? movementById.get(match.ledgerMovementId) : undefined;
-  return {
-    id: `recon_${String(index + 1).padStart(2, "0")}`,
+export const exampleFxRates: StoredFxRate[] = [
+  {
+    id: "fx_example_myr_sgd",
     organizationId: ORG_ID,
-    entityId: match.entityId,
-    periodStart: EXAMPLE_PERIOD.start,
-    periodEnd: EXAMPLE_PERIOD.end,
-    status: match.status,
-    sourceId: match.sourceId,
-    assetCode: match.assetCode,
-    direction: match.direction,
-    quantityMinor: match.quantityMinor,
-    sourceTransactionId: match.sourceTransactionId,
-    journalEntryId: movement?.journalEntryId ?? null,
-    journalLineNumber: movement?.lineNumber ?? null,
-    note: match.note,
-  };
-});
+    baseCurrency: "MYR",
+    quoteCurrency: "SGD",
+    numerator: 3000n,
+    scale: 4,
+    asOf: "2026-04-01",
+    origin: "example",
+    note: "Illustrative example rate for the Harbourline quarter. Not a market price.",
+  },
+  {
+    id: "fx_example_sgd_myr",
+    organizationId: ORG_ID,
+    baseCurrency: "SGD",
+    quoteCurrency: "MYR",
+    numerator: 33000n,
+    scale: 4,
+    asOf: "2026-04-01",
+    origin: "example",
+    note: "Illustrative example rate. Not the arithmetic inverse of the MYR rate, and not a market price.",
+  },
+];
+
+export const exampleAuditEvents: AuditEvent[] = exampleJournalEntries.map((entry) => ({
+  id: `audit_${entry.id}`,
+  organizationId: ORG_ID,
+  occurredAt: entry.postedAt,
+  actor: entry.postedBy,
+  action: "journal.posted",
+  subjectType: "journal_entry",
+  subjectId: entry.id,
+  detail: `${entry.reference} · ${entry.memo}`,
+}));
 
 export const exampleBooks = {
   notice: EXAMPLE_NOTICE,
@@ -307,7 +334,9 @@ export const exampleBooks = {
   journalEntries: exampleJournalEntries,
   sourceTransactions: exampleSourceTransactions,
   reconciliations: exampleReconciliations,
-};
+  fxRates: exampleFxRates,
+  auditEvents: exampleAuditEvents,
+} satisfies Books;
 
 export function entityById(id: string) {
   return exampleEntities.find((entity) => entity.id === id);

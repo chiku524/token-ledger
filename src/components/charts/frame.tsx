@@ -10,7 +10,7 @@ export function ChartFrame({
   rows: ReadonlyArray<{ label: string; detail: string }>;
 }) {
   return (
-    <figure className="min-w-0 border border-line bg-paper-raised p-4">
+    <figure tabIndex={0} aria-label={title} className="min-w-0 border border-line bg-paper-raised p-4">
       <figcaption>
         <h2 className="font-serif text-2xl tracking-tight">{title}</h2>
         {description ? <p className="mt-1 text-sm leading-relaxed text-ink-soft">{description}</p> : null}
