@@ -3,13 +3,15 @@
  * Re-running replaces that organization and its rows. It does not touch other organizations.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { exampleBooks } from "../data/example-books";
 import { closeDb, getDb } from "./client";
 import {
   accounts,
   assets,
+  auditEvents,
   entities,
+  fxRates,
   journalEntries,
   journalLines,
   organizations,
@@ -26,10 +28,13 @@ async function main() {
   const organizationId = books.organization.id;
 
   await db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('token_ledger.allow_journal_delete', 'on', true)`);
     await tx.delete(reconciliationRecords).where(eq(reconciliationRecords.organizationId, organizationId));
     await tx.delete(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId));
     await tx.delete(journalLines).where(eq(journalLines.organizationId, organizationId));
     await tx.delete(journalEntries).where(eq(journalEntries.organizationId, organizationId));
+    await tx.delete(auditEvents).where(eq(auditEvents.organizationId, organizationId));
+    await tx.delete(fxRates).where(eq(fxRates.organizationId, organizationId));
     await tx.delete(accounts).where(eq(accounts.organizationId, organizationId));
     await tx.delete(sources).where(eq(sources.organizationId, organizationId));
     await tx.delete(assets).where(eq(assets.organizationId, organizationId));
@@ -54,7 +59,9 @@ async function main() {
         currency: entry.currency,
         debitMinor: entry.debitMinor,
         creditMinor: entry.creditMinor,
-        postedAt: new Date(`${entry.entryDate}T00:00:00.000Z`),
+        postedAt: new Date(entry.postedAt),
+        postedBy: entry.postedBy,
+        reversesEntryId: entry.reversesEntryId,
       })),
     );
 
@@ -129,6 +136,14 @@ async function main() {
           note: record.note,
         };
       }),
+    );
+
+    await tx.insert(fxRates).values([...books.fxRates]);
+    await tx.insert(auditEvents).values(
+      books.auditEvents.map((event) => ({
+        ...event,
+        occurredAt: new Date(event.occurredAt),
+      })),
     );
   });
 

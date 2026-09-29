@@ -146,12 +146,24 @@ export const journalEntries = pgTable(
     debitMinor: bigint("debit_minor", { mode: "bigint" }).notNull(),
     creditMinor: bigint("credit_minor", { mode: "bigint" }).notNull(),
     postedAt: timestamp("posted_at", { withTimezone: true }).notNull(),
+    /** Name recorded with the posting. There is no login yet. */
+    postedBy: text("posted_by").notNull(),
+    reversesEntryId: text("reverses_entry_id"),
   },
   (table) => [
     uniqueIndex("journal_entries_entity_reference_unique").on(table.entityId, table.reference),
     index("journal_entries_entity_date_idx").on(table.entityId, table.entryDate),
+    foreignKey({
+      columns: [table.reversesEntryId],
+      foreignColumns: [table.id],
+      name: "journal_entries_reverses_entry_id_fk",
+    }),
     check("journal_entries_balanced", sql`${table.debitMinor} = ${table.creditMinor}`),
     check("journal_entries_positive", sql`${table.debitMinor} > 0`),
+    check(
+      "journal_entries_not_self_reversal",
+      sql`${table.reversesEntryId} is null or ${table.reversesEntryId} <> ${table.id}`,
+    ),
   ],
 );
 
@@ -248,4 +260,49 @@ export const reconciliationRecords = pgTable(
     index("reconciliation_records_entity_period_idx").on(table.entityId, table.periodStart, table.periodEnd),
     check("reconciliation_records_quantity_positive", sql`${table.quantityMinor} > 0`),
   ],
+);
+
+/**
+ * One major unit of baseCurrency equals numerator / 10^scale major units of quoteCurrency.
+ * Example rows are labelled origin = example and are not a market price.
+ */
+export const fxRates = pgTable(
+  "fx_rates",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    baseCurrency: text("base_currency").notNull(),
+    quoteCurrency: text("quote_currency").notNull(),
+    numerator: bigint("numerator", { mode: "bigint" }).notNull(),
+    scale: integer("scale").notNull(),
+    asOf: date("as_of").notNull(),
+    origin: dataOrigin("origin").notNull(),
+    note: text("note").notNull(),
+  },
+  (table) => [
+    index("fx_rates_pair_date_idx").on(table.organizationId, table.baseCurrency, table.quoteCurrency, table.asOf),
+    check("fx_rates_numerator_positive", sql`${table.numerator} > 0`),
+    check("fx_rates_scale_non_negative", sql`${table.scale} >= 0 and ${table.scale} <= 12`),
+    check("fx_rates_distinct_currencies", sql`${table.baseCurrency} <> ${table.quoteCurrency}`),
+  ],
+);
+
+/** Append-only record of who posted what. Updates and ordinary deletes are rejected by a trigger. */
+export const auditEvents = pgTable(
+  "audit_events",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    actor: text("actor").notNull(),
+    action: text("action").notNull(),
+    subjectType: text("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+    detail: text("detail").notNull(),
+  },
+  (table) => [index("audit_events_organization_occurred_idx").on(table.organizationId, table.occurredAt)],
 );

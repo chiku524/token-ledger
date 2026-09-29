@@ -23,9 +23,64 @@ body {
 }
 
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+figure:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 20;
+  transform: translateY(-150%);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 0.4rem 0.7rem;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+}
+
+.field input,
+.field select,
+.field textarea,
+.ledger-table input,
+.ledger-table select {
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-raised);
+  color: var(--color-ink);
+  padding: 0.45rem 0.6rem;
+}
+
+.btn {
+  border: 1px solid var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 0.5rem 0.85rem;
+  font-size: 0.875rem;
+}
+
+.btn-secondary {
+  border: 1px solid var(--color-ink);
+  background: transparent;
+  color: var(--color-ink);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
 }
 
 .ledger-table {
