@@ -1,5 +1,5 @@
 import { formatMinor } from "@/ledger";
-import { assetByCode, entityById, exampleAccounts, exampleAssets, exampleBooks, exampleEntities, exampleSources, sourceById } from "./example-books";
+import { assetByCode, exampleAccounts, exampleAssets, exampleEntities, exampleSources } from "./example-books";
 
 const FIAT_DECIMALS: Record<string, number> = { MYR: 2, SGD: 2, USD: 2 };
 
@@ -23,11 +23,11 @@ export function formatQuantity(
 }
 
 export function entityName(id: string, entities: readonly { id: string; name: string }[] = exampleEntities): string {
-  return entities.find((entity) => entity.id === id)?.name ?? entityById(id)?.name ?? id;
+  return entities.find((entity) => entity.id === id)?.name ?? id;
 }
 
 export function sourceName(id: string, sources: readonly { id: string; name: string }[] = exampleSources): string {
-  return sources.find((source) => source.id === id)?.name ?? sourceById(id)?.name ?? id;
+  return sources.find((source) => source.id === id)?.name ?? id;
 }
 
 export function accountLabel(
@@ -35,7 +35,6 @@ export function accountLabel(
   code: string,
   accounts: readonly { entityId: string; code: string; name: string }[] = exampleAccounts,
 ): string {
-  const account = accounts.find((item) => item.entityId === entityId && item.code === code)
-    ?? exampleBooks.accounts.find((item) => item.entityId === entityId && item.code === code);
+  const account = accounts.find((item) => item.entityId === entityId && item.code === code);
   return account ? `${account.code} ${account.name}` : code;
 }

@@ -9,8 +9,8 @@ export default function HomePage() {
     <div className="min-h-full">
       <header className="flex items-center justify-between border-b border-line px-4 py-4 md:px-8">
         <p className="font-serif text-xl tracking-tight">Token Ledger</p>
-        <Link href="/dashboard" className="border border-ink px-3 py-2 text-sm">
-          Open example books
+        <Link href="/sign-in?next=/dashboard" className="border border-ink px-3 py-2 text-sm">
+          Sign in
         </Link>
       </header>
 
@@ -113,7 +113,7 @@ export default function HomePage() {
               The example dashboard uses Harbourline Digital, a fictional Malaysia and Singapore group. Measurement bases
               in the chart of accounts are labels for the sample, not a recommended policy.
             </p>
-            <Link href="/dashboard" className="mt-6 inline-block border border-ink px-3 py-2 text-sm">
+            <Link href="/sign-in?next=/dashboard" className="mt-6 inline-block border border-ink px-3 py-2 text-sm">
               Review the Q2 2026 example close
             </Link>
           </div>

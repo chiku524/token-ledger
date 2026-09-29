@@ -9,14 +9,15 @@ import {
   journalActivityChart,
   reconciliationStatus,
 } from "@/data/charts";
-import { booksAreWritable, loadBooks } from "@/data/load-books";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { trialBalance } from "@/ledger";
 
 export const metadata = { title: "Overview" };
 
 export default async function DashboardPage() {
-  const books = await loadBooks();
+  const { session, books } = await loadAuthorizedBooks();
   const exceptions = books.reconciliations.filter((record) => record.status === "exception");
   const balances = books.entities.map((entity) => ({
     entity,
@@ -29,7 +30,7 @@ export default async function DashboardPage() {
   const composition = compositionPanels(books);
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
-  const currencyNote = booksAreWritable()
+  const currencyNote = booksAreWritable() && !session.demo
     ? "Each panel stays in that entity's functional currency. Group translation is on Consolidation."
     : "Example books. Each panel uses that entity's functional currency. Group translation, using labelled example rates, is on Consolidation.";
 

@@ -15,6 +15,13 @@
       "when": 1790650875500,
       "tag": "0001_fx_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790672983759,
+      "tag": "0002_accounts_roles",
+      "breakpoints": true
     }
   ]
 }

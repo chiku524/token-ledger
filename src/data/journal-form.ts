@@ -16,7 +16,6 @@ interface JournalForm {
   reference: string;
   entryDate: string;
   memo: string;
-  postedBy: string;
   lines: JournalLineForm[];
 }
 

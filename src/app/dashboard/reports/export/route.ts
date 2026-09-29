@@ -1,15 +1,26 @@
+import { getSession } from "@/auth/current";
+import { can, canAccessEntity } from "@/auth/roles";
 import { formatMinor, journalCsv, netBalanceMinor, reconciliationCsv, trialBalance, trialBalanceCsv } from "@/ledger";
 import { loadBooks } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
+import { scopeBooks } from "@/data/scope-books";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, sourceName } from "@/data/present";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const session = await getSession();
+  if (!session || !can(session.role, "books.export")) {
+    return new Response("Sign in to export.", { status: 401 });
+  }
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
-  const books = await loadBooks();
+  const books = scopeBooks(await loadBooks(), session);
+  const requestedEntity = url.searchParams.get("entity");
+  if (requestedEntity && !canAccessEntity(session, requestedEntity)) {
+    return new Response("That entity is outside your access.", { status: 403 });
+  }
   const parsed = parseDateRange(
     { from: url.searchParams.get("from") ?? undefined, to: url.searchParams.get("to") ?? undefined },
     { from: books.period.start, to: books.period.end },

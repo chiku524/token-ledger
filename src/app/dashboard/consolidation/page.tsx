@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
-import { loadBooks } from "@/data/load-books";
+import { ensureCsrf } from "@/auth/current";
+import { can } from "@/auth/roles";
+import { FxRateForm, ReadOnlyNote } from "@/components/record-forms";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { booksAreWritable } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { formatMoney } from "@/data/present";
-import { consolidateTrialBalances, formatFxRate } from "@/ledger";
+import { consolidateTrialBalances, formatFxRate, formatInverseRate } from "@/ledger";
 
 export const metadata = { title: "Consolidation" };
 
@@ -16,7 +20,8 @@ export default async function ConsolidationPage({
   searchParams: Promise<{ currency?: string | string[]; from?: string | string[]; to?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const books = await loadBooks();
+  const { session, books } = await loadAuthorizedBooks();
+  const canFx = can(session.role, "fx.write");
   const parent = books.entities.find((entity) => entity.parentEntityId === null) ?? books.entities[0];
   const currencies = [...new Set(books.entities.map((entity) => entity.functionalCurrency))];
   const requested = one(params.currency);
@@ -86,7 +91,10 @@ export default async function ConsolidationPage({
               <tbody>
                 {books.fxRates.map((rate) => (
                   <tr key={rate.id}>
-                    <td>{formatFxRate(rate)}</td>
+                    <td>
+                      {formatFxRate(rate)}
+                      <span className="mt-1 block text-xs text-ink-soft">{formatInverseRate(rate)} · exact inverse</span>
+                    </td>
                     <td className="num text-left">{rate.asOf}</td>
                     <td className="capitalize">{rate.origin}</td>
                     <td>{rate.note}</td>
@@ -96,6 +104,12 @@ export default async function ConsolidationPage({
             </table>
           </div>
         )}
+        {canFx ? (
+          <>
+            {booksAreWritable() && !session.demo ? null : <ReadOnlyNote demo={session.demo} />}
+            <FxRateForm csrf={await ensureCsrf()} defaultDate={range.to} />
+          </>
+        ) : null}
       </section>
 
       <section className="mt-8">

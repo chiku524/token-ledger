@@ -3,7 +3,9 @@
  * Re-running replaces that organization and its rows. It does not touch other organizations.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
+import { EXAMPLE_USERS } from "../auth/example-users";
+import { hashPassword } from "../auth/password";
 import { exampleBooks } from "../data/example-books";
 import { closeDb, getDb } from "./client";
 import {
@@ -12,12 +14,16 @@ import {
   auditEvents,
   entities,
   fxRates,
+  invites,
   journalEntries,
   journalLines,
   organizations,
   reconciliationRecords,
+  sessions,
+  signInAttempts,
   sourceTransactions,
   sources,
+  users,
 } from "./schema";
 
 loadEnvFile();
@@ -26,9 +32,17 @@ async function main() {
   const db = getDb();
   const books = exampleBooks;
   const organizationId = books.organization.id;
+  const passwordHashes = await Promise.all(EXAMPLE_USERS.map((user) => hashPassword(user.password)));
 
   await db.transaction(async (tx) => {
     await tx.execute(sql`select set_config('token_ledger.allow_journal_delete', 'on', true)`);
+    const existingUsers = await tx.select({ id: users.id }).from(users).where(eq(users.organizationId, organizationId));
+    if (existingUsers.length > 0) {
+      await tx.delete(sessions).where(inArray(sessions.userId, existingUsers.map((user) => user.id)));
+    }
+    await tx.delete(invites).where(eq(invites.organizationId, organizationId));
+    await tx.delete(users).where(eq(users.organizationId, organizationId));
+    await tx.delete(signInAttempts).where(inArray(signInAttempts.email, EXAMPLE_USERS.map((user) => user.email)));
     await tx.delete(reconciliationRecords).where(eq(reconciliationRecords.organizationId, organizationId));
     await tx.delete(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId));
     await tx.delete(journalLines).where(eq(journalLines.organizationId, organizationId));
@@ -139,12 +153,34 @@ async function main() {
     );
 
     await tx.insert(fxRates).values([...books.fxRates]);
-    await tx.insert(auditEvents).values(
-      books.auditEvents.map((event) => ({
+    await tx.insert(users).values(
+      EXAMPLE_USERS.map((user, index) => ({
+        id: `user_example_${user.role}${user.entityScope.length ? "_sg" : ""}`,
+        organizationId,
+        email: user.email,
+        name: user.name,
+        passwordHash: passwordHashes[index] ?? null,
+        role: user.role,
+        status: "active" as const,
+        entityScope: user.entityScope.join(","),
+      })),
+    );
+    await tx.insert(auditEvents).values([
+      ...books.auditEvents.map((event) => ({
         ...event,
         occurredAt: new Date(event.occurredAt),
       })),
-    );
+      ...EXAMPLE_USERS.map((user) => ({
+        id: `audit_user_${user.email}`,
+        organizationId,
+        occurredAt: new Date("2026-04-01T00:00:00.000Z"),
+        actor: "example books",
+        action: "user.seeded",
+        subjectType: "user",
+        subjectId: user.email,
+        detail: `Example ${user.role} ${user.name}. Local development credential only.`,
+      })),
+    ]);
   });
 
   console.log(`Seeded example organization "${books.organization.name}" (${organizationId}).`);

@@ -11,7 +11,6 @@ describe("postFormJournal", () => {
         reference: "JE-TEST",
         entryDate: "2026-06-30",
         memo: "Example form posting.",
-        postedBy: "Amina",
         lines: [
           { accountCode: "1000", side: "debit", amount: "15.50" },
           { accountCode: "3100", side: "credit", amount: "15.50" },
@@ -29,7 +28,6 @@ describe("postFormJournal", () => {
           reference: "JE-BAD",
           entryDate: "2026-06-30",
           memo: "Unbalanced.",
-          postedBy: "Amina",
           lines: [
             { accountCode: "1000", side: "debit", amount: "10.00" },
             { accountCode: "3100", side: "credit", amount: "9.00" },

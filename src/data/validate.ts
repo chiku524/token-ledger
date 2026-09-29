@@ -54,7 +54,6 @@ export const journalFormSchema = z.object({
   reference: text(40),
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD."),
   memo: text(500),
-  postedBy: text(80),
   lines: z.array(journalLineSchema).min(2, "A journal needs at least two lines.").max(8),
 });
 
@@ -63,7 +62,37 @@ export const reversalFormSchema = z.object({
   reference: text(40),
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD."),
   memo: text(500),
-  postedBy: text(80),
+});
+
+export const fxRateFormSchema = z.object({
+  baseCurrency: z.string().trim().regex(/^[A-Z]{3}$/, "Use a 3-letter currency code."),
+  quoteCurrency: z.string().trim().regex(/^[A-Z]{3}$/, "Use a 3-letter currency code."),
+  rate: z.string().trim().regex(/^\d+(\.\d{1,4})?$/, "Rate can have at most 4 decimal places."),
+  asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD."),
+  note: text(300),
+}).superRefine((value, context) => {
+  if (value.baseCurrency === value.quoteCurrency) {
+    context.addIssue({ code: "custom", path: ["quoteCurrency"], message: "The two currencies must differ." });
+  }
+  if (value.rate === "0" || value.rate === "0.0" || value.rate === "0.00" || value.rate === "0.000" || value.rate === "0.0000") {
+    context.addIssue({ code: "custom", path: ["rate"], message: "The rate must be positive." });
+  }
+});
+
+export const userFormSchema = z.object({
+  name: text(80),
+  email: z.string().trim().email("Enter an email address.").max(200),
+  role: z.enum(["owner", "admin", "accountant", "viewer"]),
+  entityScope: z.string().trim().max(500).optional().transform((value) => (value ? value.split(",").map((id) => id.trim()).filter(Boolean) : [])),
+});
+
+export const passwordFormSchema = z.object({
+  password: z.string().min(12, "Use at least 12 characters.").max(200),
+  confirm: z.string(),
+}).superRefine((value, context) => {
+  if (value.password !== value.confirm) {
+    context.addIssue({ code: "custom", path: ["confirm"], message: "The passwords do not match." });
+  }
 });
 
 export function firstIssue(error: z.ZodError): string {

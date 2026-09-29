@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { readDatabaseUrl } from "./env";
+import { authSecretConfigured, readDatabaseUrl } from "./env";
+
+describe("authSecretConfigured", () => {
+  it("requires at least 32 characters", () => {
+    expect(authSecretConfigured({})).toBe(false);
+    expect(authSecretConfigured({ AUTH_SECRET: "short" })).toBe(false);
+    expect(authSecretConfigured({ AUTH_SECRET: "x".repeat(32) })).toBe(true);
+  });
+});
 
 describe("readDatabaseUrl", () => {
   it("treats a missing value as the example-books path", () => {

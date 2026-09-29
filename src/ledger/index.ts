@@ -7,8 +7,18 @@ export type {
   SourceCarryMeta,
 } from "./charts";
 export { journalCsv, reconciliationCsv, toCsv, trialBalanceCsv } from "./csv";
-export { consolidateTrialBalances, formatFxRate, selectFxRate, translateMinor } from "./fx";
-export type { ConsolidatedTrialBalance, EntityTranslation, FxRate } from "./fx";
+export {
+  appliedRateLabel,
+  consolidateTrialBalances,
+  findAppliedRate,
+  formatFxRate,
+  formatInverseRate,
+  selectFxRate,
+  translateMinor,
+  translateMinorInverse,
+  translateWithRate,
+} from "./fx";
+export type { AppliedRate, ConsolidatedTrialBalance, EntityTranslation, FxRate } from "./fx";
 export { formatMinor, minorToNumber, toMinor } from "./money";
 export { reverseJournalEntry } from "./reverse";
 export { assertUniqueEntryIds, postJournalEntry } from "./post";

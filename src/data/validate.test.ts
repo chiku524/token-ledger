@@ -41,9 +41,8 @@ describe("form validation", () => {
       entityId: "ent_1",
       reference: "JE-1",
       entryDate: "2026-06-30",
-      memo: "Capital",
-      postedBy: "Amina",
-      lines: [
+        memo: "Capital",
+        lines: [
         { accountCode: "1000", side: "debit", amount: "10.00" },
         { accountCode: "3100", side: "credit", amount: "10.00" },
       ],
@@ -55,7 +54,6 @@ describe("form validation", () => {
       reference: "JE-1",
       entryDate: "2026-06-30",
       memo: "Capital",
-      postedBy: "",
       lines: [{ accountCode: "1000", side: "debit", amount: "10.00" }],
     });
     expect(missing.success).toBe(false);

@@ -297,18 +297,7 @@ export const exampleFxRates: StoredFxRate[] = [
     scale: 4,
     asOf: "2026-04-01",
     origin: "example",
-    note: "Illustrative example rate for the Harbourline quarter. Not a market price.",
-  },
-  {
-    id: "fx_example_sgd_myr",
-    organizationId: ORG_ID,
-    baseCurrency: "SGD",
-    quoteCurrency: "MYR",
-    numerator: 33000n,
-    scale: 4,
-    asOf: "2026-04-01",
-    origin: "example",
-    note: "Illustrative example rate. Not the arithmetic inverse of the MYR rate, and not a market price.",
+    note: "Illustrative example rate for the Harbourline quarter. Not a market price. SGD amounts use the exact inverse of this rate.",
   },
 ];
 

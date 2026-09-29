@@ -3,7 +3,7 @@ import type { Books } from "@/data/books";
 import type { ParsedSourceTransaction } from "@/data/source-csv";
 import { LedgerError, reverseJournalEntry, type PostedJournalEntry } from "@/ledger";
 import { getDb } from "./client";
-import { accounts, auditEvents, entities, journalEntries, journalLines, sourceTransactions, sources } from "./schema";
+import { accounts, auditEvents, entities, fxRates, journalEntries, journalLines, sourceTransactions, sources } from "./schema";
 
 export class BooksWriteError extends Error {
   constructor(message: string) {
@@ -80,6 +80,46 @@ export async function insertReversal(books: Books, entryId: string, input: { ref
   }
   const reversal = reverseJournalEntry(original, { id: newId("je"), ...input });
   await persistEntry(books, reversal, actor, "journal.reversed", original.id);
+}
+
+export async function insertFxRate(
+  books: Books,
+  input: {
+    baseCurrency: string;
+    quoteCurrency: string;
+    numerator: bigint;
+    scale: number;
+    asOf: string;
+    note: string;
+  },
+  actor: string,
+): Promise<void> {
+  if (input.numerator <= 0n) throw new BooksWriteError("The rate must be positive.");
+  const id = newId("fx");
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx.insert(fxRates).values({
+      id,
+      organizationId: books.organization.id,
+      baseCurrency: input.baseCurrency,
+      quoteCurrency: input.quoteCurrency,
+      numerator: input.numerator,
+      scale: input.scale,
+      asOf: input.asOf,
+      origin: books.organization.origin,
+      note: input.note,
+    });
+    await tx.insert(auditEvents).values(
+      auditRow(
+        books,
+        actor,
+        "fx.recorded",
+        "fx_rate",
+        id,
+        `1 ${input.baseCurrency} = ${input.numerator.toString()} / 10^${input.scale} ${input.quoteCurrency}`,
+      ),
+    );
+  });
 }
 
 export async function insertSourceTransactions(

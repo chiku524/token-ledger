@@ -4,7 +4,8 @@ import { ChartFrame } from "@/components/charts/frame";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
 import { reportAssetBars, reportComposition } from "@/data/charts";
-import { loadBooks } from "@/data/load-books";
+import { can } from "@/auth/roles";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
@@ -19,7 +20,7 @@ export default async function ReportsPage({
   searchParams: Promise<{ entity?: string | string[]; from?: string | string[]; to?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const books = await loadBooks();
+  const { session, books } = await loadAuthorizedBooks();
   const requested = one(params.entity);
   const entity = books.entities.find((item) => item.id === requested) ?? books.entities[0];
   const parsed = parseDateRange(
@@ -74,6 +75,7 @@ export default async function ReportsPage({
       </nav>
       <PeriodForm path="/dashboard/reports" range={range} hidden={{ entity: entity.id }} />
 
+      {can(session.role, "books.export") ? (
       <div className="mb-8 flex flex-wrap gap-2">
         <a className="btn-secondary" href={`/dashboard/reports/export?kind=trial-balance&${exportQuery}`}>
           Trial balance CSV
@@ -85,6 +87,7 @@ export default async function ReportsPage({
           Reconciliation CSV
         </a>
       </div>
+      ) : null}
 
       <div className="mb-8 grid gap-4 xl:grid-cols-2">
         {assetBars.length > 0 ? (

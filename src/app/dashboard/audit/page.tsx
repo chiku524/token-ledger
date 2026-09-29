@@ -1,10 +1,10 @@
 import { PageHeader } from "@/components/page-header";
-import { loadBooks } from "@/data/load-books";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
 
 export const metadata = { title: "Audit" };
 
 export default async function AuditPage() {
-  const books = await loadBooks();
+  const { books } = await loadAuthorizedBooks();
   const events = [...books.auditEvents].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id));
 
   return (
@@ -12,7 +12,7 @@ export default async function AuditPage() {
       <PageHeader
         kicker="Who did what"
         title="Audit log"
-        description="Postings, reversals, new entities, new sources, and CSV imports are appended here. Posted journals are not edited. There is no login yet, so the actor is the name entered on the form."
+        description="Postings, reversals, sign-ins, and user changes are appended here. The actor is the signed-in user. Example history keeps the original example actor. A viewer's entity scope does not hide organization audit events."
       />
       {events.length === 0 ? (
         <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No audit events yet.</p>

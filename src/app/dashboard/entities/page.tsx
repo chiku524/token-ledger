@@ -1,7 +1,10 @@
+import { ensureCsrf } from "@/auth/current";
+import { can } from "@/auth/roles";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
-import { EntityForm, ReadOnlyNote } from "@/components/record-forms";
-import { booksAreWritable, loadBooks } from "@/data/load-books";
+import { EntityForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { entityName } from "@/data/present";
 
@@ -13,8 +16,9 @@ export default async function EntitiesPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const books = await loadBooks();
-  const writable = booksAreWritable();
+  const { session, books } = await loadAuthorizedBooks();
+  const allowed = can(session.role, "entity.write");
+  const writable = booksAreWritable() && !session.demo;
 
   return (
     <>
@@ -24,7 +28,14 @@ export default async function EntitiesPage({
         description="A parent and its subsidiaries share one organization. Consolidation translates their functional currencies on the consolidation page."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
-      {writable ? <EntityForm books={books} /> : <ReadOnlyNote />}
+      {allowed ? (
+        <>
+          {writable ? null : <ReadOnlyNote demo={session.demo} />}
+          <EntityForm books={books} csrf={await ensureCsrf()} />
+        </>
+      ) : (
+        <RoleNote>Your role can view entities. Adding one is limited to owners and admins.</RoleNote>
+      )}
       {books.entities.length === 0 ? (
         <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No entities yet.</p>
       ) : (
