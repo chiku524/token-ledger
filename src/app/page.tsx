@@ -9,7 +9,7 @@ export default function HomePage() {
     <div className="min-h-full">
       <header className="flex items-center justify-between border-b border-line px-4 py-4 md:px-8">
         <p className="font-serif text-xl tracking-tight">Token Ledger</p>
-        <Link href="/dashboard" className="border border-ink px-3 py-2 text-sm">
+        <Link href="/sign-in?next=/dashboard" className="border border-ink px-3 py-2 text-sm">
           Open the example
         </Link>
       </header>
@@ -112,7 +112,7 @@ export default function HomePage() {
               The example uses Harbourline Digital, a fictional group in Malaysia and Singapore. The account names in the
               sample are examples, not a recommendation.
             </p>
-            <Link href="/dashboard" className="mt-6 inline-block border border-ink px-3 py-2 text-sm">
+            <Link href="/sign-in?next=/dashboard" className="mt-6 inline-block border border-ink px-3 py-2 text-sm">
               See the Q2 2026 example
             </Link>
           </div>

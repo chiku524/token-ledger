@@ -1,11 +1,11 @@
 import { PageHeader } from "@/components/page-header";
-import { loadBooks } from "@/data/load-books";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { actionLabel, subjectLabel } from "@/data/present";
 
 export const metadata = { title: "History" };
 
 export default async function AuditPage() {
-  const books = await loadBooks();
+  const { books } = await loadAuthorizedBooks();
   const events = [...books.auditEvents].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id));
 
   return (
@@ -13,7 +13,7 @@ export default async function AuditPage() {
       <PageHeader
         kicker="Who did what"
         title="History"
-        description="New companies, new wallets and accounts, imports, and posted entries are listed here. Entries are not edited. There is no login yet, so the name is whatever was typed on the form."
+        description="New companies, wallets and accounts, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. The name is the person who signed in. Sample history keeps its original name. A person limited to one company still sees the whole group's history."
       />
       {events.length === 0 ? (
         <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">Nothing recorded yet.</p>

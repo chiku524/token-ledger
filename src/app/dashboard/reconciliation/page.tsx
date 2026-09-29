@@ -3,7 +3,7 @@ import { ChartFrame } from "@/components/charts/frame";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
 import { reconciliationBySource, reconciliationStatus } from "@/data/charts";
-import { loadBooks } from "@/data/load-books";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
@@ -17,7 +17,7 @@ export default async function ReconciliationPage({
   searchParams: Promise<{ from?: string | string[]; to?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const books = await loadBooks();
+  const { books } = await loadAuthorizedBooks();
   const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, { from: books.period.start, to: books.period.end });
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
   const scoped = sliceBooks(books, range);

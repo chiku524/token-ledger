@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toMinor } from "./money";
 import { exampleAccounts, exampleBooks, exampleFxRates, exampleJournalEntries } from "@/data/example-books";
-import { consolidateTrialBalances, formatFxRate, selectFxRate, translateMinor } from "./fx";
+import { consolidateTrialBalances, formatFxRate, formatInverseRate, selectFxRate, translateMinor, translateMinorInverse } from "./fx";
 import { netBalanceMinor } from "./reports";
 
 describe("FX translation", () => {
@@ -72,6 +72,11 @@ describe("FX translation", () => {
       creditMinor: 0n,
       normalBalance: "debit",
     });
-    expect(sol && sol.debitMinor - sol.creditMinor).toBe(toMinor("31624.00", 2) + translateMinor(sgIntangible, exampleFxRates[1], 2, 2));
+    const myrRate = exampleFxRates[0];
+    if (!myrRate) throw new Error("missing example rate");
+    expect(formatInverseRate(myrRate)).toBe("1 SGD = 10/3 MYR");
+    expect(translateMinorInverse(translateMinor(toMinor("100.00", 2), myrRate, 2, 2), myrRate, 2, 2)).toBe(toMinor("100.00", 2));
+    expect(myr.entities.find((entity) => entity.functionalCurrency === "SGD")?.rateLabel).toContain("exact inverse");
+    expect(sol && sol.debitMinor - sol.creditMinor).toBe(toMinor("31624.00", 2) + translateMinorInverse(sgIntangible, myrRate, 2, 2));
   });
 });

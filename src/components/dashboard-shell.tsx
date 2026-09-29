@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { signOutAction } from "@/app/sign-in/actions";
+import type { SessionUser } from "@/auth/current";
+import { roleLabel } from "@/auth/roles";
 import { DashboardNav } from "./dashboard-nav";
 import { ExampleBanner } from "./example-banner";
 
@@ -7,11 +10,19 @@ export function DashboardShell({
   origin,
   notice,
   subtitle,
+  session,
+  csrf,
+  showUsers,
+  scopeLabel,
 }: {
   children: React.ReactNode;
   origin: "example" | "live";
   notice: string;
   subtitle: string;
+  session: SessionUser;
+  csrf: string;
+  showUsers: boolean;
+  scopeLabel: string | null;
 }) {
   return (
     <div className="min-h-full md:grid md:grid-cols-[15.5rem_minmax(0,1fr)]">
@@ -26,7 +37,21 @@ export function DashboardShell({
           <p className="text-xs tracking-wide text-ink-soft md:mt-1">{subtitle}</p>
         </div>
         <div className="px-3 pb-3">
-          <DashboardNav />
+          <DashboardNav showUsers={showUsers} />
+        </div>
+        <div className="border-t border-line px-4 py-4 text-sm">
+          <p className="font-medium">{session.name}</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            {roleLabel(session.role)} · {session.email}
+          </p>
+          {session.demo ? <p className="mt-1 text-xs text-seal">Sample preview · not saved</p> : null}
+          {scopeLabel ? <p className="mt-1 text-xs text-ink-soft">{scopeLabel}</p> : null}
+          <form action={signOutAction} className="mt-3">
+            <input type="hidden" name="csrf" value={csrf} />
+            <button type="submit" className="btn-secondary">
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
       <div className="min-w-0">

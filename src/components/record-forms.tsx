@@ -1,17 +1,24 @@
-import { createEntityAction, createSourceAction, importCsvAction, postJournalAction } from "@/app/dashboard/actions";
+import { createEntityAction, createFxRateAction, createSourceAction, importCsvAction, postJournalAction, reverseJournalAction } from "@/app/dashboard/actions";
 import type { Books } from "@/data/books";
 
-export function ReadOnlyNote() {
+export function ReadOnlyNote({ demo = false }: { demo?: boolean }) {
   return (
     <p className="mb-8 max-w-2xl text-sm leading-relaxed text-ink-soft">
-      This example is read-only. Connect a database to add companies, wallets, and entries.
+      {demo
+        ? "This demo does not save. Connect a database, then sign in with a password."
+        : "This sample is read-only. Connect a database to add companies, wallets, and entries."}
     </p>
   );
 }
 
-export function EntityForm({ books }: { books: Books }) {
+export function RoleNote({ children }: { children: string }) {
+  return <p className="mb-8 max-w-2xl text-sm leading-relaxed text-ink-soft">{children}</p>;
+}
+
+export function EntityForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
     <form action={createEntityAction} className="mb-10 grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
+      <input type="hidden" name="csrf" value={csrf} />
       <h2 className="font-serif text-2xl md:col-span-2">Add a company</h2>
       <label className="field">
         <span>Name</span>
@@ -44,10 +51,6 @@ export function EntityForm({ books }: { books: Books }) {
           ))}
         </select>
       </label>
-      <label className="field">
-        <span>Your name</span>
-        <input name="recordedBy" required maxLength={80} autoComplete="name" />
-      </label>
       <div className="md:col-span-2">
         <button type="submit" className="btn">
           Add company
@@ -57,9 +60,10 @@ export function EntityForm({ books }: { books: Books }) {
   );
 }
 
-export function SourceForm({ books }: { books: Books }) {
+export function SourceForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
     <form action={createSourceAction} className="grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
+      <input type="hidden" name="csrf" value={csrf} />
       <h2 className="font-serif text-2xl md:col-span-2">Add a wallet, exchange, or custodian</h2>
       <label className="field">
         <span>Company</span>
@@ -100,10 +104,6 @@ export function SourceForm({ books }: { books: Books }) {
         <span>Address or account ID</span>
         <input name="identifier" required maxLength={200} className="font-mono text-sm" />
       </label>
-      <label className="field md:col-span-2">
-        <span>Your name</span>
-        <input name="recordedBy" required maxLength={80} autoComplete="name" />
-      </label>
       <div className="md:col-span-2">
         <button type="submit" className="btn">
           Add place
@@ -113,9 +113,10 @@ export function SourceForm({ books }: { books: Books }) {
   );
 }
 
-export function CsvImportForm({ books }: { books: Books }) {
+export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
     <form action={importCsvAction} className="grid gap-3 border border-line bg-paper-raised p-4">
+      <input type="hidden" name="csrf" value={csrf} />
       <h2 className="font-serif text-2xl">Import activity</h2>
       <p className="max-w-2xl text-sm leading-relaxed text-ink-soft">
         Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the
@@ -140,10 +141,6 @@ export function CsvImportForm({ books }: { books: Books }) {
         <span>Or paste CSV</span>
         <textarea name="csv" rows={4} spellCheck={false} className="font-mono text-xs" />
       </label>
-      <label className="field">
-        <span>Your name</span>
-        <input name="recordedBy" required maxLength={80} autoComplete="name" />
-      </label>
       <div>
         <button type="submit" className="btn">
           Import activity
@@ -153,10 +150,11 @@ export function CsvImportForm({ books }: { books: Books }) {
   );
 }
 
-export function JournalForm({ books }: { books: Books }) {
+export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
   const accounts = books.accounts;
   return (
     <form action={postJournalAction} className="mb-10 grid gap-3 border border-line bg-paper-raised p-4">
+      <input type="hidden" name="csrf" value={csrf} />
       <h2 className="font-serif text-2xl">Post an entry</h2>
       <p className="max-w-2xl text-sm leading-relaxed text-ink-soft">
         Debits must equal credits, in the company&apos;s currency. Leave unused lines blank. A token amount needs the
@@ -180,10 +178,6 @@ export function JournalForm({ books }: { books: Books }) {
         <label className="field">
           <span>Date</span>
           <input name="entryDate" type="date" required defaultValue={books.period.end} />
-        </label>
-        <label className="field">
-          <span>Your name</span>
-          <input name="postedBy" required maxLength={80} autoComplete="name" />
         </label>
         <label className="field md:col-span-2">
           <span>Memo</span>
@@ -291,6 +285,75 @@ export function JournalForm({ books }: { books: Books }) {
       <div>
         <button type="submit" className="btn">
           Post entry
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function ReverseJournalForm({
+  csrf,
+  entry,
+}: {
+  csrf: string;
+  entry: { id: string; reference: string; entryDate: string };
+}) {
+  return (
+    <form action={reverseJournalAction} className="grid gap-3 border-t border-line px-4 py-3 md:grid-cols-3">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="entryId" value={entry.id} />
+      <label className="field">
+        <span>Correction reference</span>
+        <input name="reference" required defaultValue={`${entry.reference}-R`} maxLength={40} />
+      </label>
+      <label className="field">
+        <span>Correction date</span>
+        <input name="entryDate" type="date" required defaultValue={entry.entryDate} />
+      </label>
+      <label className="field md:col-span-3">
+        <span>Memo</span>
+        <input name="memo" required maxLength={500} defaultValue={`Correct ${entry.reference}.`} />
+      </label>
+      <div className="md:col-span-3">
+        <button type="submit" className="btn-secondary">
+          Post correction
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function FxRateForm({ csrf, defaultDate }: { csrf: string; defaultDate: string }) {
+  return (
+    <form action={createFxRateAction} className="mt-4 grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
+      <input type="hidden" name="csrf" value={csrf} />
+      <h3 className="font-serif text-2xl md:col-span-2">Add a rate</h3>
+      <p className="text-sm text-ink-soft md:col-span-2">
+        Save one direction. The other direction is calculated from it, so the two cannot disagree.
+      </p>
+      <label className="field">
+        <span>Base</span>
+        <input name="baseCurrency" required maxLength={3} defaultValue="MYR" className="uppercase" />
+      </label>
+      <label className="field">
+        <span>Quote</span>
+        <input name="quoteCurrency" required maxLength={3} defaultValue="SGD" className="uppercase" />
+      </label>
+      <label className="field">
+        <span>Rate (quote per 1 base)</span>
+        <input name="rate" required inputMode="decimal" placeholder="0.3000" />
+      </label>
+      <label className="field">
+        <span>As of</span>
+        <input name="asOf" type="date" required defaultValue={defaultDate} />
+      </label>
+      <label className="field md:col-span-2">
+        <span>Note</span>
+        <input name="note" required maxLength={300} />
+      </label>
+      <div className="md:col-span-2">
+        <button type="submit" className="btn">
+          Save rate
         </button>
       </div>
     </form>

@@ -1,11 +1,14 @@
 import { listStubAdapters } from "@/adapters";
 import { MoneyBars } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
+import { ensureCsrf } from "@/auth/current";
+import { can } from "@/auth/roles";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
-import { CsvImportForm, ReadOnlyNote, SourceForm } from "@/components/record-forms";
+import { CsvImportForm, ReadOnlyNote, RoleNote, SourceForm } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
-import { booksAreWritable, loadBooks } from "@/data/load-books";
+import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { entityName, placeTypeLabel, walletRoleLabel } from "@/data/present";
 
@@ -24,8 +27,11 @@ export default async function SourcesPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const books = await loadBooks();
-  const writable = booksAreWritable();
+  const { session, books } = await loadAuthorizedBooks();
+  const writable = booksAreWritable() && !session.demo;
+  const canSource = can(session.role, "source.write");
+  const canImport = can(session.role, "source.import");
+  const csrf = canSource || canImport ? await ensureCsrf() : "";
   const connectors = listStubAdapters();
   const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
 
@@ -55,16 +61,18 @@ export default async function SourcesPage({
       )}
 
       <div className="mt-8 grid gap-4 xl:grid-cols-2">
-        {writable ? (
-          <>
-            <SourceForm books={books} />
-            <CsvImportForm books={books} />
-          </>
-        ) : (
+        {!writable && (canSource || canImport) ? (
           <div className="xl:col-span-2">
-            <ReadOnlyNote />
+            <ReadOnlyNote demo={session.demo} />
+          </div>
+        ) : null}
+        {canSource || canImport ? null : (
+          <div className="xl:col-span-2">
+            <RoleNote>You can view holdings. Adding a wallet, exchange, or custodian, or importing activity, is not available for this role.</RoleNote>
           </div>
         )}
+        {canSource ? <SourceForm books={books} csrf={csrf} /> : null}
+        {canImport ? <CsvImportForm books={books} csrf={csrf} /> : null}
       </div>
 
       {books.sources.length === 0 ? (

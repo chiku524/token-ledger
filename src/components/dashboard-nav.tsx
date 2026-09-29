@@ -14,12 +14,13 @@ const links = [
   { href: "/dashboard/audit", label: "History" },
 ];
 
-export function DashboardNav() {
+export function DashboardNav({ showUsers }: { showUsers: boolean }) {
   const pathname = usePathname();
+  const items = showUsers ? [...links, { href: "/dashboard/users", label: "Users" }] : links;
 
   return (
     <nav aria-label="Sections" className="flex gap-1 overflow-x-auto md:flex-col">
-      {links.map((link) => {
+      {items.map((link) => {
         const active = link.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(link.href);
         return (
           <Link

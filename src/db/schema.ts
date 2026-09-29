@@ -16,6 +16,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   date,
   foreignKey,
@@ -37,6 +38,8 @@ export const normalBalance = pgEnum("normal_balance", ["debit", "credit"]);
 export const journalSide = pgEnum("journal_side", ["debit", "credit"]);
 export const quantityDirection = pgEnum("quantity_direction", ["in", "out"]);
 export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", "exception"]);
+export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "viewer"]);
+export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
 
 export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
@@ -305,4 +308,68 @@ export const auditEvents = pgTable(
     detail: text("detail").notNull(),
   },
   (table) => [index("audit_events_organization_occurred_idx").on(table.organizationId, table.occurredAt)],
+);
+
+export const users = pgTable(
+  "users",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    email: text("email").notNull(),
+    name: text("name").notNull(),
+    passwordHash: text("password_hash"),
+    role: userRole("role").notNull(),
+    status: userStatus("status").notNull(),
+    /** Comma-separated entity ids. Empty means every entity in the organization. */
+    entityScope: text("entity_scope").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("users_organization_email_unique").on(table.organizationId, table.email),
+    index("users_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("sessions_user_id_idx").on(table.userId)],
+);
+
+export const signInAttempts = pgTable(
+  "sign_in_attempts",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    succeeded: boolean("succeeded").notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("sign_in_attempts_email_attempted_idx").on(table.email, table.attemptedAt)],
+);
+
+export const invites = pgTable(
+  "invites",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    email: text("email").notNull(),
+    role: userRole("role").notNull(),
+    entityScope: text("entity_scope").notNull().default(""),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("invites_token_hash_unique").on(table.tokenHash)],
 );

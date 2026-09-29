@@ -91,6 +91,74 @@ export function formatFxRate(rate: Pick<FxRate, "baseCurrency" | "quoteCurrency"
   return `1 ${rate.baseCurrency} = ${body} ${rate.quoteCurrency}`;
 }
 
+/** Exact inverse as a reduced fraction, so 0.3000 SGD per MYR displays as 10/3 MYR per SGD. */
+export function formatInverseRate(rate: Pick<FxRate, "baseCurrency" | "quoteCurrency" | "numerator" | "scale">): string {
+  const denominator = 10n ** BigInt(rate.scale);
+  const divisor = gcd(denominator, rate.numerator);
+  return `1 ${rate.quoteCurrency} = ${denominator / divisor}/${rate.numerator / divisor} ${rate.baseCurrency}`;
+}
+
+/** Convert an amount denominated in the quote currency back into the base currency. */
+export function translateMinorInverse(
+  amountMinor: bigint,
+  rate: Pick<FxRate, "numerator" | "scale">,
+  fromScale: number,
+  toScale: number,
+): bigint {
+  if (!Number.isInteger(rate.scale) || rate.scale < 0 || rate.scale > 12) {
+    throw new Error("FX rate scale must be an integer from 0 to 12.");
+  }
+  if (rate.numerator <= 0n) throw new Error("FX rate numerator must be positive.");
+  const negative = amountMinor < 0n;
+  const absolute = negative ? -amountMinor : amountMinor;
+  const numerator = absolute * 10n ** BigInt(rate.scale + toScale);
+  const denominator = rate.numerator * 10n ** BigInt(fromScale);
+  const quotient = numerator / denominator;
+  const remainder = numerator % denominator;
+  const rounded = remainder * 2n >= denominator ? quotient + 1n : quotient;
+  return negative ? -rounded : rounded;
+}
+
+export type AppliedRate =
+  | { direction: "direct"; rate: FxRate }
+  | { direction: "inverse"; rate: FxRate };
+
+export function findAppliedRate(
+  rates: readonly FxRate[],
+  fromCurrency: string,
+  toCurrency: string,
+  asOf: string,
+): AppliedRate | null {
+  const direct = selectFxRate(rates, fromCurrency, toCurrency, asOf);
+  if (direct) return { direction: "direct", rate: direct };
+  const inverse = selectFxRate(rates, toCurrency, fromCurrency, asOf);
+  if (inverse) return { direction: "inverse", rate: inverse };
+  return null;
+}
+
+export function translateWithRate(amountMinor: bigint, applied: AppliedRate, scale = 2): bigint {
+  return applied.direction === "direct"
+    ? translateMinor(amountMinor, applied.rate, scale, scale)
+    : translateMinorInverse(amountMinor, applied.rate, scale, scale);
+}
+
+export function appliedRateLabel(applied: AppliedRate): string {
+  return applied.direction === "direct"
+    ? formatFxRate(applied.rate)
+    : `${formatInverseRate(applied.rate)} (exact inverse of ${formatFxRate(applied.rate)})`;
+}
+
+function gcd(left: bigint, right: bigint): bigint {
+  let a = left < 0n ? -left : left;
+  let b = right < 0n ? -right : right;
+  while (b !== 0n) {
+    const next = a % b;
+    a = b;
+    b = next;
+  }
+  return a;
+}
+
 export function consolidateTrialBalances(input: {
   entities: readonly { id: string; name: string; functionalCurrency: string; parentEntityId: string | null }[];
   entries: readonly PostedJournalEntry[];
@@ -107,10 +175,10 @@ export function consolidateTrialBalances(input: {
 
   for (const entity of input.entities) {
     const sameCurrency = entity.functionalCurrency === input.presentationCurrency;
-    const rate = sameCurrency
+    const applied = sameCurrency
       ? null
-      : selectFxRate(input.rates, entity.functionalCurrency, input.presentationCurrency, input.asOf);
-    if (!sameCurrency && !rate) {
+      : findAppliedRate(input.rates, entity.functionalCurrency, input.presentationCurrency, input.asOf);
+    if (!sameCurrency && !applied) {
       translations.push({
         entityId: entity.id,
         entityName: entity.name,
@@ -126,13 +194,13 @@ export function consolidateTrialBalances(input: {
       entityName: entity.name,
       functionalCurrency: entity.functionalCurrency,
       included: true,
-      rateLabel: sameCurrency ? `Already ${input.presentationCurrency}.` : formatFxRate(rate as FxRate),
+      rateLabel: sameCurrency ? `Already ${input.presentationCurrency}.` : appliedRateLabel(applied as AppliedRate),
     });
 
     const report = trialBalance(input.entries, input.accounts, entity.id);
     for (const row of report.rows) {
-      const debitMinor = sameCurrency ? row.debitMinor : translateMinor(row.debitMinor, rate as FxRate, scale, scale);
-      const creditMinor = sameCurrency ? row.creditMinor : translateMinor(row.creditMinor, rate as FxRate, scale, scale);
+      const debitMinor = sameCurrency ? row.debitMinor : translateWithRate(row.debitMinor, applied as AppliedRate, scale);
+      const creditMinor = sameCurrency ? row.creditMinor : translateWithRate(row.creditMinor, applied as AppliedRate, scale);
       const current = buckets.get(row.code) ?? {
         code: row.code,
         name: row.name,
