@@ -23,7 +23,7 @@ export function PeriodForm({
         <input type="date" name="to" defaultValue={range.to} required />
       </label>
       <button type="submit" className="btn">
-        Apply period
+        Update dates
       </button>
     </form>
   );

@@ -7,9 +7,9 @@ import { booksAreWritable, loadBooks } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
-import { accountLabel, entityName, formatMoney, formatQuantity, sourceName } from "@/data/present";
+import { accountLabel, entityName, formatMoney, formatQuantity, movementLabel, sourceName } from "@/data/present";
 
-export const metadata = { title: "Ledger" };
+export const metadata = { title: "Journal" };
 
 export default async function LedgerPage({
   searchParams,
@@ -27,15 +27,15 @@ export default async function LedgerPage({
   return (
     <>
       <PageHeader
-        kicker="Journal"
-        title="Double-entry ledger"
-        description="Posted entries stay as they were written. A correction is a reversal, which the ledger balances before it is stored. Token quantities sit on the line as subledger detail."
+        kicker="Entries"
+        title="Journal"
+        description="Posted entries stay as they were written. To fix one, post a correction. A token amount on a line says which wallet, exchange, or custodian moved."
       />
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
       <PeriodForm path="/dashboard/ledger" range={range} />
       {writable ? <JournalForm books={books} /> : <ReadOnlyNote />}
       {visible.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No journals in this date range.</p>
+        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No entries in these dates.</p>
       ) : (
         <div className="space-y-6">
           {visible.map((entry) => (
@@ -52,7 +52,7 @@ export default async function LedgerPage({
                   <p className="mt-1 text-xs text-ink-soft">
                     Posted by {entry.postedBy}
                     {entry.reversesEntryId
-                      ? ` · reverses ${books.journalEntries.find((item) => item.id === entry.reversesEntryId)?.reference ?? entry.reversesEntryId}`
+                      ? ` · corrects ${books.journalEntries.find((item) => item.id === entry.reversesEntryId)?.reference ?? entry.reversesEntryId}`
                       : ""}
                   </p>
                 </div>
@@ -82,7 +82,7 @@ export default async function LedgerPage({
                         </td>
                         <td>
                           {line.quantityMinor !== undefined && line.assetCode
-                            ? `${line.quantityDirection === "out" ? "Out " : "In "}${formatQuantity(line.quantityMinor, line.assetCode, books.assets)}`
+                            ? `${movementLabel(line.quantityDirection === "out" ? "out" : "in")} ${formatQuantity(line.quantityMinor, line.assetCode, books.assets)}`
                             : "—"}
                         </td>
                         <td className="num">{line.side === "debit" ? formatMoney(line.amountMinor, line.currency) : ""}</td>
@@ -96,24 +96,24 @@ export default async function LedgerPage({
                 <form action={reverseJournalAction} className="grid gap-3 border-t border-line px-4 py-3 md:grid-cols-4">
                   <input type="hidden" name="entryId" value={entry.id} />
                   <label className="field">
-                    <span>Reversal reference</span>
+                    <span>Correction reference</span>
                     <input name="reference" required defaultValue={`${entry.reference}-R`} maxLength={40} />
                   </label>
                   <label className="field">
-                    <span>Reversal date</span>
+                    <span>Correction date</span>
                     <input name="entryDate" type="date" required defaultValue={entry.entryDate} />
                   </label>
                   <label className="field">
-                    <span>Posted by</span>
+                    <span>Your name</span>
                     <input name="postedBy" required maxLength={80} autoComplete="name" />
                   </label>
                   <label className="field md:col-span-3">
                     <span>Memo</span>
-                    <input name="memo" required maxLength={500} defaultValue={`Reverse ${entry.reference}.`} />
+                    <input name="memo" required maxLength={500} defaultValue={`Correct ${entry.reference}.`} />
                   </label>
                   <div className="md:col-span-4">
                     <button type="submit" className="btn-secondary">
-                      Post reversal
+                      Post correction
                     </button>
                   </div>
                 </form>

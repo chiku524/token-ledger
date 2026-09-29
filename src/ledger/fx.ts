@@ -116,7 +116,7 @@ export function consolidateTrialBalances(input: {
         entityName: entity.name,
         functionalCurrency: entity.functionalCurrency,
         included: false,
-        rateLabel: `No rate from ${entity.functionalCurrency} to ${input.presentationCurrency} on or before ${input.asOf}.`,
+        rateLabel: `No saved rate from ${entity.functionalCurrency} to ${input.presentationCurrency} on or before ${input.asOf}.`,
       });
       continue;
     }

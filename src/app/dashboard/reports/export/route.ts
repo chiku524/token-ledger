@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const entity = books.entities.find((item) => item.id === url.searchParams.get("entity")) ?? books.entities[0];
 
   if (kind === "trial-balance") {
-    if (!entity) return new Response("No entity.", { status: 404 });
+    if (!entity) return new Response("No company.", { status: 404 });
     const balance = trialBalance(scoped.journalEntries, books.accounts, entity.id);
     const body = trialBalanceCsv({
       entityName: entity.name,

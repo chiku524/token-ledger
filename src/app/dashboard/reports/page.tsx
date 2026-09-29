@@ -8,7 +8,7 @@ import { loadBooks } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
-import { formatMoney, formatQuantity } from "@/data/present";
+import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
 import { assetCarryingSchedule, netBalanceMinor, trialBalance } from "@/ledger";
 
 export const metadata = { title: "Reports" };
@@ -32,8 +32,8 @@ export default async function ReportsPage({
   if (!entity) {
     return (
       <>
-        <PageHeader kicker="Reports" title="Reports" description="Add an entity before a trial balance can be prepared." />
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No entities yet.</p>
+        <PageHeader kicker="Reports" title="Reports" description="Add a company before balances can be prepared." />
+        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
       </>
     );
   }
@@ -50,14 +50,14 @@ export default async function ReportsPage({
       <PageHeader
         kicker={`${range.from} – ${range.to} · ${entity.reportingFramework}`}
         title="Reports"
-        description="Trial balance and digital-asset carrying amounts for one entity. The consolidated group view is a separate page. Download the same figures as CSV."
+        description="Account balances and crypto values for one company. The combined view is a separate page. Download the same figures as CSV."
       />
       {!parsed.ok ? (
         <p role="alert" className="mb-6 text-sm text-seal">
           {parsed.message}
         </p>
       ) : null}
-      <nav aria-label="Reporting entity" className="mb-6 flex flex-wrap gap-2">
+      <nav aria-label="Company" className="mb-6 flex flex-wrap gap-2">
         {books.entities.map((item) => {
           const current = item.id === entity.id;
           return (
@@ -76,44 +76,44 @@ export default async function ReportsPage({
 
       <div className="mb-8 flex flex-wrap gap-2">
         <a className="btn-secondary" href={`/dashboard/reports/export?kind=trial-balance&${exportQuery}`}>
-          Trial balance CSV
+          Balances CSV
         </a>
         <a className="btn-secondary" href={`/dashboard/reports/export?kind=journal&${exportQuery}`}>
           Journal CSV
         </a>
         <a className="btn-secondary" href={`/dashboard/reports/export?kind=reconciliation&${exportQuery}`}>
-          Reconciliation CSV
+          Matching CSV
         </a>
       </div>
 
       <div className="mb-8 grid gap-4 xl:grid-cols-2">
         {assetBars.length > 0 ? (
           <ChartFrame
-            title={`Carrying value · ${entity.functionalCurrency}`}
-            description="Same amounts as the schedule below, for this entity and period."
+            title={`Value · ${entity.functionalCurrency}`}
+            description="Same amounts as the crypto table below, for this company and these dates."
             rows={assetBars.map((row) => ({ label: row.label, detail: row.formatted }))}
           >
             <MoneyBars rows={assetBars} currency={entity.functionalCurrency} />
           </ChartFrame>
         ) : (
-          <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No digital-asset carrying amounts in this period.</p>
+          <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No crypto values in these dates.</p>
         )}
         {composition.length > 0 ? (
           <ChartFrame
-            title="Asset accounts"
-            description="Net balance of asset accounts with activity in this period."
+            title="Accounts"
+            description="Cash, crypto, and stablecoins with activity in these dates."
             rows={composition.map((row) => ({ label: row.label, detail: row.formatted }))}
           >
             <MoneyBars rows={composition} currency={entity.functionalCurrency} />
           </ChartFrame>
         ) : (
-          <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No asset-account activity in this period.</p>
+          <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No account activity in these dates.</p>
         )}
       </div>
 
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-serif text-2xl">Trial balance</h2>
+          <h2 className="font-serif text-2xl">Account balances</h2>
           <p className={balanced ? "text-sm text-pine" : "text-sm text-seal"}>
             {balance.rows.length === 0 ? "No accounts" : balanced ? "Debits equal credits" : "Out of balance"}
             {balance.currency ? ` · ${formatMoney(balance.debitTotal, balance.currency)}` : ""}
@@ -121,12 +121,12 @@ export default async function ReportsPage({
         </div>
         <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
-            <caption className="sr-only">Trial balance for {entity.name}</caption>
+            <caption className="sr-only">Account balances for {entity.name}</caption>
             <thead>
               <tr>
                 <th scope="col">Code</th>
                 <th scope="col">Account</th>
-                <th scope="col">Basis</th>
+                <th scope="col">What it holds</th>
                 <th scope="col" className="num">Debit</th>
                 <th scope="col" className="num">Credit</th>
                 <th scope="col" className="num">Net</th>
@@ -135,14 +135,14 @@ export default async function ReportsPage({
             <tbody>
               {balance.rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>No accounts on this entity.</td>
+                  <td colSpan={6}>No accounts for this company.</td>
                 </tr>
               ) : (
                 balance.rows.map((row) => (
                   <tr key={row.code}>
                     <td className="num text-left">{row.code}</td>
                     <td>{row.name}</td>
-                    <td>{row.measurementBasis ?? "—"}</td>
+                    <td>{valuationLabel(row.measurementBasis)}</td>
                     <td className="num">{balance.currency && row.debitMinor > 0n ? formatMoney(row.debitMinor, balance.currency) : ""}</td>
                     <td className="num">{balance.currency && row.creditMinor > 0n ? formatMoney(row.creditMinor, balance.currency) : ""}</td>
                     <td className="num">{balance.currency ? formatMoney(netBalanceMinor(row), balance.currency) : ""}</td>
@@ -155,31 +155,31 @@ export default async function ReportsPage({
       </section>
 
       <section className="mt-10">
-        <h2 className="font-serif text-2xl">Digital asset carrying amounts</h2>
+        <h2 className="font-serif text-2xl">Crypto held</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          Grouped by the measurement basis on the account. IAS 38, IAS 2, and IFRS 9 labels are illustrative, not a policy election.
+          Grouped by what the account is for: crypto, crypto held for sale, or stablecoins. The sample uses those labels as examples.
         </p>
         <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
-            <caption className="sr-only">Carrying amounts for {entity.name}</caption>
+            <caption className="sr-only">Crypto held by {entity.name}</caption>
             <thead>
               <tr>
                 <th scope="col">Asset</th>
-                <th scope="col">Basis</th>
-                <th scope="col" className="num">Quantity</th>
-                <th scope="col" className="num">Carrying amount</th>
+                <th scope="col">Held as</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col" className="num">Value</th>
               </tr>
             </thead>
             <tbody>
               {carrying.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>No digital asset movements in this period.</td>
+                  <td colSpan={4}>No crypto movements in these dates.</td>
                 </tr>
               ) : (
                 carrying.map((row) => (
                   <tr key={`${row.measurementBasis}-${row.assetCode}`}>
                     <td>{row.assetCode}</td>
-                    <td>{row.measurementBasis}</td>
+                    <td>{valuationLabel(row.measurementBasis)}</td>
                     <td className="num">{formatQuantity(row.quantityMinor, row.assetCode, books.assets)}</td>
                     <td className="num">{formatMoney(row.carryingMinor, row.currency)}</td>
                   </tr>

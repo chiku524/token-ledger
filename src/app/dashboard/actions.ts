@@ -27,9 +27,9 @@ export async function createEntityAction(formData: FormData) {
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
   const actor = actorFrom(formData);
-  if (!actor) fail(path, "Recorded by is required.");
+  if (!actor) fail(path, "Your name is required.");
   await save(path, () => insertEntity(books, parsed.data, actor));
-  finish(path, "Entity recorded. A standard chart of accounts was added with it.");
+  finish(path, "Company added, with a standard set of accounts.");
 }
 
 export async function createSourceAction(formData: FormData) {
@@ -45,16 +45,16 @@ export async function createSourceAction(formData: FormData) {
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
   const actor = actorFrom(formData);
-  if (!actor) fail(path, "Recorded by is required.");
+  if (!actor) fail(path, "Your name is required.");
   await save(path, () => insertSource(books, parsed.data, actor));
-  finish(path, "Source recorded.");
+  finish(path, "Wallet, exchange, or custodian added.");
 }
 
 export async function importCsvAction(formData: FormData) {
   const path = "/dashboard/sources";
   const books = await writableBooks(path);
   const actor = actorFrom(formData);
-  if (!actor) fail(path, "Recorded by is required.");
+  if (!actor) fail(path, "Your name is required.");
   const sourceId = String(formData.get("sourceId") ?? "");
   const text = await csvText(formData);
   const parsed = parseSourceTransactionCsv(text, books.assets);
@@ -63,7 +63,7 @@ export async function importCsvAction(formData: FormData) {
     const count = await insertSourceTransactions(books, sourceId, parsed.rows, actor);
     return count;
   });
-  finish(path, "Source transactions imported. Reconciliation on the next load uses these facts.");
+  finish(path, "Activity imported. Matching on the next load uses these rows.");
 }
 
 export async function postJournalAction(formData: FormData) {
@@ -82,7 +82,7 @@ export async function postJournalAction(formData: FormData) {
     const entry = postFormJournal(parsed.data, books);
     await insertJournal(books, entry, parsed.data.postedBy);
   });
-  finish(path, "Journal posted. Posted entries are not edited; reverse one if it is wrong.");
+  finish(path, "Entry posted. Posted entries are not edited. Post a correction if one is wrong.");
 }
 
 export async function reverseJournalAction(formData: FormData) {
@@ -103,12 +103,12 @@ export async function reverseJournalAction(formData: FormData) {
       memo: parsed.data.memo,
     }, parsed.data.postedBy),
   );
-  finish(path, "Reversal posted. The original entry is unchanged.");
+  finish(path, "Correction posted. The original entry is unchanged.");
 }
 
 async function writableBooks(path: string) {
   if (!booksAreWritable()) {
-    fail(path, "Set DATABASE_URL to record books. The example books shown without a database are read-only.");
+    fail(path, "Connect a database to save changes. The example on screen is read-only.");
   }
   return loadBooks();
 }
@@ -161,7 +161,7 @@ function fail(path: string, message: string): never {
 
 function safeMessage(error: unknown): string {
   if (error instanceof LedgerError || error instanceof BooksWriteError) return error.message;
-  if (hasCode(error, "23505")) return "That reference or identifier is already in use.";
+  if (hasCode(error, "23505")) return "That reference or address is already in use.";
   return "Could not save the record.";
 }
 

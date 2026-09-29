@@ -10,11 +10,11 @@ export class ErpSyncAdapter implements AccountingSyncAdapter {
   readonly implemented = false as const;
   readonly target = "unspecified";
   readonly descriptor = {
-    name: "ERP sync adapter",
+    name: "Other accounting software",
     category: "accounting" as const,
     system: "erp",
     implemented: false as const,
-    summary: "Push balanced journal entries to an ERP. Stub only — no ERP is contacted.",
+    summary: "Sends posted entries to another accounting system. Not connected yet.",
   };
 
   pushJournalEntries(_batch: JournalSyncBatch): Promise<JournalSyncResult> {

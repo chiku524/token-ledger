@@ -8,7 +8,7 @@ import { sliceBooks } from "@/data/slice-books";
 import { formatMoney } from "@/data/present";
 import { consolidateTrialBalances, formatFxRate } from "@/ledger";
 
-export const metadata = { title: "Consolidation" };
+export const metadata = { title: "Combined" };
 
 export default async function ConsolidationPage({
   searchParams,
@@ -40,15 +40,15 @@ export default async function ConsolidationPage({
     <>
       <PageHeader
         kicker={books.organization.name}
-        title="Consolidation"
-        description="Each entity stays in its functional currency until this page. Amounts are translated with the stored rate on or before the period end. Rates are shown in full, including example rates, which are not a market price."
+        title="Combined"
+        description="Each company keeps its own currency until this page. Amounts are converted with the saved rate on or before the end date. Sample rates are not a market price."
       />
       {!parsed.ok ? (
         <p role="alert" className="mb-6 text-sm text-seal">
           {parsed.message}
         </p>
       ) : null}
-      <nav aria-label="Presentation currency" className="mb-6 flex flex-wrap gap-2">
+      <nav aria-label="Currency" className="mb-6 flex flex-wrap gap-2">
         {currencies.map((currency) => {
           const current = currency === presentation;
           return (
@@ -58,7 +58,7 @@ export default async function ConsolidationPage({
               aria-current={current ? "page" : undefined}
               className={`border px-3 py-2 text-sm ${current ? "border-ink bg-ink text-paper" : "border-line bg-paper-raised"}`}
             >
-              Present in {currency}
+              Show in {currency}
             </Link>
           );
         })}
@@ -69,12 +69,12 @@ export default async function ConsolidationPage({
         <h2 className="font-serif text-2xl">Rates</h2>
         {books.fxRates.length === 0 ? (
           <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">
-            No FX rates are stored, so only entities already in {presentation} can be included.
+            No exchange rates are saved, so only companies already in {presentation} can be included.
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
             <table className="ledger-table">
-              <caption className="sr-only">Stored foreign-exchange rates</caption>
+              <caption className="sr-only">Saved exchange rates</caption>
               <thead>
                 <tr>
                   <th scope="col">Rate</th>
@@ -99,7 +99,7 @@ export default async function ConsolidationPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="font-serif text-2xl">Entities in this view</h2>
+        <h2 className="font-serif text-2xl">Companies in this view</h2>
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
           {group.entities.map((entity) => (
             <li key={entity.entityId} className="border border-line bg-paper-raised p-4">
@@ -115,7 +115,7 @@ export default async function ConsolidationPage({
 
       <section className="mt-8">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-serif text-2xl">Group trial balance · {presentation}</h2>
+          <h2 className="font-serif text-2xl">Combined balances · {presentation}</h2>
           <p className="text-sm text-pine">
             Debits equal credits
             {group.rows.length > 0 ? ` · ${formatMoney(group.debitTotal, presentation)}` : ""}
@@ -123,7 +123,7 @@ export default async function ConsolidationPage({
         </div>
         <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
-            <caption className="sr-only">Consolidated trial balance in {presentation}</caption>
+            <caption className="sr-only">Combined balances in {presentation}</caption>
             <thead>
               <tr>
                 <th scope="col">Code</th>
@@ -135,7 +135,7 @@ export default async function ConsolidationPage({
             <tbody>
               {group.rows.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>Nothing to consolidate for this period.</td>
+                  <td colSpan={4}>Nothing to combine for these dates.</td>
                 </tr>
               ) : (
                 group.rows.map((row) => (

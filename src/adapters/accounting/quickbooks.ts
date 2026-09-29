@@ -9,11 +9,11 @@ export class QuickBooksSyncAdapter implements AccountingSyncAdapter {
   readonly system = "quickbooks" as const;
   readonly implemented = false as const;
   readonly descriptor = {
-    name: "QuickBooks sync adapter",
+    name: "QuickBooks",
     category: "accounting" as const,
     system: "quickbooks",
     implemented: false as const,
-    summary: "Push balanced journal entries to QuickBooks. Stub only — QuickBooks is not contacted.",
+    summary: "Sends posted entries to QuickBooks. Not connected yet.",
   };
 
   pushJournalEntries(_batch: JournalSyncBatch): Promise<JournalSyncResult> {

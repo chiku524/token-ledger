@@ -21,7 +21,7 @@ export async function loadBooksFromDatabase(): Promise<Books> {
   const organizationRows = await db.select().from(organizations).orderBy(asc(organizations.createdAt));
   const organization = pickOrganization(organizationRows);
   if (!organization) {
-    throw new Error("Postgres has no organization. Run pnpm db:seed to load the Harbourline example, or insert an organization.");
+    throw new Error("No books are saved yet. Load the example, or add an organization.");
   }
 
   const organizationId = organization.id;

@@ -11,7 +11,7 @@ const optionalText = (max: number) =>
 
 export const entityFormSchema = z.object({
   name: text(200),
-  jurisdiction: z.string().trim().regex(/^[A-Z]{2}$/, "Jurisdiction must be a two-letter code such as MY or SG."),
+  jurisdiction: z.string().trim().regex(/^[A-Z]{2}$/, "Country code must be two letters, such as MY or SG."),
   functionalCurrency: z.enum(["MYR", "SGD", "USD"]),
   reportingFramework: text(40),
   parentEntityId: z
@@ -32,10 +32,10 @@ export const sourceFormSchema = z
   })
   .superRefine((value, context) => {
     if (value.kind === "wallet" && !value.role) {
-      context.addIssue({ code: "custom", path: ["role"], message: "A wallet needs a role: hot, cold, or staking." });
+      context.addIssue({ code: "custom", path: ["role"], message: "A wallet needs a type: hot wallet, cold wallet, or staking." });
     }
     if (value.kind !== "wallet" && value.role) {
-      context.addIssue({ code: "custom", path: ["role"], message: "Only wallets have a hot, cold, or staking role." });
+      context.addIssue({ code: "custom", path: ["role"], message: "Only wallets have a hot, cold, or staking type." });
     }
   });
 
@@ -55,7 +55,7 @@ export const journalFormSchema = z.object({
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD."),
   memo: text(500),
   postedBy: text(80),
-  lines: z.array(journalLineSchema).min(2, "A journal needs at least two lines.").max(8),
+  lines: z.array(journalLineSchema).min(2, "An entry needs at least two lines.").max(8),
 });
 
 export const reversalFormSchema = z.object({

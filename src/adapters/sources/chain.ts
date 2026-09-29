@@ -12,7 +12,7 @@ function chainDescriptor(chain: string, name: string): AdapterDescriptor {
     category: "chain",
     system: chain,
     implemented: false,
-    summary: `Read wallet and staking activity on ${chain}. Stub only — no RPC client is wired up.`,
+    summary: `Balances and transfers on ${chain}. Not connected yet.`,
   };
 }
 
@@ -24,7 +24,7 @@ export class EthereumChainAdapter implements ChainSourceAdapter {
   readonly kind = "chain" as const;
   readonly chain = "ethereum";
   readonly implemented = false as const;
-  readonly descriptor = chainDescriptor("Ethereum", "Ethereum chain adapter");
+  readonly descriptor = chainDescriptor("Ethereum", "Ethereum wallets");
 
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
     return reject(this.descriptor.name, query);
@@ -35,7 +35,7 @@ export class SolanaChainAdapter implements ChainSourceAdapter {
   readonly kind = "chain" as const;
   readonly chain = "solana";
   readonly implemented = false as const;
-  readonly descriptor = chainDescriptor("Solana", "Solana chain adapter");
+  readonly descriptor = chainDescriptor("Solana", "Solana wallets");
 
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
     return reject(this.descriptor.name, query);
@@ -46,7 +46,7 @@ export class PolygonChainAdapter implements ChainSourceAdapter {
   readonly kind = "chain" as const;
   readonly chain = "polygon";
   readonly implemented = false as const;
-  readonly descriptor = chainDescriptor("Polygon", "Polygon chain adapter");
+  readonly descriptor = chainDescriptor("Polygon", "Polygon wallets");
 
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
     return reject(this.descriptor.name, query);

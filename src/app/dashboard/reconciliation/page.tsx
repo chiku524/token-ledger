@@ -7,9 +7,9 @@ import { loadBooks } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
-import { formatQuantity, sourceName } from "@/data/present";
+import { formatQuantity, movementLabel, sourceName } from "@/data/present";
 
-export const metadata = { title: "Reconciliation" };
+export const metadata = { title: "Matching" };
 
 export default async function ReconciliationPage({
   searchParams,
@@ -33,8 +33,8 @@ export default async function ReconciliationPage({
     <>
       <PageHeader
         kicker={`${range.from} – ${range.to}`}
-        title="Reconciliation"
-        description="Source activity is matched to ledger movements on entity, source, asset, direction, and quantity. A match is exact. Anything left on either side is an exception."
+        title="Matching"
+        description="Activity from each wallet, exchange, and custodian is compared with the journal. Same company, place, asset, direction, and amount. Anything left over is unmatched."
       />
       {!parsed.ok ? (
         <p role="alert" className="mb-6 text-sm text-seal">
@@ -43,23 +43,23 @@ export default async function ReconciliationPage({
       ) : null}
       <PeriodForm path="/dashboard/reconciliation" range={range} />
       {ordered.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No reconciliation rows in this date range.</p>
+        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">Nothing to match in these dates.</p>
       ) : (
         <>
           <div className="mb-8 grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
             <ChartFrame
               title="Status"
-              description="Matched movements and exceptions in this date range."
+              description="Matched and unmatched activity in these dates."
               rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
             >
               <StatusDonut rows={status.rows} total={status.total} />
             </ChartFrame>
             <ChartFrame
-              title="By source"
-              description="Matched movements and exceptions, counted separately."
+              title="By place"
+              description="Matched and unmatched activity, counted separately for each wallet, exchange, and custodian."
               rows={bySource.map((row) => ({
                 label: row.label,
-                detail: `${row.matched} matched, ${row.exception} exceptions`,
+                detail: `${row.matched} matched, ${row.exception} unmatched`,
               }))}
             >
               <StatusBars rows={bySource} />
@@ -67,15 +67,15 @@ export default async function ReconciliationPage({
           </div>
           <div className="overflow-x-auto border border-line bg-paper-raised">
             <table className="ledger-table">
-              <caption className="sr-only">Reconciliation for {range.from} to {range.to}</caption>
+              <caption className="sr-only">Matching for {range.from} to {range.to}</caption>
               <thead>
                 <tr>
                   <th scope="col">Status</th>
                   <th scope="col">Date</th>
-                  <th scope="col">Source</th>
-                  <th scope="col">External id</th>
-                  <th scope="col">Journal</th>
-                  <th scope="col">Quantity</th>
+                  <th scope="col">Held at</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Entry</th>
+                  <th scope="col">Amount</th>
                   <th scope="col">Note</th>
                 </tr>
               </thead>
@@ -83,7 +83,7 @@ export default async function ReconciliationPage({
                 {ordered.map((record) => (
                   <tr key={record.id}>
                     <td className={record.status === "exception" ? "font-medium text-seal" : "text-pine"}>
-                      {record.status === "exception" ? "Exception" : "Matched"}
+                      {record.status === "exception" ? "Unmatched" : "Matched"}
                     </td>
                     <td className="num text-left">{record.periodStart}</td>
                     <td>{sourceName(record.sourceId, books.sources)}</td>
@@ -94,8 +94,7 @@ export default async function ReconciliationPage({
                         : "—"}
                     </td>
                     <td className="num">
-                      {record.direction === "out" ? "Out " : "In "}
-                      {formatQuantity(record.quantityMinor, record.assetCode, books.assets)}
+                      {movementLabel(record.direction)} {formatQuantity(record.quantityMinor, record.assetCode, books.assets)}
                     </td>
                     <td>{record.note}</td>
                   </tr>

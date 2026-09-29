@@ -96,17 +96,17 @@ function account(
 }
 
 export const exampleAccounts = [
-  account("acct_my_cash", MY, "1000", "Cash at bank", "asset", "debit", null, "IAS 7"),
-  account("acct_my_intangible", MY, "1310", "Digital assets — intangible", "asset", "debit", "IAS 38", "IAS 38"),
-  account("acct_my_inventory", MY, "1320", "Digital assets — inventory", "asset", "debit", "IAS 2", "IAS 2"),
-  account("acct_my_stable", MY, "1330", "Stablecoins at custodian", "asset", "debit", "IFRS 9", "IFRS 9"),
-  account("acct_my_payable", MY, "2100", "Accounts payable", "liability", "credit", null, "IAS 1"),
-  account("acct_my_capital", MY, "3100", "Share capital", "equity", "credit", null, "IAS 1"),
-  account("acct_my_yield", MY, "4100", "Staking and yield income", "income", "credit", null, "IAS 1"),
-  account("acct_my_fees", MY, "5100", "Network and exchange fees", "expense", "debit", null, "IAS 1"),
-  account("acct_sg_cash", SG, "1000", "Cash at bank", "asset", "debit", null, "IAS 7"),
-  account("acct_sg_intangible", SG, "1310", "Digital assets — intangible", "asset", "debit", "IAS 38", "IAS 38"),
-  account("acct_sg_capital", SG, "3100", "Share capital", "equity", "credit", null, "IAS 1"),
+  account("acct_my_cash", MY, "1000", "Cash", "asset", "debit", null, "IAS 7"),
+  account("acct_my_intangible", MY, "1310", "Crypto", "asset", "debit", "IAS 38", "IAS 38"),
+  account("acct_my_inventory", MY, "1320", "Crypto for sale", "asset", "debit", "IAS 2", "IAS 2"),
+  account("acct_my_stable", MY, "1330", "Stablecoins", "asset", "debit", "IFRS 9", "IFRS 9"),
+  account("acct_my_payable", MY, "2100", "Bills to pay", "liability", "credit", null, "IAS 1"),
+  account("acct_my_capital", MY, "3100", "Owners' capital", "equity", "credit", null, "IAS 1"),
+  account("acct_my_yield", MY, "4100", "Staking rewards", "income", "credit", null, "IAS 1"),
+  account("acct_my_fees", MY, "5100", "Fees", "expense", "debit", null, "IAS 1"),
+  account("acct_sg_cash", SG, "1000", "Cash", "asset", "debit", null, "IAS 7"),
+  account("acct_sg_intangible", SG, "1310", "Crypto", "asset", "debit", "IAS 38", "IAS 38"),
+  account("acct_sg_capital", SG, "3100", "Owners' capital", "equity", "credit", null, "IAS 1"),
 ];
 
 function myr(accountCode: string, side: JournalLineInput["side"], amount: string, extra: Partial<JournalLineInput> = {}): JournalLineInput {

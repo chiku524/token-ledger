@@ -5,7 +5,7 @@ import { booksAreWritable, loadBooks } from "@/data/load-books";
 import { one } from "@/data/query";
 import { entityName } from "@/data/present";
 
-export const metadata = { title: "Entities" };
+export const metadata = { title: "Companies" };
 
 export default async function EntitiesPage({
   searchParams,
@@ -20,26 +20,26 @@ export default async function EntitiesPage({
     <>
       <PageHeader
         kicker="Organization"
-        title="Legal entities"
-        description="A parent and its subsidiaries share one organization. Consolidation translates their functional currencies on the consolidation page."
+        title="Companies"
+        description="A parent company and the companies it owns. The Combined page converts their currencies into one view."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       {writable ? <EntityForm books={books} /> : <ReadOnlyNote />}
       {books.entities.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No entities yet.</p>
+        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
       ) : (
         <div className="overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
-            <caption className="sr-only">Legal entities</caption>
+            <caption className="sr-only">Companies</caption>
             <thead>
               <tr>
-                <th scope="col">Entity</th>
-                <th scope="col">Jurisdiction</th>
+                <th scope="col">Company</th>
+                <th scope="col">Country</th>
                 <th scope="col">Currency</th>
-                <th scope="col">Framework</th>
+                <th scope="col">Standard</th>
                 <th scope="col">Parent</th>
                 <th scope="col" className="num">Accounts</th>
-                <th scope="col" className="num">Sources</th>
+                <th scope="col" className="num">Places</th>
               </tr>
             </thead>
             <tbody>
@@ -59,7 +59,7 @@ export default async function EntitiesPage({
         </div>
       )}
       <p className="mt-4 text-sm text-ink-soft">
-        {books.organization.name} · origin {books.organization.origin}
+        {books.organization.name} · {books.organization.origin === "live" ? "Live" : "Example"}
       </p>
     </>
   );

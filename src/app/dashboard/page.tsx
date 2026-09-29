@@ -30,8 +30,8 @@ export default async function DashboardPage() {
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
   const currencyNote = booksAreWritable()
-    ? "Each panel stays in that entity's functional currency. Group translation is on Consolidation."
-    : "Example books. Each panel uses that entity's functional currency. Group translation, using labelled example rates, is on Consolidation.";
+    ? "Each chart stays in that company's currency. The Combined page converts them into one currency."
+    : "Sample figures. Each chart stays in that company's currency. The Combined page converts them with sample rates, not a market price.";
 
   return (
     <>
@@ -40,16 +40,16 @@ export default async function DashboardPage() {
         title={books.organization.name}
         description={
           books.organization.origin === "example"
-            ? "A fictional group with a Malaysian parent and a Singapore subsidiary. These books are posted through the double-entry module."
-            : "Books read from Postgres for this organization."
+            ? "A sample group: a parent company in Malaysia and a company in Singapore."
+            : "Saved books for this organization."
         }
       />
 
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Entities" value={String(books.entities.length)} />
-        <Stat label="Sources" value={String(books.sources.length)} />
-        <Stat label="Open exceptions" value={String(exceptions.length)} tone={exceptions.length ? "seal" : "pine"} />
-        <Stat label="Trial balance" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "pine" : "seal"} />
+        <Stat label="Companies" value={String(books.entities.length)} />
+        <Stat label="Wallets and accounts" value={String(books.sources.length)} />
+        <Stat label="Unmatched" value={String(exceptions.length)} tone={exceptions.length ? "seal" : "pine"} />
+        <Stat label="Books" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "pine" : "seal"} />
       </dl>
 
       <section className="mt-8 grid gap-4 xl:grid-cols-2">
@@ -69,8 +69,8 @@ export default async function DashboardPage() {
         {series.map((panel) => (
           <ChartFrame
             key={panel.id}
-            title={`Carrying value · ${panel.title}`}
-            description="Digital-asset carrying amount after each journal date."
+            title={`Value · ${panel.title}`}
+            description="Booked value of crypto after each entry."
             rows={panel.points.map((point) => ({ label: point.label, detail: point.formatted }))}
           >
             <MoneyLine panel={panel} />
@@ -82,8 +82,8 @@ export default async function DashboardPage() {
         {composition.map((panel) => (
           <ChartFrame
             key={panel.id}
-            title={`Assets · ${panel.title}`}
-            description="Net carrying amount of asset accounts. Inventory with no movements is omitted."
+            title={`Accounts · ${panel.title}`}
+            description="Cash, crypto, and stablecoins on the books. Accounts with no activity are left out."
             rows={panel.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
           >
             <MoneyBars rows={panel.rows} currency={panel.currency} />
@@ -93,8 +93,8 @@ export default async function DashboardPage() {
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_18rem]">
         <ChartFrame
-          title="Journal activity"
-          description="Posted entries by month. Counts, not a converted total."
+          title="Entries"
+          description="Posted entries by month. A count, not a combined total."
           rows={activity.rows.flatMap((row) =>
             activity.series.map((item) => ({ label: `${row.fullLabel} · ${item.label}`, detail: String(row[item.id] ?? 0) })),
           )}
@@ -102,8 +102,8 @@ export default async function DashboardPage() {
           <ActivityBars rows={activity.rows} series={activity.series} />
         </ChartFrame>
         <ChartFrame
-          title="Reconciliation"
-          description="Exact matches against source transactions."
+          title="Matching"
+          description="Activity from wallets, exchanges, and custodians compared with the journal."
           rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
         >
           <StatusDonut rows={status.rows} total={status.total} />
@@ -117,7 +117,7 @@ export default async function DashboardPage() {
             <h2 className="mt-2 font-serif text-2xl">{entity.name}</h2>
             <p className="mt-3 text-sm text-ink-soft">
               {entity.reportingFramework}
-              {entity.parentEntityId ? ` · subsidiary of ${entityName(entity.parentEntityId)}` : " · parent"}
+              {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId)}` : " · parent company"}
             </p>
             <p className="mt-4 text-sm">
               Debits {report.currency ? formatMoney(report.debitTotal, report.currency) : "—"}
@@ -130,26 +130,26 @@ export default async function DashboardPage() {
 
       {exceptions[0] ? (
         <section className="mt-8 border border-seal/40 bg-paper-raised p-5">
-          <h2 className="font-medium text-seal">Reconciliation exception</h2>
+          <h2 className="font-medium text-seal">Unmatched activity</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
             {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
             <Link href="/dashboard/reconciliation" className="text-ink underline">
-              Review the match list
+              See what did not match
             </Link>
           </p>
         </section>
       ) : null}
 
       <section className="mt-10">
-        <h2 className="font-serif text-2xl">Latest journals</h2>
+        <h2 className="font-serif text-2xl">Recent entries</h2>
         <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
-            <caption className="sr-only">Latest journal entries</caption>
+            <caption className="sr-only">Recent journal entries</caption>
             <thead>
               <tr>
                 <th scope="col">Date</th>
                 <th scope="col">Reference</th>
-                <th scope="col">Entity</th>
+                <th scope="col">Company</th>
                 <th scope="col">Memo</th>
                 <th scope="col" className="num">Amount</th>
               </tr>

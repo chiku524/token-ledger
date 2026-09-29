@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s · Token Ledger",
   },
   description:
-    "Accounting and financial-data layer for digital assets. One double-entry subledger across wallets, chains, custodians, and exchanges, built for IFRS reporters in Malaysia and Singapore.",
+    "See crypto held in wallets, exchanges, and custodians, then match it to the journal.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
