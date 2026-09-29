@@ -8,15 +8,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { session, books } = await loadAuthorizedBooks();
   const csrf = await ensureCsrf();
   const subtitle = session.demo
-    ? "Demo preview"
+    ? "Demo"
     : books.organization.origin === "live"
-      ? "Live books"
+      ? "Saved"
       : booksAreWritable()
-        ? "Example books in Postgres"
-        : "Example books";
+        ? "Sample, saved"
+        : "Sample";
   const scopeLabel =
     session.entityScope.length > 0
-      ? `Limited to ${books.entities.map((entity) => entity.name).join(", ") || "no entities"}`
+      ? `Limited to ${books.entities.map((entity) => entity.name).join(", ") || "no companies"}`
       : null;
 
   return (

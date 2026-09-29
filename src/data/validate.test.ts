@@ -22,7 +22,7 @@ describe("form validation", () => {
       identifier: "0xabc",
     });
     expect(wallet.success).toBe(false);
-    if (!wallet.success) expect(firstIssue(wallet.error)).toContain("role");
+    if (!wallet.success) expect(firstIssue(wallet.error)).toContain("hot wallet");
 
     expect(
       sourceFormSchema.parse({

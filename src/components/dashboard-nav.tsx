@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/entities", label: "Entities" },
-  { href: "/dashboard/sources", label: "Sources" },
-  { href: "/dashboard/ledger", label: "Ledger" },
-  { href: "/dashboard/reconciliation", label: "Reconciliation" },
+  { href: "/dashboard/entities", label: "Companies" },
+  { href: "/dashboard/sources", label: "Holdings" },
+  { href: "/dashboard/ledger", label: "Journal" },
+  { href: "/dashboard/reconciliation", label: "Matching" },
   { href: "/dashboard/reports", label: "Reports" },
-  { href: "/dashboard/consolidation", label: "Consolidation" },
-  { href: "/dashboard/audit", label: "Audit" },
+  { href: "/dashboard/consolidation", label: "Combined" },
+  { href: "/dashboard/audit", label: "History" },
 ];
 
 export function DashboardNav({ showUsers }: { showUsers: boolean }) {
@@ -19,7 +19,7 @@ export function DashboardNav({ showUsers }: { showUsers: boolean }) {
   const items = showUsers ? [...links, { href: "/dashboard/users", label: "Users" }] : links;
 
   return (
-    <nav aria-label="Ledger" className="flex gap-1 overflow-x-auto md:flex-col">
+    <nav aria-label="Sections" className="flex gap-1 overflow-x-auto md:flex-col">
       {items.map((link) => {
         const active = link.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(link.href);
         return (

@@ -23,7 +23,7 @@ const FIAT_SCALE = 2;
 
 export function postFormJournal(form: JournalForm, books: Pick<Books, "entities" | "accounts" | "assets" | "sources">): PostedJournalEntry {
   const entity = books.entities.find((item) => item.id === form.entityId);
-  if (!entity) throw new LedgerError("EMPTY_ENTITY", "Choose an entity that exists in these books.");
+  if (!entity) throw new LedgerError("EMPTY_ENTITY", "Choose a company in these books.");
 
   const input: JournalEntryInput = {
     entityId: entity.id,
@@ -33,7 +33,7 @@ export function postFormJournal(form: JournalForm, books: Pick<Books, "entities"
     lines: form.lines.map((line) => {
       const account = books.accounts.find((item) => item.entityId === entity.id && item.code === line.accountCode);
       if (!account) {
-        throw new LedgerError("UNKNOWN_ACCOUNT", `Account ${line.accountCode} is not on the chart for ${entity.name}.`);
+        throw new LedgerError("UNKNOWN_ACCOUNT", `Account ${line.accountCode} is not on the accounts for ${entity.name}.`);
       }
       const quantity = quantityFields(line, books, entity.id);
       return {
@@ -50,10 +50,10 @@ export function postFormJournal(form: JournalForm, books: Pick<Books, "entities"
 
 export function assertCanReverse(entries: readonly StoredJournalEntry[], entryId: string): StoredJournalEntry {
   const entry = entries.find((item) => item.id === entryId);
-  if (!entry) throw new LedgerError("EMPTY_REFERENCE", "That journal entry is not in these books.");
+  if (!entry) throw new LedgerError("EMPTY_REFERENCE", "That entry is not in these books.");
   const existing = entries.find((item) => item.reversesEntryId === entry.id);
   if (existing) {
-    throw new LedgerError("DUPLICATE_ID", `${entry.reference} already has reversal ${existing.reference}.`);
+    throw new LedgerError("DUPLICATE_ID", `${entry.reference} already has correction ${existing.reference}.`);
   }
   return entry;
 }
@@ -68,13 +68,13 @@ function quantityFields(
   if (!line.assetCode || !line.quantity || !line.quantityDirection || !line.sourceId) {
     throw new LedgerError(
       "QUANTITY_WITHOUT_ASSET",
-      `Line ${line.accountCode} needs an asset, quantity, direction, and source together.`,
+      `Line ${line.accountCode} needs an asset, an amount, whether it was received or sent, and where it was held.`,
     );
   }
   const asset = books.assets.find((item) => item.code === line.assetCode);
   if (!asset) throw new LedgerError("MISSING_ASSET", `Unknown asset ${line.assetCode}.`);
   const source = books.sources.find((item) => item.id === line.sourceId && item.entityId === entityId);
-  if (!source) throw new LedgerError("QUANTITY_WITHOUT_SOURCE", "The quantity source is not on this entity.");
+  if (!source) throw new LedgerError("QUANTITY_WITHOUT_SOURCE", "That wallet, exchange, or custodian is not on this company.");
   return {
     assetCode: asset.code,
     quantityMinor: toMinor(line.quantity, asset.decimals),

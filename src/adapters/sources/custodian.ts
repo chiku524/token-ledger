@@ -14,11 +14,11 @@ export class CustodianSourceAdapter implements CustodianSourcePort {
   readonly kind = "custodian" as const;
   readonly implemented = false as const;
   readonly descriptor: AdapterDescriptor = {
-    name: "Custodian source adapter",
+    name: "Custodians",
     category: "custodian",
     system: "custodian",
     implemented: false,
-    summary: "Pull vault movements from a digital-asset custodian. Stub only — no custodian is called.",
+    summary: "Vault balances and transfers. Not connected yet.",
   };
 
   fetchTransactions(_query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {

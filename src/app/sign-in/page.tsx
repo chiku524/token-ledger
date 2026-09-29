@@ -34,10 +34,9 @@ export default async function SignInPage({
       <main className="mx-auto grid max-w-5xl gap-8 px-4 py-10 md:grid-cols-2 md:px-8">
         <section>
           <p className="text-[0.7rem] font-medium tracking-[0.18em] text-ink-soft uppercase">Sign in</p>
-          <h1 className="mt-2 font-serif text-4xl tracking-tight">Books for the people who keep them.</h1>
+          <h1 className="mt-2 font-serif text-4xl tracking-tight">Sign in to the books.</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
-            There is no public signup. An owner creates the first account from the command line, then invites the rest.
-            Passwords are hashed and the session cookie is httpOnly.
+            There is no open signup. An owner creates the first account, then invites everyone else.
           </p>
           {error ? (
             <p role="alert" className="mt-6 border border-seal/40 bg-paper-raised px-4 py-3 text-sm text-seal">
@@ -48,7 +47,7 @@ export default async function SignInPage({
             <form action={acceptInviteAction} className="mt-6 grid gap-3 border border-line bg-paper-raised p-4">
               <h2 className="font-serif text-2xl">Accept invite</h2>
               <p className="text-sm text-ink-soft">
-                {invite.email} · set a password of at least 12 characters. This invite is a prototype link, not an email.
+                {invite.email}. Choose a password of at least 12 characters. This link is shown in the app. It is not emailed.
               </p>
               <input type="hidden" name="csrf" value={csrf} />
               <input type="hidden" name="invite" value={inviteToken} />
@@ -81,7 +80,7 @@ export default async function SignInPage({
                 Sign in
               </button>
               {database ? null : (
-                <p className="text-sm text-ink-soft">Password sign-in needs Postgres. The demo roles on the right work without it.</p>
+                <p className="text-sm text-ink-soft">Password sign-in needs a database. The sample roles on the right work without one.</p>
               )}
             </form>
           )}
@@ -93,8 +92,8 @@ export default async function SignInPage({
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">
             {demo
-              ? "No database is configured, so this preview signs you in as a fictional Harbourline colleague. Nothing is saved. Demo sign-in cannot run in production or when DATABASE_URL is set."
-              : "Demo sign-in is off because a database or production environment is configured. Use the password form."}
+              ? "No database is connected, so you can look around as a sample Harbourline colleague. Nothing is saved. This preview is off in production and when a database is connected."
+              : "The sample preview is off because a database is connected, or this is production. Use the password form."}
           </p>
           {demo ? (
             <ul className="mt-4 grid gap-2">

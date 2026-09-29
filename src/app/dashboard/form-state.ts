@@ -23,7 +23,7 @@ export async function save(path: string, work: () => Promise<unknown>): Promise<
 
 export function safeMessage(error: unknown): string {
   if (error instanceof AuthError || error instanceof LedgerError || error instanceof BooksWriteError) return error.message;
-  if (hasCode(error, "23505")) return "That reference or identifier is already in use.";
+  if (hasCode(error, "23505")) return "That reference or address is already in use.";
   return "Could not save the record.";
 }
 

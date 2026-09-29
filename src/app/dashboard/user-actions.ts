@@ -21,7 +21,7 @@ import {
 import { fail, safeMessage } from "./form-state";
 
 const PATH = "/dashboard/users";
-const READ_ONLY = "Set DATABASE_URL to record books. Demo preview does not create users.";
+const READ_ONLY = "Connect a database to add people. This demo does not save them.";
 
 export async function inviteUserAction(formData: FormData) {
   const session = await guard("users.manage", formData);
@@ -36,7 +36,7 @@ export async function inviteUserAction(formData: FormData) {
   if (!canAssignRole(session, parsed.data.role, null)) fail(PATH, "You cannot assign that role.");
   const books = await loadBooks();
   const unknown = parsed.data.entityScope.find((id) => !books.entities.some((entity) => entity.id === id));
-  if (unknown) fail(PATH, `Unknown entity ${unknown}.`);
+  if (unknown) fail(PATH, `Unknown company ${unknown}.`);
   const existing = await findUserByEmail(parsed.data.email);
   if (existing && existing.organizationId === session.organizationId) {
     fail(PATH, "That email is already in this organization.");
@@ -86,7 +86,7 @@ export async function changeAccessAction(formData: FormData) {
     .filter(Boolean);
   const books = await loadBooks();
   const unknown = entityScope.find((id) => !books.entities.some((entity) => entity.id === id));
-  if (unknown) fail(PATH, `Unknown entity ${unknown}.`);
+  if (unknown) fail(PATH, `Unknown company ${unknown}.`);
   const users = await listOrganizationUsers(session.organizationId);
   const target = users.find((user) => user.id === userId);
   if (!target || target.status === "inactive") fail(PATH, "That user is not active in this organization.");

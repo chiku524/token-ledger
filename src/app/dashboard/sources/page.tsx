@@ -10,9 +10,16 @@ import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/char
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
-import { entityName } from "@/data/present";
+import { entityName, placeTypeLabel, walletRoleLabel } from "@/data/present";
 
-export const metadata = { title: "Sources" };
+export const metadata = { title: "Holdings" };
+
+const connectionKind: Record<string, string> = {
+  chain: "Wallet",
+  exchange: "Exchange",
+  custodian: "Custodian",
+  accounting: "Accounting export",
+};
 
 export default async function SourcesPage({
   searchParams,
@@ -31,20 +38,20 @@ export default async function SourcesPage({
   return (
     <>
       <PageHeader
-        kicker="Where the assets sit"
-        title="Sources"
-        description="Wallets (hot, cold, staking), exchanges, and custodians, with chain context where the source is on-chain."
+        kicker="Wallets, exchanges, and custodians"
+        title="Holdings"
+        description="Every asset is shown by the wallet, exchange, or custodian that holds it."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       {panels.length === 0 ? (
-        <p className="mb-8 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No carrying amounts to chart yet.</p>
+        <p className="mb-8 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No booked value to chart yet.</p>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {panels.map((panel) => (
             <ChartFrame
               key={panel.title}
               title={panel.title}
-              description="Carrying amount booked to sources. A source with a zero balance is omitted here."
+              description="Booked value. A wallet, exchange, or custodian with nothing booked is left out."
               rows={panel.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
             >
               <MoneyBars rows={panel.rows} currency={panel.currency} />
@@ -61,7 +68,7 @@ export default async function SourcesPage({
         ) : null}
         {canSource || canImport ? null : (
           <div className="xl:col-span-2">
-            <RoleNote>Your role can view sources. Adding a source or importing a CSV is not available for this role.</RoleNote>
+            <RoleNote>You can view holdings. Adding a wallet, exchange, or custodian, or importing activity, is not available for this role.</RoleNote>
           </div>
         )}
         {canSource ? <SourceForm books={books} csrf={csrf} /> : null}
@@ -69,19 +76,19 @@ export default async function SourcesPage({
       </div>
 
       {books.sources.length === 0 ? (
-        <p className="mt-8 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No sources yet.</p>
+        <p className="mt-8 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No wallets, exchanges, or custodians yet.</p>
       ) : (
         <div className="mt-8 overflow-x-auto border border-line bg-paper-raised">
           <table className="ledger-table">
             <caption className="sr-only">Wallets, exchanges, and custodians</caption>
             <thead>
               <tr>
-                <th scope="col">Entity</th>
-                <th scope="col">Source</th>
-                <th scope="col">Kind</th>
-                <th scope="col">Role</th>
-                <th scope="col">Chain</th>
-                <th scope="col">Identifier</th>
+                <th scope="col">Company</th>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+                <th scope="col">Wallet type</th>
+                <th scope="col">Network</th>
+                <th scope="col">Address or account ID</th>
               </tr>
             </thead>
             <tbody>
@@ -89,8 +96,8 @@ export default async function SourcesPage({
                 <tr key={source.id}>
                   <td>{entityName(source.entityId, books.entities)}</td>
                   <td>{source.name}</td>
-                  <td className="capitalize">{source.kind}</td>
-                  <td className="capitalize">{source.role ?? "—"}</td>
+                  <td>{placeTypeLabel(source.kind)}</td>
+                  <td>{walletRoleLabel(source.role)}</td>
                   <td>{source.chain ?? "—"}</td>
                   <td className="num text-left">{source.identifier}</td>
                 </tr>
@@ -100,14 +107,17 @@ export default async function SourcesPage({
         </div>
       )}
 
-      <h2 className="mt-10 font-serif text-2xl">Connectors</h2>
+      <h2 className="mt-10 font-serif text-2xl">Connections</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-        These adapters are stubs. They do not hold API keys and their fetch methods reject before any network call. CSV import is the path for source facts until a connector is live.
+        None of these are connected yet, and none of them store a password or API key. Until one is connected, import a
+        CSV of activity for that wallet, exchange, or custodian.
       </p>
       <ul className="mt-4 grid gap-3 md:grid-cols-2">
         {connectors.map((connector) => (
           <li key={connector.name} className="border border-line bg-paper-raised p-4">
-            <p className="text-xs tracking-[0.14em] text-seal uppercase">Stub · {connector.category}</p>
+            <p className="text-xs tracking-[0.14em] text-seal uppercase">
+              Not connected · {connectionKind[connector.category] ?? connector.category}
+            </p>
             <h3 className="mt-2 font-medium">{connector.name}</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">{connector.summary}</p>
           </li>

@@ -9,11 +9,11 @@ export class XeroSyncAdapter implements AccountingSyncAdapter {
   readonly system = "xero" as const;
   readonly implemented = false as const;
   readonly descriptor = {
-    name: "Xero sync adapter",
+    name: "Xero",
     category: "accounting" as const,
     system: "xero",
     implemented: false as const,
-    summary: "Push balanced journal entries to Xero. Stub only — Xero is not contacted.",
+    summary: "Sends posted entries to Xero. Not connected yet.",
   };
 
   pushJournalEntries(_batch: JournalSyncBatch): Promise<JournalSyncResult> {

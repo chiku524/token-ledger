@@ -24,7 +24,7 @@ export async function insertEntity(
   actor: string,
 ): Promise<void> {
   if (input.parentEntityId && !books.entities.some((entity) => entity.id === input.parentEntityId)) {
-    throw new BooksWriteError("The parent entity is not in this organization.");
+    throw new BooksWriteError("That parent company is not in this organization.");
   }
   const id = newId("ent");
   const db = getDb();
@@ -55,7 +55,7 @@ export async function insertSource(
   actor: string,
 ): Promise<void> {
   if (!books.entities.some((entity) => entity.id === input.entityId)) {
-    throw new BooksWriteError("Choose an entity in this organization.");
+    throw new BooksWriteError("Choose a company in this organization.");
   }
   const id = newId("src");
   const db = getDb();
@@ -67,16 +67,16 @@ export async function insertSource(
 
 export async function insertJournal(books: Books, entry: PostedJournalEntry, actor: string): Promise<void> {
   if (books.journalEntries.some((existing) => existing.entityId === entry.entityId && existing.reference === entry.reference)) {
-    throw new BooksWriteError(`Reference ${entry.reference} is already used for this entity.`);
+    throw new BooksWriteError(`Reference ${entry.reference} is already used for this company.`);
   }
   await persistEntry(books, entry, actor, "journal.posted", null);
 }
 
 export async function insertReversal(books: Books, entryId: string, input: { reference: string; entryDate: string; memo: string }, actor: string): Promise<void> {
   const original = books.journalEntries.find((entry) => entry.id === entryId);
-  if (!original) throw new LedgerError("EMPTY_REFERENCE", "That journal entry is not in these books.");
+  if (!original) throw new LedgerError("EMPTY_REFERENCE", "That entry is not in these books.");
   if (books.journalEntries.some((entry) => entry.reversesEntryId === original.id)) {
-    throw new LedgerError("DUPLICATE_ID", `${original.reference} already has a reversal.`);
+    throw new LedgerError("DUPLICATE_ID", `${original.reference} already has a correction.`);
   }
   const reversal = reverseJournalEntry(original, { id: newId("je"), ...input });
   await persistEntry(books, reversal, actor, "journal.reversed", original.id);
@@ -129,7 +129,7 @@ export async function insertSourceTransactions(
   actor: string,
 ): Promise<number> {
   const source = books.sources.find((item) => item.id === sourceId);
-  if (!source) throw new BooksWriteError("Choose a source in this organization.");
+  if (!source) throw new BooksWriteError("Choose a wallet, exchange, or custodian in this organization.");
   const assetId = new Map(books.assets.map((asset) => [asset.code, asset.id]));
   const db = getDb();
   await db.transaction(async (tx) => {
@@ -186,7 +186,7 @@ async function persistEntry(
     await tx.insert(journalLines).values(
       entry.lines.map((line) => {
         const resolvedAccount = accountId.get(`${entry.entityId}:${line.accountCode}`);
-        if (!resolvedAccount) throw new BooksWriteError(`Account ${line.accountCode} is not on this entity.`);
+        if (!resolvedAccount) throw new BooksWriteError(`Account ${line.accountCode} is not on this company.`);
         const resolvedAsset = line.assetCode ? assetId.get(line.assetCode) ?? null : null;
         if (line.assetCode && !resolvedAsset) throw new BooksWriteError(`Unknown asset ${line.assetCode}.`);
         return {

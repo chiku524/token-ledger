@@ -15,11 +15,11 @@ export class ExchangeSourceAdapter implements ExchangeSourcePort {
   readonly kind = "exchange" as const;
   readonly implemented = false as const;
   readonly descriptor: AdapterDescriptor = {
-    name: "Exchange source adapter",
+    name: "Exchanges",
     category: "exchange",
     system: "exchange",
     implemented: false,
-    summary: "Pull trades, deposits, and withdrawals from an exchange account. Stub only — no venue is called.",
+    summary: "Balances, trades, deposits, and withdrawals. Not connected yet.",
   };
 
   fetchTransactions(_query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {

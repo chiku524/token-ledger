@@ -26,7 +26,7 @@ export default async function UsersPage({
         <PageHeader
           kicker="Access"
           title="Users"
-          description="Owners and admins manage who can sign in. Your role can read the books and export CSVs."
+          description="Owners and admins decide who can sign in. You can view the books and download CSVs."
         />
         <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">
           You do not have permission to manage users.
@@ -63,22 +63,22 @@ export default async function UsersPage({
       <PageHeader
         kicker={books.organization.name}
         title="Users"
-        description="Invite a colleague, change a role, or deactivate an account. Invites are prototype links shown here once. Token Ledger does not send email."
+        description="Invite someone, change what they can do, or turn off an account. The invite link is shown here once. It is not emailed."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       {inviteLink ? (
         <p role="status" className="mb-6 border border-pine/40 bg-paper-raised px-4 py-3 text-sm text-pine">
-          Prototype invite for {invite?.email}. It is not emailed. Copy it now; it expires in 7 days.
+          Invite link for {invite?.email}. It is not emailed. Copy it now. It expires in 7 days.
           <span className="mt-2 block font-mono text-xs break-all text-ink">{inviteLink}</span>
         </p>
       ) : null}
       {session.demo ? (
         <p className="mb-6 text-sm leading-relaxed text-ink-soft">
-          Demo preview lists the fictional Harbourline staff and shows the invite form. Creating a user needs Postgres and does not run in demo mode.
+          This demo lists the sample Harbourline staff and shows the invite form. Adding a person needs a database.
         </p>
       ) : null}
       <form action={inviteUserAction} className="mb-10 grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
-        <h2 className="font-serif text-2xl md:col-span-2">Invite a user</h2>
+        <h2 className="font-serif text-2xl md:col-span-2">Invite someone</h2>
         <input type="hidden" name="csrf" value={csrf} />
         <label className="field">
           <span>Name</span>
@@ -99,8 +99,8 @@ export default async function UsersPage({
           </select>
         </label>
         <label className="field">
-          <span>Entity scope</span>
-          <input name="entityScope" placeholder="Blank for every entity" list="entity-ids" />
+          <span>Companies</span>
+          <input name="entityScope" placeholder="Blank for every company" list="entity-ids" />
         </label>
         <datalist id="entity-ids">
           {books.entities.map((entity) => (
@@ -110,7 +110,7 @@ export default async function UsersPage({
           ))}
         </datalist>
         <p className="text-sm text-ink-soft md:col-span-2">
-          Leave scope blank for the whole organization. A comma-separated list limits an accountant or viewer to those entities. Owners and admins always see every entity.
+          Leave this blank for every company. A comma-separated list limits an accountant or viewer to those companies. Owners and admins always see every company.
         </p>
         <div className="md:col-span-2">
           <button type="submit" className="btn">
@@ -126,7 +126,7 @@ export default async function UsersPage({
               <th scope="col">Person</th>
               <th scope="col">Role</th>
               <th scope="col">Status</th>
-              <th scope="col">Scope</th>
+                <th scope="col">Companies</th>
               <th scope="col">Access</th>
             </tr>
           </thead>
@@ -142,7 +142,7 @@ export default async function UsersPage({
                   </td>
                   <td>{roleLabel(person.role)}</td>
                   <td className="capitalize">{person.status}</td>
-                  <td>{person.entityScope.length === 0 ? "All entities" : person.entityScope.join(", ")}</td>
+                  <td>{person.entityScope.length === 0 ? "All companies" : person.entityScope.join(", ")}</td>
                   <td>
                     {database && person.status !== "inactive" ? (
                       <div className="grid gap-2">
@@ -160,9 +160,9 @@ export default async function UsersPage({
                             ))}
                           </select>
                           <label className="sr-only" htmlFor={`scope-${person.id}`}>
-                            Entity scope for {person.name}
+                            Companies for {person.name}
                           </label>
-                          <input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All entities" />
+                          <input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
                           <button type="submit" className="btn-secondary">
                             Save access
                           </button>
@@ -178,7 +178,7 @@ export default async function UsersPage({
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-xs text-ink-soft">{database ? "Inactive" : "Example only"}</span>
+                      <span className="text-xs text-ink-soft">{database ? "Turned off" : "Sample only"}</span>
                     )}
                   </td>
                 </tr>

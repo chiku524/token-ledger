@@ -30,6 +30,69 @@ export function sourceName(id: string, sources: readonly { id: string; name: str
   return sources.find((source) => source.id === id)?.name ?? id;
 }
 
+export function movementLabel(direction: "in" | "out"): string {
+  return direction === "out" ? "Sent" : "Received";
+}
+
+export function placeTypeLabel(kind: "wallet" | "exchange" | "custodian"): string {
+  if (kind === "wallet") return "Wallet";
+  if (kind === "exchange") return "Exchange";
+  return "Custodian";
+}
+
+export function walletRoleLabel(role: "hot" | "cold" | "staking" | null): string {
+  if (role === "hot") return "Hot wallet";
+  if (role === "cold") return "Cold wallet";
+  if (role === "staking") return "Staking";
+  return "—";
+}
+
+/** Plain label for a stored valuation tag such as IAS 38. The stored value is unchanged. */
+export function valuationLabel(basis: string | null): string {
+  if (!basis) return "—";
+  const labels: Record<string, string> = {
+    "IAS 38": "Crypto",
+    "IAS 2": "Crypto for sale",
+    "IFRS 9": "Stablecoin",
+    "IFRS 13": "Market value",
+  };
+  return labels[basis] ?? basis;
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  "journal.posted": "Entry posted",
+  "journal.reversed": "Entry corrected",
+  "entity.created": "Company added",
+  "source.created": "Place added",
+  "source_transactions.imported": "Activity imported",
+  "fx.recorded": "Rate saved",
+  "auth.signed_in": "Signed in",
+  "auth.sign_in_failed": "Sign-in failed",
+  "auth.signed_out": "Signed out",
+  "user.invited": "Person invited",
+  "user.role_changed": "Access changed",
+  "user.deactivated": "Person turned off",
+  "user.invite_accepted": "Invite accepted",
+  "user.bootstrapped": "Owner created",
+  "user.seeded": "Sample person added",
+};
+
+export function actionLabel(action: string): string {
+  return ACTION_LABELS[action] ?? action;
+}
+
+const SUBJECT_LABELS: Record<string, string> = {
+  entity: "Company",
+  source: "Place",
+  journal_entry: "Entry",
+  user: "Person",
+  fx_rate: "Rate",
+};
+
+export function subjectLabel(subjectType: string): string {
+  return SUBJECT_LABELS[subjectType] ?? subjectType;
+}
+
 export function accountLabel(
   entityId: string,
   code: string,

@@ -17,11 +17,11 @@ describe("dashboard chart rows", () => {
     const assets = assetAllocationPanels();
     expect(assets.map((panel) => panel.currency)).toEqual(["MYR", "SGD"]);
     expect(assets[0]?.rows.map((row) => [row.label, row.value, row.formatted])).toEqual([
-      ["USDC · IFRS 9", 42000, "MYR 42,000.00 · 57.0%"],
-      ["ETH · IAS 38", 31624, "MYR 31,624.00 · 43.0%"],
+      ["USDC", 42000, "MYR 42,000.00 · 57.0%"],
+      ["ETH", 31624, "MYR 31,624.00 · 43.0%"],
     ]);
     expect(assets[1]?.rows).toEqual([
-      expect.objectContaining({ label: "SOL · IAS 38", value: 18000, formatted: "SGD 18,000.00 · 100.0%" }),
+      expect.objectContaining({ label: "SOL", value: 18000, formatted: "SGD 18,000.00 · 100.0%" }),
     ]);
     expect(reportAssetBars("ent_harbourline_sg")).toEqual(assets[1]?.rows);
   });
@@ -47,7 +47,7 @@ describe("dashboard chart rows", () => {
     expect(singapore?.points.at(-1)).toMatchObject({ value: 18000, formatted: "SGD 18,000.00" });
     expect(compositionPanels()[0]?.rows.map((row) => [row.label, row.value])).toEqual([
       ["Cash", 427000],
-      ["Intangible assets", 31624],
+      ["Crypto", 31624],
       ["Stablecoins", 42000],
     ]);
   });

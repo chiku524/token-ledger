@@ -42,6 +42,6 @@ describe("postFormJournal", () => {
     const original = exampleBooks.journalEntries[0];
     if (!original) throw new Error("missing entry");
     const reversed = { ...original, id: "je_new", reference: "JE-R", reversesEntryId: original.id, memo: "reversal" };
-    expect(() => assertCanReverse([...exampleBooks.journalEntries, reversed], original.id)).toThrow(/already has reversal/);
+    expect(() => assertCanReverse([...exampleBooks.journalEntries, reversed], original.id)).toThrow(/already has correction/);
   });
 });

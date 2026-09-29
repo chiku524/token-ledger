@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const books = scopeBooks(await loadBooks(), session);
   const requestedEntity = url.searchParams.get("entity");
   if (requestedEntity && !canAccessEntity(session, requestedEntity)) {
-    return new Response("That entity is outside your access.", { status: 403 });
+    return new Response("That company is outside your access.", { status: 403 });
   }
   const parsed = parseDateRange(
     { from: url.searchParams.get("from") ?? undefined, to: url.searchParams.get("to") ?? undefined },
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const entity = books.entities.find((item) => item.id === url.searchParams.get("entity")) ?? books.entities[0];
 
   if (kind === "trial-balance") {
-    if (!entity) return new Response("No entity.", { status: 404 });
+    if (!entity) return new Response("No company.", { status: 404 });
     const balance = trialBalance(scoped.journalEntries, books.accounts, entity.id);
     const body = trialBalanceCsv({
       entityName: entity.name,

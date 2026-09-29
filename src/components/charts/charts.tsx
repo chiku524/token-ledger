@@ -79,7 +79,7 @@ export function MoneyLine({ panel }: { panel: LinePanel }) {
 export function StatusDonut({ rows, total }: { rows: StatusRow[]; total: number }) {
   return (
     <div>
-      <div className="relative h-48 w-full" role="img" aria-label="Reconciliation status">
+      <div className="relative h-48 w-full" role="img" aria-label="Matching status">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -101,7 +101,7 @@ export function StatusDonut({ rows, total }: { rows: StatusRow[]; total: number 
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="font-serif text-3xl leading-none">{total}</p>
-          <p className="mt-1 text-[0.68rem] tracking-[0.14em] text-ink-soft uppercase">Records</p>
+          <p className="mt-1 text-[0.68rem] tracking-[0.14em] text-ink-soft uppercase">Rows</p>
         </div>
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -121,7 +121,7 @@ export function StatusDonut({ rows, total }: { rows: StatusRow[]; total: number 
 export function StatusBars({ rows }: { rows: SourceStatusRow[] }) {
   const height = Math.max(180, rows.length * 36 + 36);
   return (
-    <div className="w-full" style={{ height }} role="img" aria-label="Reconciliation by source">
+    <div className="w-full" style={{ height }} role="img" aria-label="Matching by wallet, exchange, or custodian">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 12, bottom: 0, left: 4 }}>
           <CartesianGrid horizontal={false} stroke={LINE} />
@@ -137,7 +137,7 @@ export function StatusBars({ rows }: { rows: SourceStatusRow[] }) {
           />
           <Tooltip content={<StatusTip />} cursor={{ fill: "rgba(28, 25, 21, 0.04)" }} />
           <Bar dataKey="matched" name="Matched" stackId="status" fill={PINE} barSize={14} isAnimationActive={false} />
-          <Bar dataKey="exception" name="Exceptions" stackId="status" fill={SEAL} barSize={14} isAnimationActive={false} />
+          <Bar dataKey="exception" name="Unmatched" stackId="status" fill={SEAL} barSize={14} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -153,7 +153,7 @@ export function ActivityBars({
 }) {
   return (
     <div>
-      <div className="h-56 w-full" role="img" aria-label="Journal entries by month">
+      <div className="h-56 w-full" role="img" aria-label="Entries by month">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={LINE} vertical={false} />
@@ -225,7 +225,7 @@ function StatusTip({
     <div className="border border-line bg-paper-raised px-3 py-2 text-sm">
       <p>{row.label}</p>
       <p className="mt-1 text-pine">Matched {row.matched}</p>
-      <p className="text-seal">Exceptions {row.exception}</p>
+      <p className="text-seal">Unmatched {row.exception}</p>
     </div>
   );
 }

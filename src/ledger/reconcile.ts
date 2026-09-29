@@ -81,7 +81,7 @@ export function reconcileMovements(
         quantityMinor: transaction.quantityMinor,
         sourceTransactionId: transaction.id,
         ledgerMovementId: null,
-        note: "Source transaction has no matching ledger movement.",
+        note: "This activity is not in the journal yet.",
       });
       continue;
     }
@@ -98,7 +98,7 @@ export function reconcileMovements(
       quantityMinor: transaction.quantityMinor,
       sourceTransactionId: transaction.id,
       ledgerMovementId: movement.id,
-      note: "Exact match on source, asset, direction, and quantity.",
+      note: "Matches the journal.",
     });
   }
 
@@ -113,7 +113,7 @@ export function reconcileMovements(
       quantityMinor: movement.quantityMinor,
       sourceTransactionId: null,
       ledgerMovementId: movement.id,
-      note: "Ledger movement has no matching source transaction.",
+      note: "This journal line has no matching wallet, exchange, or custodian activity.",
     });
   });
 

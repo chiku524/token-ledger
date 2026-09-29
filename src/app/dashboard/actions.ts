@@ -18,7 +18,7 @@ import { insertEntity, insertFxRate, insertJournal, insertReversal, insertSource
 import { toMinor } from "@/ledger";
 import { fail, finish, save } from "./form-state";
 
-const READ_ONLY = "Set DATABASE_URL to record books. Demo preview and the example books shown without a database are read-only.";
+const READ_ONLY = "Connect a database to save changes. This demo and the sample on screen are read-only.";
 
 export async function createEntityAction(formData: FormData) {
   const path = "/dashboard/entities";
@@ -37,7 +37,7 @@ export async function createEntityAction(formData: FormData) {
     if (parsed.data.parentEntityId) assertEntity(session, parsed.data.parentEntityId);
     await insertEntity(books, parsed.data, actorName(session));
   });
-  finish(path, "Entity recorded. A standard chart of accounts was added with it.");
+  finish(path, "Company added, with a standard set of accounts.");
 }
 
 export async function createSourceAction(formData: FormData) {
@@ -58,7 +58,7 @@ export async function createSourceAction(formData: FormData) {
     assertEntity(session, parsed.data.entityId);
     await insertSource(books, parsed.data, actorName(session));
   });
-  finish(path, "Source recorded.");
+  finish(path, "Wallet, exchange, or custodian added.");
 }
 
 export async function importCsvAction(formData: FormData) {
@@ -69,12 +69,12 @@ export async function importCsvAction(formData: FormData) {
   const text = await csvText(formData);
   const books = await loadBooks();
   const source = books.sources.find((item) => item.id === sourceId);
-  if (!source) fail(path, "Choose a source in this organization.");
+  if (!source) fail(path, "Choose a wallet, exchange, or custodian in this organization.");
   assertEntityOrFail(path, session, source.entityId);
   const parsed = parseSourceTransactionCsv(text, books.assets);
   if (!parsed.ok) fail(path, parsed.errors[0] ?? "CSV could not be read.");
   await save(path, () => insertSourceTransactions(books, sourceId, parsed.rows, actorName(session)));
-  finish(path, "Source transactions imported. Reconciliation on the next load uses these facts.");
+  finish(path, "Activity imported. Matching on the next load uses these rows.");
 }
 
 export async function postJournalAction(formData: FormData) {
@@ -95,7 +95,7 @@ export async function postJournalAction(formData: FormData) {
     const entry = postFormJournal(parsed.data, books);
     await insertJournal(books, entry, actorName(session));
   });
-  finish(path, "Journal posted. Posted entries are not edited; reverse one if it is wrong.");
+  finish(path, "Entry posted. Posted entries are not edited. Post a correction if one is wrong.");
 }
 
 export async function reverseJournalAction(formData: FormData) {
@@ -111,7 +111,7 @@ export async function reverseJournalAction(formData: FormData) {
   if (!parsed.success) fail(path, firstIssue(parsed.error));
   const books = await loadBooks();
   const original = books.journalEntries.find((entry) => entry.id === parsed.data.entryId);
-  if (!original) fail(path, "That journal entry is not in these books.");
+  if (!original) fail(path, "That entry is not in these books.");
   assertEntityOrFail(path, session, original.entityId);
   await save(path, () =>
     insertReversal(
@@ -121,7 +121,7 @@ export async function reverseJournalAction(formData: FormData) {
       actorName(session),
     ),
   );
-  finish(path, "Reversal posted. The original entry is unchanged.");
+  finish(path, "Correction posted. The original entry is unchanged.");
 }
 
 export async function createFxRateAction(formData: FormData) {
@@ -151,7 +151,7 @@ export async function createFxRateAction(formData: FormData) {
       actorName(session),
     ),
   );
-  finish(path, "FX rate recorded. The inverse is calculated from this rate and is not stored separately.");
+  finish(path, "Rate saved. The other direction is calculated from this rate and is not stored separately.");
 }
 
 async function guard(path: string, permission: Permission, formData: FormData): Promise<SessionUser> {
@@ -169,11 +169,11 @@ function requireWritable(path: string, session: SessionUser): void {
 }
 
 function assertEntity(session: SessionUser, entityId: string): void {
-  if (!canAccessEntity(session, entityId)) throw new AuthError("That entity is outside your access.");
+  if (!canAccessEntity(session, entityId)) throw new AuthError("That company is outside your access.");
 }
 
 function assertEntityOrFail(path: string, session: SessionUser, entityId: string): void {
-  if (!canAccessEntity(session, entityId)) fail(path, "That entity is outside your access.");
+  if (!canAccessEntity(session, entityId)) fail(path, "That company is outside your access.");
 }
 
 function linesFromForm(formData: FormData) {

@@ -44,7 +44,7 @@ export function DashboardShell({
           <p className="mt-1 text-xs text-ink-soft">
             {roleLabel(session.role)} · {session.email}
           </p>
-          {session.demo ? <p className="mt-1 text-xs text-seal">Demo preview · not saved</p> : null}
+          {session.demo ? <p className="mt-1 text-xs text-seal">Sample preview · not saved</p> : null}
           {scopeLabel ? <p className="mt-1 text-xs text-ink-soft">{scopeLabel}</p> : null}
           <form action={signOutAction} className="mt-3">
             <input type="hidden" name="csrf" value={csrf} />
