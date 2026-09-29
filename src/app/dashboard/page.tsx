@@ -1,5 +1,14 @@
 import Link from "next/link";
+import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/charts";
+import { ChartFrame } from "@/components/charts/frame";
 import { PageHeader } from "@/components/page-header";
+import {
+  assetAllocationPanels,
+  carryingSeries,
+  compositionPanels,
+  journalActivityChart,
+  reconciliationStatus,
+} from "@/data/charts";
 import { exampleBooks } from "@/data/example-books";
 import { entityName, formatMoney } from "@/data/present";
 import { trialBalance } from "@/ledger";
@@ -14,6 +23,12 @@ export default function DashboardPage() {
   }));
   const inBalance = balances.every((item) => item.report.debitTotal === item.report.creditTotal);
   const recent = [...exampleBooks.journalEntries].sort((a, b) => b.entryDate.localeCompare(a.entryDate)).slice(0, 4);
+  const allocation = assetAllocationPanels();
+  const series = carryingSeries();
+  const composition = compositionPanels();
+  const activity = journalActivityChart();
+  const status = reconciliationStatus();
+  const currencyNote = "Example books. Each panel uses that entity's functional currency, with no translation between MYR and SGD.";
 
   return (
     <>
@@ -29,6 +44,64 @@ export default function DashboardPage() {
         <Stat label="Open exceptions" value={String(exceptions.length)} tone={exceptions.length ? "seal" : "pine"} />
         <Stat label="Trial balance" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "pine" : "seal"} />
       </dl>
+
+      <section className="mt-8 grid gap-4 xl:grid-cols-2">
+        {allocation.map((panel) => (
+          <ChartFrame
+            key={panel.id}
+            title={panel.title}
+            description={currencyNote}
+            rows={panel.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
+          >
+            <MoneyBars rows={panel.rows} currency={panel.currency} />
+          </ChartFrame>
+        ))}
+      </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-2">
+        {series.map((panel) => (
+          <ChartFrame
+            key={panel.id}
+            title={`Carrying value · ${panel.title}`}
+            description="Digital-asset carrying amount after each example journal date."
+            rows={panel.points.map((point) => ({ label: point.label, detail: point.formatted }))}
+          >
+            <MoneyLine panel={panel} />
+          </ChartFrame>
+        ))}
+      </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-2">
+        {composition.map((panel) => (
+          <ChartFrame
+            key={panel.id}
+            title={`Assets · ${panel.title}`}
+            description="Net carrying amount of asset accounts. Inventory with no movements is omitted."
+            rows={panel.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
+          >
+            <MoneyBars rows={panel.rows} currency={panel.currency} />
+          </ChartFrame>
+        ))}
+      </section>
+
+      <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_18rem]">
+        <ChartFrame
+          title="Journal activity"
+          description="Posted example entries by month. Counts, not a converted total."
+          rows={activity.rows.flatMap((row) =>
+            activity.series.map((item) => ({ label: `${row.fullLabel} · ${item.label}`, detail: String(row[item.id] ?? 0) })),
+          )}
+        >
+          <ActivityBars rows={activity.rows} series={activity.series} />
+        </ChartFrame>
+        <ChartFrame
+          title="Reconciliation"
+          description="Exact matches against source transactions."
+          rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
+        >
+          <StatusDonut rows={status.rows} total={status.total} />
+        </ChartFrame>
+      </section>
 
       <section className="mt-10 grid gap-4 md:grid-cols-2">
         {balances.map(({ entity, report }) => (

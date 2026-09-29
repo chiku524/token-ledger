@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { MoneyBars } from "@/components/charts/charts";
+import { ChartFrame } from "@/components/charts/frame";
 import { PageHeader } from "@/components/page-header";
+import { reportAssetBars, reportComposition } from "@/data/charts";
 import { EXAMPLE_PERIOD, exampleAccounts, exampleBooks, exampleEntities, exampleJournalEntries } from "@/data/example-books";
 import { formatMoney, formatQuantity } from "@/data/present";
 import { assetCarryingSchedule, netBalanceMinor, trialBalance } from "@/ledger";
@@ -19,6 +22,8 @@ export default async function ReportsPage({
   const balance = trialBalance(exampleJournalEntries, exampleAccounts, entity.id);
   const carrying = assetCarryingSchedule(exampleJournalEntries, exampleAccounts, entity.id);
   const balanced = balance.debitTotal === balance.creditTotal;
+  const assetBars = reportAssetBars(entity.id);
+  const composition = reportComposition(entity.id);
 
   return (
     <>
@@ -43,6 +48,23 @@ export default async function ReportsPage({
           );
         })}
       </nav>
+
+      <div className="mb-8 grid gap-4 xl:grid-cols-2">
+        <ChartFrame
+          title={`Carrying value · ${entity.functionalCurrency}`}
+          description="Same amounts as the schedule below, for this entity only."
+          rows={assetBars.map((row) => ({ label: row.label, detail: row.formatted }))}
+        >
+          <MoneyBars rows={assetBars} currency={entity.functionalCurrency} />
+        </ChartFrame>
+        <ChartFrame
+          title="Asset accounts"
+          description="Net balance of asset accounts with activity in the example period."
+          rows={composition.map((row) => ({ label: row.label, detail: row.formatted }))}
+        >
+          <MoneyBars rows={composition} currency={entity.functionalCurrency} />
+        </ChartFrame>
+      </div>
 
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
