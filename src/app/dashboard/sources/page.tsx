@@ -1,5 +1,8 @@
 import { listStubAdapters } from "@/adapters";
+import { MoneyBars } from "@/components/charts/charts";
+import { ChartFrame } from "@/components/charts/frame";
 import { PageHeader } from "@/components/page-header";
+import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { exampleSources } from "@/data/example-books";
 import { entityName } from "@/data/present";
 
@@ -15,7 +18,19 @@ export default function SourcesPage() {
         title="Sources"
         description="Wallets (hot, cold, staking), exchanges, and custodians, with chain context where the source is on-chain. Identifiers below are fake."
       />
-      <div className="overflow-x-auto border border-line bg-paper-raised">
+      <div className="grid gap-4 xl:grid-cols-2">
+        {[...sourceCarryingPanels(), ...sourceKindPanels(), ...chainPanels()].map((panel) => (
+          <ChartFrame
+            key={panel.title}
+            title={panel.title}
+            description="Carrying amount booked to sources. A source with a zero balance, including the hot wallet, is omitted here."
+            rows={panel.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
+          >
+            <MoneyBars rows={panel.rows} currency={panel.currency} />
+          </ChartFrame>
+        ))}
+      </div>
+      <div className="mt-8 overflow-x-auto border border-line bg-paper-raised">
         <table className="ledger-table">
           <caption className="sr-only">Example wallets, exchanges, and custodians</caption>
           <thead>

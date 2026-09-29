@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMinor, toMinor } from "./money";
+import { formatMinor, minorToNumber, toMinor } from "./money";
 
 describe("toMinor", () => {
   it("parses fiat and crypto scales without floating point", () => {
@@ -24,6 +24,13 @@ describe("formatMinor", () => {
     expect(formatMinor(toMinor("2.5", 18), 18, { minFraction: 0, maxFraction: 8 })).toBe("2.5");
     expect(formatMinor(toMinor("0.002", 18), 18, { minFraction: 0, maxFraction: 8 })).toBe("0.002");
     expect(formatMinor(0n, 2, { minFraction: 2, maxFraction: 2 })).toBe("0.00");
+  });
+
+  it("converts fiat minor units to an exact chart number", () => {
+    expect(minorToNumber(3_162_400n, 2)).toBe(31624);
+    expect(minorToNumber(-150n, 2)).toBe(-1.5);
+    expect(minorToNumber(0n, 2)).toBe(0);
+    expect(() => minorToNumber((BigInt(Number.MAX_SAFE_INTEGER) + 1n) * 100n, 2)).toThrow(/too large/);
   });
 
   it("does not hide a non-zero remainder when maxFraction is short", () => {

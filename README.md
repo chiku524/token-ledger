@@ -9,7 +9,7 @@ Planned tiers:
 - **Startup** — Web3 startups and funds, quarterly reporting.
 - **Institutional** — TradFi and scaling Web3 firms, monthly reporting, multi-entity consolidation, and asset valuation reporting.
 
-Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are stubs. The dashboard runs on fictional example books for Harbourline Digital.
+Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are stubs. The dashboard, including its charts, runs on fictional example books for Harbourline Digital. MYR and SGD are not translated into one currency.
 
 ## Stack
 

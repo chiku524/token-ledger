@@ -61,6 +61,24 @@ export function formatMinor(
   return negative ? `-${body}` : body;
 }
 
+/**
+ * Major units for a chart axis. Fiat scales used here are exact in IEEE numbers;
+ * amounts whose whole part exceeds Number.MAX_SAFE_INTEGER are rejected.
+ */
+export function minorToNumber(amountMinor: bigint, scale: number): number {
+  assertScale(scale);
+  const negative = amountMinor < 0n;
+  const absolute = negative ? -amountMinor : amountMinor;
+  const base = 10n ** BigInt(scale);
+  const whole = absolute / base;
+  const fraction = absolute % base;
+  if (whole > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Amount is too large to plot exactly.");
+  }
+  const value = Number(whole) + Number(fraction) / Number(base);
+  return negative ? -value : value;
+}
+
 function assertScale(scale: number): void {
   if (!Number.isInteger(scale) || scale < 0 || scale > 36) {
     throw new Error(`Invalid scale ${scale}.`);
