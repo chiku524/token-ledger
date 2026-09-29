@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOutAction } from "@/app/sign-in/actions";
 import type { SessionUser } from "@/auth/current";
 import { roleLabel } from "@/auth/roles";
+import { ThemeToggle } from "./theme-toggle";
 import { DashboardNav } from "./dashboard-nav";
 import { ExampleBanner } from "./example-banner";
 
@@ -30,11 +31,14 @@ export function DashboardShell({
         Skip to content
       </a>
       <aside className="border-b border-line md:min-h-screen md:border-r md:border-b-0">
-        <div className="flex items-baseline justify-between px-4 py-4 md:block">
+        <div className="flex items-baseline justify-between gap-3 px-4 py-4 md:block">
           <Link href="/" className="font-serif text-xl tracking-tight">
             Token Ledger
           </Link>
           <p className="text-xs tracking-wide text-ink-soft md:mt-1">{subtitle}</p>
+          <div className="md:mt-3">
+            <ThemeToggle />
+          </div>
         </div>
         <div className="px-3 pb-3">
           <DashboardNav showUsers={showUsers} />

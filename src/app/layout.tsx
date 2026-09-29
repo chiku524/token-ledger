@@ -28,10 +28,15 @@ export const metadata: Metadata = {
     "See crypto held in wallets, exchanges, and custodians, then match it to the journal.",
 };
 
+const themeScript = `(function(){try{var stored=localStorage.getItem("tl-theme");var dark=stored==="dark"||(stored!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(dark)document.documentElement.classList.add("dark");document.documentElement.style.colorScheme=dark?"dark":"light";}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${plex.variable} ${plexMono.variable} ${fraunces.variable} h-full`}>
-      <body className="min-h-full bg-paper font-sans text-ink antialiased">{children}</body>
+    <html lang="en" className={`${plex.variable} ${plexMono.variable} ${fraunces.variable} h-full`} suppressHydrationWarning>
+      <body className="min-h-full bg-paper font-sans text-ink antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {children}
+      </body>
     </html>
   );
 }

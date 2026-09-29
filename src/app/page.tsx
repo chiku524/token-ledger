@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { exampleBooks } from "@/data/example-books";
 import { accountLabel, formatMoney } from "@/data/present";
 
@@ -9,9 +10,12 @@ export default function HomePage() {
     <div className="min-h-full">
       <header className="flex items-center justify-between border-b border-line px-4 py-4 md:px-8">
         <p className="font-serif text-xl tracking-tight">Token Ledger</p>
-        <Link href="/sign-in?next=/dashboard" className="border border-ink px-3 py-2 text-sm">
-          Open the example
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link href="/sign-in?next=/dashboard" className="border border-ink px-3 py-2 text-sm">
+            Open the example
+          </Link>
+        </div>
       </header>
 
       <main>

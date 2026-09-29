@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
 @theme inline {
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+@theme {
   --color-paper: #f3efe4;
   --color-paper-raised: #fffdf8;
   --color-ink: #1c1915;
@@ -8,9 +14,47 @@
   --color-line: #ddd4c4;
   --color-seal: #8e2f2c;
   --color-pine: #1c6b45;
-  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-fraunces), ui-serif, georgia, serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+  --selection: #ead7c4;
+  --chart-ink: #1c1915;
+  --chart-muted: #5f584e;
+  --chart-line: #ddd4c4;
+  --chart-pine: #1c6b45;
+  --chart-seal: #8e2f2c;
+  --chart-dot: #fffdf8;
+  --chart-cursor: rgba(28, 25, 21, 0.06);
+  --chart-1: #1c6b45;
+  --chart-2: #3e4c5e;
+  --chart-3: #9a7340;
+  --chart-4: #8e2f2c;
+  --chart-5: #6d5a4a;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-paper: #14110e;
+  --color-paper-raised: #221c17;
+  --color-ink: #f4f0e6;
+  --color-ink-soft: #c2b8aa;
+  --color-line: #3d352c;
+  --color-seal: #f0a09c;
+  --color-pine: #7dcea0;
+  --selection: #4a3d32;
+  --chart-ink: #f4f0e6;
+  --chart-muted: #c2b8aa;
+  --chart-line: #3d352c;
+  --chart-pine: #7dcea0;
+  --chart-seal: #f0a09c;
+  --chart-dot: #221c17;
+  --chart-cursor: rgba(244, 240, 230, 0.08);
+  --chart-1: #3dba7a;
+  --chart-2: #9eb0c4;
+  --chart-3: #e0b56a;
+  --chart-4: #f0a09c;
+  --chart-5: #cbb59a;
 }
 
 body {
@@ -19,7 +63,7 @@ body {
 }
 
 ::selection {
-  background: #ead7c4;
+  background: var(--selection);
 }
 
 a:focus-visible,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { acceptInviteAction, demoSignInAction, signInAction } from "@/app/sign-in/actions";
 import { ensureCsrf } from "@/auth/current";
 import { DEMO_PREVIEWS } from "@/auth/demo-previews";
@@ -26,10 +27,11 @@ export default async function SignInPage({
 
   return (
     <div className="min-h-full">
-      <header className="border-b border-line px-4 py-4 md:px-8">
+      <header className="flex items-center justify-between border-b border-line px-4 py-4 md:px-8">
         <Link href="/" className="font-serif text-xl tracking-tight">
           Token Ledger
         </Link>
+        <ThemeToggle />
       </header>
       <main className="mx-auto grid max-w-5xl gap-8 px-4 py-10 md:grid-cols-2 md:px-8">
         <section>

@@ -16,12 +16,14 @@ import {
 } from "recharts";
 import type { LinePanel, MoneyRow, SourceStatusRow, StatusRow } from "@/data/charts";
 
-const INK = "#1c1915";
-const INK_SOFT = "#5f584e";
-const LINE = "#ddd4c4";
-const PINE = "#1c6b45";
-const SEAL = "#8e2f2c";
-const BAR_COLORS = ["#1c6b45", "#3e4c5e", "#9a7340", "#8e2f2c", "#6d5a4a"];
+const INK = "var(--chart-ink)";
+const INK_SOFT = "var(--chart-muted)";
+const LINE = "var(--chart-line)";
+const PINE = "var(--chart-pine)";
+const SEAL = "var(--chart-seal)";
+const DOT = "var(--chart-dot)";
+const CURSOR = "var(--chart-cursor)";
+const BAR_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 const tick = { fill: INK_SOFT, fontSize: 11 };
 
 export function MoneyBars({ rows, currency }: { rows: MoneyRow[]; currency: string }) {
@@ -41,7 +43,7 @@ export function MoneyBars({ rows, currency }: { rows: MoneyRow[]; currency: stri
             tickLine={false}
             tickFormatter={shortLabel}
           />
-          <Tooltip content={<MoneyTip />} cursor={{ fill: "rgba(28, 25, 21, 0.04)" }} />
+          <Tooltip content={<MoneyTip />} cursor={{ fill: CURSOR }} />
           <Bar dataKey="value" barSize={16} isAnimationActive={false}>
             {rows.map((row, index) => (
               <Cell key={row.id} fill={BAR_COLORS[index % BAR_COLORS.length]} />
@@ -67,7 +69,7 @@ export function MoneyLine({ panel }: { panel: LinePanel }) {
             dataKey="value"
             stroke={PINE}
             strokeWidth={2}
-            dot={{ r: 3, fill: PINE, stroke: "#fffdf8" }}
+            dot={{ r: 3, fill: PINE, stroke: DOT }}
             isAnimationActive={false}
           />
         </LineChart>
@@ -88,7 +90,7 @@ export function StatusDonut({ rows, total }: { rows: StatusRow[]; total: number 
               nameKey="label"
               innerRadius="62%"
               outerRadius="82%"
-              stroke="#fffdf8"
+              stroke="var(--chart-dot)"
               paddingAngle={2}
               isAnimationActive={false}
             >
@@ -135,7 +137,7 @@ export function StatusBars({ rows }: { rows: SourceStatusRow[] }) {
             tickLine={false}
             tickFormatter={shortLabel}
           />
-          <Tooltip content={<StatusTip />} cursor={{ fill: "rgba(28, 25, 21, 0.04)" }} />
+          <Tooltip content={<StatusTip />} cursor={{ fill: CURSOR }} />
           <Bar dataKey="matched" name="Matched" stackId="status" fill={PINE} barSize={14} isAnimationActive={false} />
           <Bar dataKey="exception" name="Unmatched" stackId="status" fill={SEAL} barSize={14} isAnimationActive={false} />
         </BarChart>
@@ -159,7 +161,7 @@ export function ActivityBars({
             <CartesianGrid stroke={LINE} vertical={false} />
             <XAxis dataKey="label" tick={tick} axisLine={{ stroke: LINE }} tickLine={false} />
             <YAxis allowDecimals={false} tick={tick} axisLine={false} tickLine={false} width={28} />
-            <Tooltip content={<ActivityTip series={series} />} cursor={{ fill: "rgba(28, 25, 21, 0.04)" }} />
+            <Tooltip content={<ActivityTip series={series} />} cursor={{ fill: CURSOR }} />
             {series.map((item) => (
               <Bar key={item.id} dataKey={item.id} name={item.label} fill={item.color} barSize={18} isAnimationActive={false} />
             ))}

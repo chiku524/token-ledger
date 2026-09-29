@@ -20,7 +20,7 @@ import { exampleBooks } from "./example-books";
 import { formatMoney } from "./present";
 
 const FIAT_SCALE = 2;
-const SERIES_COLORS = ["#1c6b45", "#3e4c5e", "#9a7340", "#8e2f2c"];
+const SERIES_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export interface MoneyRow {
@@ -249,7 +249,7 @@ export function journalActivityChart(books: Books = exampleBooks): ActivityChart
   const series = books.entities.map((entity, index) => ({
     id: entity.id,
     label: market(books, entity.id),
-    color: SERIES_COLORS[index % SERIES_COLORS.length] ?? "#1c1915",
+    color: SERIES_COLORS[index % SERIES_COLORS.length] ?? "var(--chart-ink)",
   }));
   return {
     series,
@@ -271,8 +271,8 @@ export function reconciliationStatus(books: Books = exampleBooks): { total: numb
   return {
     total: counts.matched + counts.exception,
     rows: [
-      { id: "matched", label: "Matched", value: counts.matched, formatted: String(counts.matched), fill: "#1c6b45" },
-      { id: "exception", label: "Unmatched", value: counts.exception, formatted: String(counts.exception), fill: "#8e2f2c" },
+      { id: "matched", label: "Matched", value: counts.matched, formatted: String(counts.matched), fill: "var(--chart-pine)" },
+      { id: "exception", label: "Unmatched", value: counts.exception, formatted: String(counts.exception), fill: "var(--chart-seal)" },
     ],
   };
 }
