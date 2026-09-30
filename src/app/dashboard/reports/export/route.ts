@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
-  const books = scopeBooks(await loadBooks(), session);
+  const books = scopeBooks(await loadBooks(session.organizationId), session);
   const requestedEntity = url.searchParams.get("entity");
   if (requestedEntity && !canAccessEntity(session, requestedEntity)) {
     return new Response("That company is outside your access.", { status: 403 });

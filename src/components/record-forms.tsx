@@ -1,5 +1,4 @@
 import {
-  createConnectionAction,
   createEntityAction,
   createFxRateAction,
   importCsvAction,
@@ -69,74 +68,23 @@ export function EntityForm({ books, csrf }: { books: Books; csrf: string }) {
   );
 }
 
-export function ConnectionForm({ books, csrf }: { books: Books; csrf: string }) {
-  return (
-    <form id="connection-form" action={createConnectionAction} className="grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
-      <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="font-serif text-2xl md:col-span-2">Add a read-only connection</h2>
-      <p className="max-w-2xl text-sm leading-relaxed text-ink-soft md:col-span-2">
-        A wallet is a public address. An exchange or custodian is an account or vault id. This form does not ask for an
-        API key, and the connection cannot move funds. It can only be checked for balances and movements.
-      </p>
-      <label className="field">
-        <span>Company</span>
-        <select name="entityId" required defaultValue={books.entities[0]?.id}>
-          {books.entities.map((entity) => (
-            <option key={entity.id} value={entity.id}>
-              {entity.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>Access</span>
-        <select name="mode" defaultValue="watch">
-          <option value="watch">Watch-only wallet</option>
-          <option value="exchange_read">Exchange, read-only</option>
-          <option value="custodian_read">Custodian, read-only</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Name</span>
-        <input name="name" required maxLength={200} />
-      </label>
-      <label className="field">
-        <span>Network</span>
-        <select name="chain" defaultValue="ethereum">
-          <option value="">None</option>
-          <option value="ethereum">Ethereum</option>
-          <option value="solana">Solana</option>
-          <option value="polygon">Polygon</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Wallet type</span>
-        <select name="role" defaultValue="hot">
-          <option value="">Not a wallet</option>
-          <option value="hot">Hot wallet</option>
-          <option value="cold">Cold wallet</option>
-          <option value="staking">Staking</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Address or account ID</span>
-        <input name="identifier" required maxLength={200} className="font-mono text-sm" />
-      </label>
-      <div className="md:col-span-2">
-        <button type="submit" className="btn">
-          Add connection
-        </button>
-      </div>
-    </form>
-  );
-}
-
-export function ConnectionControls({ connectionId, csrf, revoked }: { connectionId: string; csrf: string; revoked: boolean }) {
+export function ConnectionControls({
+  connectionId,
+  csrf,
+  revoked,
+  next = "/dashboard/settings",
+}: {
+  connectionId: string;
+  csrf: string;
+  revoked: boolean;
+  next?: string;
+}) {
   if (revoked) return <span className="text-sm text-ink-soft">Disconnected</span>;
   return (
     <div className="flex flex-wrap gap-2">
       <form action={refreshConnectionAction}>
         <input type="hidden" name="csrf" value={csrf} />
+        <input type="hidden" name="next" value={next} />
         <input type="hidden" name="connectionId" value={connectionId} />
         <button type="submit" className="btn-secondary">
           Check
@@ -144,6 +92,7 @@ export function ConnectionControls({ connectionId, csrf, revoked }: { connection
       </form>
       <form action={revokeConnectionAction}>
         <input type="hidden" name="csrf" value={csrf} />
+        <input type="hidden" name="next" value={next} />
         <input type="hidden" name="connectionId" value={connectionId} />
         <button type="submit" className="btn-secondary">
           Disconnect

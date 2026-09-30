@@ -34,7 +34,7 @@ export async function inviteUserAction(formData: FormData) {
   });
   if (!parsed.success) fail(PATH, firstIssue(parsed.error));
   if (!canAssignRole(session, parsed.data.role, null)) fail(PATH, "You cannot assign that role.");
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   const unknown = parsed.data.entityScope.find((id) => !books.entities.some((entity) => entity.id === id));
   if (unknown) fail(PATH, `Unknown company ${unknown}.`);
   const existing = await findUserByEmail(parsed.data.email);
@@ -84,7 +84,7 @@ export async function changeAccessAction(formData: FormData) {
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean);
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   const unknown = entityScope.find((id) => !books.entities.some((entity) => entity.id === id));
   if (unknown) fail(PATH, `Unknown company ${unknown}.`);
   const users = await listOrganizationUsers(session.organizationId);

@@ -5,7 +5,8 @@ import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
-import { ConnectionControls, ConnectionForm, CsvImportForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
+import Link from "next/link";
+import { CsvImportForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
@@ -57,7 +58,11 @@ export default async function SourcesPage({
       <h2 className="font-serif text-2xl">Connections</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         One connection can cover several addresses, accounts, or vaults. Scopes stay at balances and movements. No API key
-        is stored. A check asks the connector and, until that connector is live, sends nothing.
+        is stored. Add, check, and disconnect a connection in{" "}
+        <Link href="/dashboard/settings" className="underline">
+          Settings
+        </Link>
+        .
       </p>
       {books.connections.length === 0 ? (
         <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No connections yet.</p>
@@ -72,7 +77,6 @@ export default async function SourcesPage({
                 <th scope="col">Access</th>
                 <th scope="col">Status</th>
                 <th scope="col">Last checked</th>
-                {canSource && writable ? <th scope="col">Actions</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -100,11 +104,6 @@ export default async function SourcesPage({
                       {connection.lastError ? <span className="mt-1 block text-xs text-seal">{connection.lastError}</span> : null}
                     </td>
                     <td>{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</td>
-                    {canSource && writable ? (
-                      <td>
-                        <ConnectionControls connectionId={connection.id} csrf={csrf} revoked={connection.status === "revoked"} />
-                      </td>
-                    ) : null}
                   </tr>
                 );
               })}
@@ -177,10 +176,9 @@ export default async function SourcesPage({
         ) : null}
         {canSource || canImport ? null : (
           <div className="xl:col-span-2">
-            <RoleNote>You can view holdings. Adding a connection, or importing activity, is not available for this role.</RoleNote>
+            <RoleNote>You can view holdings. Connecting a wallet, exchange, or custodian is done in Settings, and importing activity is not available for this role.</RoleNote>
           </div>
         )}
-        {canSource ? <ConnectionForm books={books} csrf={csrf} /> : null}
         {canImport ? <CsvImportForm books={books} csrf={csrf} /> : null}
       </div>
 

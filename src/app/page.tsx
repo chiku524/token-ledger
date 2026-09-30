@@ -12,6 +12,9 @@ export default function HomePage() {
         <p className="font-serif text-xl tracking-tight">Token Ledger</p>
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <Link href="/sign-up" className="border border-ink px-3 py-2 text-sm">
+            Create an account
+          </Link>
           <Link href="/sign-in?next=/dashboard" className="border border-ink px-3 py-2 text-sm">
             Open the example
           </Link>

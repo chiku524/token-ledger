@@ -50,7 +50,7 @@ Posted journals and the audit log reject updates. A wrong journal is corrected b
 
 ## Authentication and roles
 
-Sign-in is a database session. Passwords are hashed with scrypt (N=16384, r=8, p=1). The session cookie `tl_session` is httpOnly, SameSite=Lax, and a 12-hour token. Only a hash of that token, bound to `AUTH_SECRET`, is stored. Mutations also require a CSRF cookie that matches the form, and an Origin host that matches this app. Five failed sign-ins for an email within 15 minutes lock further attempts until the window ages out. There is no public signup.
+Sign-in is a database session. Passwords are hashed with scrypt (N=16384, r=8, p=1). The session cookie `tl_session` is httpOnly, SameSite=Lax, and a 12-hour token. Only a hash of that token, bound to `AUTH_SECRET`, is stored. Mutations also require a CSRF cookie that matches the form, and an Origin host that matches this app. Five failed sign-ins for an email within 15 minutes lock further attempts until the window ages out. A new organization starts at `/sign-up`. The wizard can connect a wallet, an exchange, a custodian, or any combination. Those connections are managed later in Settings. No API key is stored.
 
 Create the first owner after the database has an organization:
 
@@ -62,7 +62,7 @@ pnpm db:seed
 pnpm auth:bootstrap
 ```
 
-`pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite link is shown once in the page and is not emailed. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`.
+`pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite link is shown once in the page and is not emailed. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`. An owner or admin is then asked, step by step, to connect a wallet, an exchange, and a custodian. Each step can be skipped.
 
 | Role | Books | Export and audit | Journals, reversals, CSV import | Entities, sources, FX | Users |
 | --- | --- | --- | --- | --- | --- |

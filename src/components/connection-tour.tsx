@@ -8,17 +8,17 @@ const STEPS = [
   {
     title: "A connection only reads",
     body: "A wallet, exchange, or custodian is added as a read-only connection. Token Ledger can see balances and movements. It cannot withdraw, trade, or sign, and it does not store an API key.",
-    href: "/dashboard/sources#connections",
+    href: "/dashboard/settings#connections",
   },
   {
     title: "Choose how the place is held",
-    body: "Watch a public address on Ethereum, Solana, or Polygon. Or record an exchange account id, or a custodian vault id. A wallet also needs a type: hot, cold, or staking. Leave the wallet type blank for an exchange.",
-    href: "/dashboard/sources#connection-form",
+    body: "In Settings, watch a public address on Ethereum, Solana, or Polygon. Or record an exchange account id, or a custodian vault id. A wallet also needs a type: hot, cold, or staking.",
+    href: "/dashboard/settings#wallet",
   },
   {
     title: "One connection, several accounts",
     body: "The connection is the grant. The accounts under it are the addresses, sub-accounts, or vaults. Waiting means it has not been checked yet. Up to date means the last check succeeded. Needs attention means a later check failed. Disconnected means future reads have stopped.",
-    href: "/dashboard/sources#connections",
+    href: "/dashboard/settings#connections",
   },
   {
     title: "Check, then compare with the books",
@@ -46,7 +46,7 @@ export function ConnectionTour({ csrf }: { csrf: string }) {
     document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, [step, pathname]);
 
-  if (!open || !current) return null;
+  if (!open || !current || pathname.startsWith("/dashboard/setup")) return null;
 
   async function finish() {
     setError(null);

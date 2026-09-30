@@ -22,7 +22,7 @@ const MODES = [
 ];
 
 const LIFE = [
-  { title: "Add", detail: "An admin records the address or account id. The connection starts as Waiting." },
+  { title: "Add", detail: "Signup can connect a wallet, an exchange, a custodian, or all of them. Later, an owner or admin adds another from Settings. The connection starts as Waiting." },
   { title: "Check", detail: "The reader for that venue is asked for balances and movements. A stub reader sends nothing." },
   { title: "Observe", detail: "A successful check stores a balance at that time, and new movements, without posting a journal." },
   { title: "Disconnect", detail: "Future reads stop. The accounts, observations, and journal stay." },
@@ -164,7 +164,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
             <tbody>
               <tr>
                 <td>Owner and admin</td>
-                <td>Add a connection, check it, and disconnect it. A new admin is shown the tour once.</td>
+                <td>Add a connection from Settings, check it, and disconnect it. Signup asks for this once. A new admin is also shown the tour once.</td>
               </tr>
               <tr>
                 <td>Accountant</td>

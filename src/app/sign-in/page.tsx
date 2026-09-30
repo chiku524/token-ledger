@@ -38,7 +38,8 @@ export default async function SignInPage({
           <p className="text-[0.7rem] font-medium tracking-[0.18em] text-ink-soft uppercase">Sign in</p>
           <h1 className="mt-2 font-serif text-4xl tracking-tight">Sign in to the books.</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
-            There is no open signup. An owner creates the first account, then invites everyone else.
+            Create an account to start a new organization, then connect a wallet, an exchange, a custodian, or all of
+            them. An owner can also invite people into an organization that already exists.
           </p>
           {error ? (
             <p role="alert" className="mt-6 border border-seal/40 bg-paper-raised px-4 py-3 text-sm text-seal">
@@ -81,6 +82,12 @@ export default async function SignInPage({
               <button type="submit" className="btn">
                 Sign in
               </button>
+              <p className="text-sm text-ink-soft">
+                New organization?{" "}
+                <Link href="/sign-up" className="underline">
+                  Create an account
+                </Link>
+              </p>
               {database ? null : (
                 <p className="text-sm text-ink-soft">Password sign-in needs a database. The sample roles on the right work without one.</p>
               )}

@@ -18,12 +18,17 @@ import {
   sources,
 } from "./schema";
 
-export async function loadBooksFromDatabase(): Promise<Books> {
+export async function loadBooksFromDatabase(requestedOrganizationId?: string): Promise<Books> {
   const db = getDb();
-  const organizationRows = await db.select().from(organizations).orderBy(asc(organizations.createdAt));
-  const organization = pickOrganization(organizationRows);
+  const organization = requestedOrganizationId
+    ? (await db.select().from(organizations).where(eq(organizations.id, requestedOrganizationId)).limit(1))[0]
+    : pickOrganization(await db.select().from(organizations).orderBy(asc(organizations.createdAt)));
   if (!organization) {
-    throw new Error("No books are saved yet. Load the example, or add an organization.");
+    throw new Error(
+      requestedOrganizationId
+        ? "This account’s books are not in the database."
+        : "No books are saved yet. Load the example, or add an organization.",
+    );
   }
 
   const organizationId = organization.id;

@@ -9,6 +9,7 @@ import { DEMO_PREVIEWS } from "@/auth/demo-previews";
 import { demoSignInAllowed, signDemoToken } from "@/auth/demo";
 import { safeNextPath } from "@/auth/csrf";
 import { hashPassword } from "@/auth/password";
+import { can } from "@/auth/roles";
 import { consumeInvite, createSession, deleteSession, userForSessionToken, writeAudit } from "@/db/auth-store";
 import { readDatabaseUrl, authSecretConfigured } from "@/env";
 import { passwordFormSchema, firstIssue } from "@/data/validate";
@@ -85,7 +86,7 @@ export async function acceptInviteAction(formData: FormData) {
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, sessionCookieOptions(cookieSecure()));
   jar.delete(DEMO_COOKIE);
-  redirect("/dashboard");
+  redirect(can(user.role, "source.write") ? "/dashboard/setup" : "/dashboard");
 }
 
 export async function signOutAction(formData: FormData) {

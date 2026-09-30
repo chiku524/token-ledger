@@ -17,7 +17,11 @@ const links = [
 
 export function DashboardNav({ showUsers }: { showUsers: boolean }) {
   const pathname = usePathname();
-  const items = showUsers ? [...links, { href: "/dashboard/users", label: "Users" }] : links;
+  const items = [
+    ...links,
+    ...(showUsers ? [{ href: "/dashboard/users", label: "Users" }] : []),
+    { href: "/dashboard/settings", label: "Settings" },
+  ];
 
   return (
     <nav aria-label="Sections" className="flex gap-1 overflow-x-auto md:flex-col">

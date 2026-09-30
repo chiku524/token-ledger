@@ -7,7 +7,7 @@ import { scopeBooks } from "./scope-books";
 
 export const loadAuthorizedBooks = cache(async (): Promise<{ session: SessionUser; books: Books }> => {
   const session = await requireSession();
-  const books = scopeBooks(await loadBooks(), session);
+  const books = scopeBooks(await loadBooks(session.organizationId), session);
   return { session, books };
 });
 

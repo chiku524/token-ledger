@@ -4,6 +4,7 @@ import { AdapterNotImplementedError, ConnectionClosedError, pullReadOnly, status
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
+import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { postFormJournal } from "@/data/journal-form";
 import { loadBooks } from "@/data/load-books";
@@ -45,7 +46,7 @@ export async function createEntityAction(formData: FormData) {
     parentEntityId: formData.get("parentEntityId"),
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   await save(path, async () => {
     if (parsed.data.parentEntityId) assertEntity(session, parsed.data.parentEntityId);
     await insertEntity(books, parsed.data, actorName(session));
@@ -54,7 +55,7 @@ export async function createEntityAction(formData: FormData) {
 }
 
 export async function createConnectionAction(formData: FormData) {
-  const path = "/dashboard/sources";
+  const path = connectionReturnPath(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   const parsed = connectionFormSchema.safeParse({
@@ -66,7 +67,7 @@ export async function createConnectionAction(formData: FormData) {
     identifier: formData.get("identifier"),
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   await save(path, async () => {
     assertEntity(session, parsed.data.entityId);
     await insertConnection(books, connectionFromForm(parsed.data), actorName(session));
@@ -75,11 +76,11 @@ export async function createConnectionAction(formData: FormData) {
 }
 
 export async function refreshConnectionAction(formData: FormData) {
-  const path = "/dashboard/sources";
+  const path = connectionReturnPath(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   const connectionId = String(formData.get("connectionId") ?? "");
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   const connection = books.connections.find((item) => item.id === connectionId);
   if (!connection) fail(path, "That connection is not in this organization.");
   assertEntityOrFail(path, session, connection.entityId);
@@ -115,11 +116,11 @@ export async function refreshConnectionAction(formData: FormData) {
 }
 
 export async function revokeConnectionAction(formData: FormData) {
-  const path = "/dashboard/sources";
+  const path = connectionReturnPath(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   const connectionId = String(formData.get("connectionId") ?? "");
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   const connection = books.connections.find((item) => item.id === connectionId);
   if (!connection) fail(path, "That connection is not in this organization.");
   assertEntityOrFail(path, session, connection.entityId);
@@ -133,7 +134,7 @@ export async function importCsvAction(formData: FormData) {
   requireWritable(path, session);
   const sourceId = String(formData.get("sourceId") ?? "");
   const text = await csvText(formData);
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   const source = books.sources.find((item) => item.id === sourceId);
   if (!source) fail(path, "Choose a wallet, exchange, or custodian in this organization.");
   assertEntityOrFail(path, session, source.entityId);
@@ -155,7 +156,7 @@ export async function postJournalAction(formData: FormData) {
     lines: linesFromForm(formData),
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   await save(path, async () => {
     assertEntity(session, parsed.data.entityId);
     const entry = postFormJournal(parsed.data, books);
@@ -175,7 +176,7 @@ export async function reverseJournalAction(formData: FormData) {
     memo: formData.get("memo"),
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   const original = books.journalEntries.find((entry) => entry.id === parsed.data.entryId);
   if (!original) fail(path, "That entry is not in these books.");
   assertEntityOrFail(path, session, original.entityId);
@@ -202,7 +203,7 @@ export async function createFxRateAction(formData: FormData) {
     note: formData.get("note"),
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
-  const books = await loadBooks();
+  const books = await loadBooks(session.organizationId);
   await save(path, () =>
     insertFxRate(
       books,
