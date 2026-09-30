@@ -33,7 +33,15 @@ function snapshotFromExample(): BooksSnapshot {
     organization: exampleBooks.organization,
     entities: [...exampleBooks.entities],
     assets: [...exampleBooks.assets],
+    connections: exampleBooks.connections.map((connection) => ({
+      ...connection,
+      lastSyncedAt: connection.lastSyncedAt ? new Date(connection.lastSyncedAt) : null,
+    })),
     sources: [...exampleBooks.sources],
+    balanceSnapshots: exampleBooks.balanceSnapshots.map((snapshot) => ({
+      ...snapshot,
+      asOf: new Date(snapshot.asOf),
+    })),
     accounts: [...exampleBooks.accounts],
     entries: exampleBooks.journalEntries.map((entry) => ({
       id: entry.id,

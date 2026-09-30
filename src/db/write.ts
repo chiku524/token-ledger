@@ -1,9 +1,23 @@
+import { and, eq } from "drizzle-orm";
+import type { NormalizedBalance, NormalizedSourceTransaction } from "@/adapters";
+import { READ_ONLY_SCOPES, type ConnectionDraft } from "@/data/connections";
 import { ENTITY_CHART } from "@/data/chart-template";
-import type { Books } from "@/data/books";
+import type { Books, ConnectionStatus } from "@/data/books";
 import type { ParsedSourceTransaction } from "@/data/source-csv";
 import { LedgerError, reverseJournalEntry, type PostedJournalEntry } from "@/ledger";
 import { getDb } from "./client";
-import { accounts, auditEvents, entities, fxRates, journalEntries, journalLines, sourceTransactions, sources } from "./schema";
+import {
+  accounts,
+  auditEvents,
+  balanceSnapshots,
+  connections,
+  entities,
+  fxRates,
+  journalEntries,
+  journalLines,
+  sourceTransactions,
+  sources,
+} from "./schema";
 
 export class BooksWriteError extends Error {
   constructor(message: string) {
@@ -42,27 +56,154 @@ export async function insertEntity(
   });
 }
 
-export async function insertSource(
-  books: Books,
-  input: {
-    entityId: string;
-    kind: "wallet" | "exchange" | "custodian";
-    role: "hot" | "cold" | "staking" | null;
-    name: string;
-    chain: string | null;
-    identifier: string;
-  },
-  actor: string,
-): Promise<void> {
-  if (!books.entities.some((entity) => entity.id === input.entityId)) {
+export async function insertConnection(books: Books, draft: ConnectionDraft, actor: string): Promise<void> {
+  if (!books.entities.some((entity) => entity.id === draft.connection.entityId)) {
     throw new BooksWriteError("Choose a company in this organization.");
   }
-  const id = newId("src");
+  if (draft.connection.scopes !== READ_ONLY_SCOPES) {
+    throw new BooksWriteError("A connection can only read balances and movements.");
+  }
+  const connectionId = newId("conn");
+  const sourceId = newId("src");
   const db = getDb();
   await db.transaction(async (tx) => {
-    await tx.insert(sources).values({ id, organizationId: books.organization.id, ...input });
-    await tx.insert(auditEvents).values(auditRow(books, actor, "source.created", "source", id, input.name));
+    await tx.insert(connections).values({
+      id: connectionId,
+      organizationId: books.organization.id,
+      entityId: draft.connection.entityId,
+      mode: draft.connection.mode,
+      venue: draft.connection.venue,
+      name: draft.connection.name,
+      status: "pending",
+      scopes: READ_ONLY_SCOPES,
+      cursor: null,
+      lastSyncedAt: null,
+      lastError: null,
+    });
+    await tx.insert(sources).values({
+      id: sourceId,
+      organizationId: books.organization.id,
+      connectionId,
+      ...draft.source,
+    });
+    await tx.insert(auditEvents).values(
+      auditRow(books, actor, "connection.created", "connection", connectionId, `${draft.connection.name} · read-only`),
+    );
   });
+}
+
+export async function revokeConnection(books: Books, connectionId: string, actor: string): Promise<void> {
+  const connection = requireConnection(books, connectionId);
+  if (connection.status === "revoked") throw new BooksWriteError("This connection is already disconnected.");
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(connections)
+      .set({ status: "revoked", lastError: null })
+      .where(and(eq(connections.id, connection.id), eq(connections.organizationId, books.organization.id)));
+    await tx.insert(auditEvents).values(auditRow(books, actor, "connection.revoked", "connection", connection.id, connection.name));
+  });
+}
+
+export async function recordSyncFailure(
+  books: Books,
+  connectionId: string,
+  status: ConnectionStatus,
+  lastError: string,
+  actor: string,
+): Promise<void> {
+  const connection = requireConnection(books, connectionId);
+  if (connection.status === "revoked") throw new BooksWriteError("This connection is disconnected.");
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(connections)
+      .set({ status, lastError })
+      .where(and(eq(connections.id, connection.id), eq(connections.organizationId, books.organization.id)));
+    await tx.insert(auditEvents).values(auditRow(books, actor, "connection.sync_failed", "connection", connection.id, lastError));
+  });
+}
+
+export async function recordSyncSuccess(
+  books: Books,
+  connectionId: string,
+  reads: readonly { sourceId: string; balances: readonly NormalizedBalance[]; movements: readonly NormalizedSourceTransaction[] }[],
+  actor: string,
+): Promise<void> {
+  const connection = requireConnection(books, connectionId);
+  if (connection.status === "revoked") throw new BooksWriteError("This connection is disconnected.");
+  const linked = new Set(books.sources.filter((source) => source.connectionId === connection.id).map((source) => source.id));
+  const assetId = new Map(books.assets.map((asset) => [asset.code, asset.id]));
+  const seen = new Set(books.sourceTransactions.map((transaction) => `${transaction.sourceId}:${transaction.externalId}`));
+  let cursor = connection.cursor;
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    for (const read of reads) {
+      if (!linked.has(read.sourceId)) throw new BooksWriteError("That account is not on this connection.");
+      const source = books.sources.find((item) => item.id === read.sourceId);
+      if (!source) throw new BooksWriteError("That account is not on this connection.");
+      if (read.balances.length > 0) {
+        await tx.insert(balanceSnapshots).values(
+          read.balances.map((balance) => {
+            const resolved = assetId.get(balance.assetCode);
+            if (!resolved) throw new BooksWriteError(`Unknown asset ${balance.assetCode}.`);
+            if (balance.quantityMinor < 0n) throw new BooksWriteError(`Quantity for ${balance.assetCode} cannot be negative.`);
+            const asOf = new Date(balance.asOf);
+            if (Number.isNaN(asOf.getTime())) throw new BooksWriteError(`Balance for ${balance.assetCode} has no time.`);
+            return {
+              id: newId("snap"),
+              organizationId: books.organization.id,
+              entityId: source.entityId,
+              sourceId: source.id,
+              assetId: resolved,
+              quantityMinor: balance.quantityMinor,
+              asOf,
+            };
+          }),
+        );
+      }
+      const movements = read.movements.filter((movement) => {
+        const key = `${read.sourceId}:${movement.externalId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        if (movement.occurredOn > (cursor ?? "")) cursor = movement.occurredOn;
+        return true;
+      });
+      if (movements.length > 0) {
+        await tx.insert(sourceTransactions).values(
+          movements.map((movement) => {
+            const resolved = assetId.get(movement.assetCode);
+            if (!resolved) throw new BooksWriteError(`Unknown asset ${movement.assetCode}.`);
+            return {
+              id: newId("stx"),
+              organizationId: books.organization.id,
+              entityId: source.entityId,
+              sourceId: source.id,
+              externalId: movement.externalId,
+              occurredOn: movement.occurredOn,
+              assetId: resolved,
+              direction: movement.direction,
+              quantityMinor: movement.quantityMinor,
+              description: movement.description,
+            };
+          }),
+        );
+      }
+    }
+    await tx
+      .update(connections)
+      .set({ status: "healthy", lastError: null, lastSyncedAt: new Date(), cursor })
+      .where(and(eq(connections.id, connection.id), eq(connections.organizationId, books.organization.id)));
+    await tx.insert(auditEvents).values(
+      auditRow(books, actor, "connection.synced", "connection", connection.id, `Read ${connection.name}.`),
+    );
+  });
+}
+
+function requireConnection(books: Books, connectionId: string) {
+  const connection = books.connections.find((item) => item.id === connectionId);
+  if (!connection) throw new BooksWriteError("That connection is not in this organization.");
+  return connection;
 }
 
 export async function insertJournal(books: Books, entry: PostedJournalEntry, actor: string): Promise<void> {

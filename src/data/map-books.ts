@@ -1,5 +1,15 @@
 import { EXAMPLE_NOTICE } from "./example-books";
-import type { Books, BooksAccount, BooksAsset, BooksEntity, BooksSource, BooksSourceTransaction, StoredJournalEntry } from "./books";
+import type {
+  Books,
+  BooksAccount,
+  BooksAsset,
+  BooksBalanceSnapshot,
+  BooksConnection,
+  BooksEntity,
+  BooksSource,
+  BooksSourceTransaction,
+  StoredJournalEntry,
+} from "./books";
 import { buildReconciliations } from "./reconciliation";
 
 export interface SnapshotOrganization {
@@ -36,11 +46,21 @@ export interface SnapshotEntry {
   reversesEntryId: string | null;
 }
 
+export interface SnapshotConnection extends Omit<BooksConnection, "lastSyncedAt"> {
+  lastSyncedAt: Date | null;
+}
+
+export interface SnapshotBalance extends Omit<BooksBalanceSnapshot, "asOf"> {
+  asOf: Date;
+}
+
 export interface BooksSnapshot {
   organization: SnapshotOrganization;
   entities: BooksEntity[];
   assets: BooksAsset[];
+  connections: SnapshotConnection[];
   sources: BooksSource[];
+  balanceSnapshots: SnapshotBalance[];
   accounts: BooksAccount[];
   entries: SnapshotEntry[];
   lines: SnapshotLine[];
@@ -100,7 +120,15 @@ export function mapSnapshotToBooks(snapshot: BooksSnapshot): Books {
     organization: snapshot.organization,
     entities: snapshot.entities,
     assets: snapshot.assets,
+    connections: snapshot.connections.map((connection) => ({
+      ...connection,
+      lastSyncedAt: connection.lastSyncedAt ? connection.lastSyncedAt.toISOString() : null,
+    })),
     sources: snapshot.sources,
+    balanceSnapshots: snapshot.balanceSnapshots.map((snapshotRow) => ({
+      ...snapshotRow,
+      asOf: snapshotRow.asOf.toISOString(),
+    })),
     accounts: snapshot.accounts,
     journalEntries,
     sourceTransactions: snapshot.sourceTransactions,

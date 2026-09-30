@@ -6,7 +6,7 @@
  */
 import { postJournalEntry, toMinor } from "@/ledger";
 import type { JournalEntryInput, JournalLineInput, LedgerAccount } from "@/ledger";
-import type { AuditEvent, Books, StoredFxRate } from "./books";
+import type { AuditEvent, Books, BooksBalanceSnapshot, BooksConnection, StoredFxRate } from "./books";
 import { buildReconciliations } from "./reconciliation";
 
 export const EXAMPLE_NOTICE =
@@ -61,15 +61,50 @@ export const exampleAssets = [
   { id: "asset_pol", organizationId: ORG_ID, code: "POL", name: "Polygon", chain: "polygon", decimals: 18, assetClass: "crypto" as const },
 ];
 
+const OBSERVED_AT = "2026-06-30T00:00:00.000Z";
+
+function connection(
+  id: string,
+  entityId: string,
+  mode: BooksConnection["mode"],
+  venue: string,
+  name: string,
+  status: BooksConnection["status"],
+  cursor: string | null,
+): BooksConnection {
+  return {
+    id,
+    organizationId: ORG_ID,
+    entityId,
+    mode,
+    venue,
+    name,
+    status,
+    scopes: "balances,movements",
+    cursor,
+    lastSyncedAt: status === "pending" ? null : OBSERVED_AT,
+    lastError: null,
+  };
+}
+
+export const exampleConnections: BooksConnection[] = [
+  connection("conn_my_eth", MY, "watch", "ethereum", "Ethereum treasury addresses", "healthy", "2026-06-18"),
+  connection("conn_my_polygon", MY, "watch", "polygon", "Polygon ops wallet", "pending", null),
+  connection("conn_my_exchange", MY, "exchange_read", "exchange", "Example Exchange — KL desk", "healthy", "2026-04-09"),
+  connection("conn_my_custody", MY, "custodian_read", "custodian", "Northwharf Custody", "healthy", "2026-06-03"),
+  connection("conn_sg_custody", SG, "custodian_read", "custodian", "Straits Custody", "healthy", "2026-04-15"),
+  connection("conn_sg_exchange", SG, "exchange_read", "exchange", "Example Exchange — SG desk", "pending", null),
+];
+
 export const exampleSources = [
-  { id: "src_my_hot", organizationId: ORG_ID, entityId: MY, kind: "wallet" as const, role: "hot" as const, name: "Treasury hot wallet", chain: "ethereum", identifier: "0xHOT00000000000000000000000000000000E001" },
-  { id: "src_my_cold", organizationId: ORG_ID, entityId: MY, kind: "wallet" as const, role: "cold" as const, name: "Treasury cold wallet", chain: "ethereum", identifier: "0xCOLD0000000000000000000000000000000E002" },
-  { id: "src_my_stake", organizationId: ORG_ID, entityId: MY, kind: "wallet" as const, role: "staking" as const, name: "ETH staking position", chain: "ethereum", identifier: "0xSTAKE000000000000000000000000000000E003" },
-  { id: "src_my_exchange", organizationId: ORG_ID, entityId: MY, kind: "exchange" as const, role: null, name: "Example Exchange — KL desk", chain: null, identifier: "acct-example-kl-001" },
-  { id: "src_my_custody", organizationId: ORG_ID, entityId: MY, kind: "custodian" as const, role: null, name: "Northwharf Custody", chain: "ethereum", identifier: "nw-vault-example-14" },
-  { id: "src_my_polygon", organizationId: ORG_ID, entityId: MY, kind: "wallet" as const, role: "hot" as const, name: "Polygon ops wallet", chain: "polygon", identifier: "0xPOL00000000000000000000000000000000E004" },
-  { id: "src_sg_custody", organizationId: ORG_ID, entityId: SG, kind: "custodian" as const, role: null, name: "Straits Custody", chain: "solana", identifier: "sc-vault-example-sg-7" },
-  { id: "src_sg_exchange", organizationId: ORG_ID, entityId: SG, kind: "exchange" as const, role: null, name: "Example Exchange — SG desk", chain: null, identifier: "acct-example-sg-014" },
+  { id: "src_my_hot", organizationId: ORG_ID, entityId: MY, connectionId: "conn_my_eth", kind: "wallet" as const, role: "hot" as const, name: "Treasury hot wallet", chain: "ethereum", identifier: "0xHOT00000000000000000000000000000000E001" },
+  { id: "src_my_cold", organizationId: ORG_ID, entityId: MY, connectionId: "conn_my_eth", kind: "wallet" as const, role: "cold" as const, name: "Treasury cold wallet", chain: "ethereum", identifier: "0xCOLD0000000000000000000000000000000E002" },
+  { id: "src_my_stake", organizationId: ORG_ID, entityId: MY, connectionId: "conn_my_eth", kind: "wallet" as const, role: "staking" as const, name: "ETH staking position", chain: "ethereum", identifier: "0xSTAKE000000000000000000000000000000E003" },
+  { id: "src_my_exchange", organizationId: ORG_ID, entityId: MY, connectionId: "conn_my_exchange", kind: "exchange" as const, role: null, name: "Example Exchange — KL desk", chain: null, identifier: "acct-example-kl-001" },
+  { id: "src_my_custody", organizationId: ORG_ID, entityId: MY, connectionId: "conn_my_custody", kind: "custodian" as const, role: null, name: "Northwharf Custody", chain: "ethereum", identifier: "nw-vault-example-14" },
+  { id: "src_my_polygon", organizationId: ORG_ID, entityId: MY, connectionId: "conn_my_polygon", kind: "wallet" as const, role: "hot" as const, name: "Polygon ops wallet", chain: "polygon", identifier: "0xPOL00000000000000000000000000000000E004" },
+  { id: "src_sg_custody", organizationId: ORG_ID, entityId: SG, connectionId: "conn_sg_custody", kind: "custodian" as const, role: null, name: "Straits Custody", chain: "solana", identifier: "sc-vault-example-sg-7" },
+  { id: "src_sg_exchange", organizationId: ORG_ID, entityId: SG, connectionId: "conn_sg_exchange", kind: "exchange" as const, role: null, name: "Example Exchange — SG desk", chain: null, identifier: "acct-example-sg-014" },
 ];
 
 function account(
@@ -280,6 +315,34 @@ function txn(
   };
 }
 
+function snap(
+  id: string,
+  entityId: string,
+  sourceId: string,
+  assetCode: string,
+  quantityMinor: bigint,
+): BooksBalanceSnapshot {
+  return {
+    id,
+    organizationId: ORG_ID,
+    entityId,
+    sourceId,
+    assetCode,
+    quantityMinor,
+    asOf: OBSERVED_AT,
+  };
+}
+
+/** Example observations. The hot-wallet 0.1 ETH is on chain and not yet in the journal. */
+export const exampleBalanceSnapshots: BooksBalanceSnapshot[] = [
+  snap("snap_my_hot", MY, "src_my_hot", "ETH", eth("0.1")),
+  snap("snap_my_cold", MY, "src_my_cold", "ETH", eth("1.998")),
+  snap("snap_my_stake", MY, "src_my_stake", "ETH", eth("0.05")),
+  snap("snap_my_exchange", MY, "src_my_exchange", "ETH", eth("0.5")),
+  snap("snap_my_custody", MY, "src_my_custody", "USDC", usdc("10000")),
+  snap("snap_sg_custody", SG, "src_sg_custody", "SOL", sol("100")),
+];
+
 export const exampleReconciliations = buildReconciliations(
   ORG_ID,
   exampleSourceTransactions,
@@ -318,7 +381,9 @@ export const exampleBooks = {
   organization: exampleOrganization,
   entities: exampleEntities,
   assets: exampleAssets,
+  connections: exampleConnections,
   sources: exampleSources,
+  balanceSnapshots: exampleBalanceSnapshots,
   accounts: exampleAccounts,
   journalEntries: exampleJournalEntries,
   sourceTransactions: exampleSourceTransactions,

@@ -15,12 +15,16 @@ export type { AccountingSyncAdapter, JournalSyncBatch, JournalSyncResult } from 
 export { CustodianSourceAdapter } from "./sources/custodian";
 export { EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "./sources/chain";
 export { ExchangeSourceAdapter } from "./sources/exchange";
+export { adapterForConnection, ConnectionClosedError, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "./sync";
+export type { ConnectionMode, ConnectionStatus, ReadOnlyConnection } from "./sync";
 export type {
   AdapterDescriptor,
   ChainSourceAdapter,
   CustodianSourceAdapter as CustodianSourcePort,
   ExchangeSourceAdapter as ExchangeSourcePort,
   FetchSourceTransactionsQuery,
+  ListedAccount,
+  NormalizedBalance,
   NormalizedSourceTransaction,
 } from "./types";
 

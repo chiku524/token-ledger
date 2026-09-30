@@ -69,7 +69,7 @@ export default function HomePage() {
           {[
             {
               title: "See it all",
-              body: "Wallets, exchanges, and custodians — on Ethereum, Solana, and Polygon — show up as one list of what you hold.",
+              body: "Wallets, exchanges, and custodians are read-only connections. Addresses, accounts, and vaults show up as one list of what you hold.",
             },
             {
               title: "Check it",

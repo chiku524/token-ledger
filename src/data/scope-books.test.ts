@@ -14,6 +14,8 @@ describe("scopeBooks", () => {
     expect(scoped.entities.map((entity) => entity.id)).toEqual(["ent_harbourline_sg"]);
     expect(scoped.journalEntries.every((entry) => entry.entityId === "ent_harbourline_sg")).toBe(true);
     expect(scoped.sources.every((source) => source.entityId === "ent_harbourline_sg")).toBe(true);
+    expect(scoped.connections.every((connection) => connection.entityId === "ent_harbourline_sg")).toBe(true);
+    expect(scoped.balanceSnapshots.every((snapshot) => snapshot.entityId === "ent_harbourline_sg")).toBe(true);
     expect(scoped.auditEvents).toHaveLength(exampleBooks.auditEvents.length);
     expect(scoped.fxRates).toHaveLength(exampleBooks.fxRates.length);
     expect(entityName("ent_harbourline_my", scoped.entities)).toBe("ent_harbourline_my");

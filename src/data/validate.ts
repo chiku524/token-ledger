@@ -21,21 +21,29 @@ export const entityFormSchema = z.object({
     .transform((value) => (value ? value : null)),
 });
 
-export const sourceFormSchema = z
+const watchVenue = z.enum(["ethereum", "solana", "polygon"]);
+
+export const connectionFormSchema = z
   .object({
     entityId: text(80),
-    kind: z.enum(["wallet", "exchange", "custodian"]),
-    role: z.enum(["hot", "cold", "staking", ""]).optional().transform((value) => (value ? value : null)),
+    mode: z.enum(["watch", "exchange_read", "custodian_read"]),
     name: text(200),
     chain: optionalText(40),
+    role: z.enum(["hot", "cold", "staking", ""]).optional().transform((value) => (value ? value : null)),
     identifier: text(200),
   })
   .superRefine((value, context) => {
-    if (value.kind === "wallet" && !value.role) {
+    if (value.mode === "watch" && !value.role) {
       context.addIssue({ code: "custom", path: ["role"], message: "A wallet needs a type: hot wallet, cold wallet, or staking." });
     }
-    if (value.kind !== "wallet" && value.role) {
-      context.addIssue({ code: "custom", path: ["role"], message: "Only wallets have a hot, cold, or staking type." });
+    if (value.mode !== "watch" && value.role) {
+      context.addIssue({ code: "custom", path: ["role"], message: "Only a watch-only wallet has a hot, cold, or staking type." });
+    }
+    if (value.mode === "watch" && !watchVenue.safeParse(value.chain).success) {
+      context.addIssue({ code: "custom", path: ["chain"], message: "Choose Ethereum, Solana, or Polygon." });
+    }
+    if (value.mode === "custodian_read" && value.chain && !watchVenue.safeParse(value.chain).success) {
+      context.addIssue({ code: "custom", path: ["chain"], message: "Choose Ethereum, Solana, or Polygon, or leave the network blank." });
     }
   });
 

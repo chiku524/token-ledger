@@ -1,20 +1,33 @@
 "use server";
 
+import { AdapterNotImplementedError, ConnectionClosedError, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "@/adapters";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
+import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { postFormJournal } from "@/data/journal-form";
 import { loadBooks } from "@/data/load-books";
 import { parseSourceTransactionCsv } from "@/data/source-csv";
 import {
+  connectionFormSchema,
   entityFormSchema,
   firstIssue,
   fxRateFormSchema,
   journalFormSchema,
   reversalFormSchema,
-  sourceFormSchema,
 } from "@/data/validate";
-import { insertEntity, insertFxRate, insertJournal, insertReversal, insertSource, insertSourceTransactions } from "@/db/write";
+import {
+  BooksWriteError,
+  insertConnection,
+  insertEntity,
+  insertFxRate,
+  insertJournal,
+  insertReversal,
+  insertSourceTransactions,
+  recordSyncFailure,
+  recordSyncSuccess,
+  revokeConnection,
+} from "@/db/write";
 import { toMinor } from "@/ledger";
 import { fail, finish, save } from "./form-state";
 
@@ -40,25 +53,78 @@ export async function createEntityAction(formData: FormData) {
   finish(path, "Company added, with a standard set of accounts.");
 }
 
-export async function createSourceAction(formData: FormData) {
+export async function createConnectionAction(formData: FormData) {
   const path = "/dashboard/sources";
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
-  const parsed = sourceFormSchema.safeParse({
+  const parsed = connectionFormSchema.safeParse({
     entityId: formData.get("entityId"),
-    kind: formData.get("kind"),
-    role: formData.get("role") ?? "",
+    mode: formData.get("mode"),
     name: formData.get("name"),
     chain: formData.get("chain") ?? "",
+    role: formData.get("role") ?? "",
     identifier: formData.get("identifier"),
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
   const books = await loadBooks();
   await save(path, async () => {
     assertEntity(session, parsed.data.entityId);
-    await insertSource(books, parsed.data, actorName(session));
+    await insertConnection(books, connectionFromForm(parsed.data), actorName(session));
   });
-  finish(path, "Wallet, exchange, or custodian added.");
+  finish(path, "Read-only connection added. It is waiting for a check, and no key was stored.");
+}
+
+export async function refreshConnectionAction(formData: FormData) {
+  const path = "/dashboard/sources";
+  const session = await guard(path, "source.write", formData);
+  requireWritable(path, session);
+  const connectionId = String(formData.get("connectionId") ?? "");
+  const books = await loadBooks();
+  const connection = books.connections.find((item) => item.id === connectionId);
+  if (!connection) fail(path, "That connection is not in this organization.");
+  assertEntityOrFail(path, session, connection.entityId);
+  if (connection.status === "revoked") fail(path, "This connection is disconnected.");
+  const linked = sourcesForConnection(books.sources, connection);
+  if (linked.length === 0) fail(path, "This connection has no account to read.");
+  let live = true;
+  await save(path, async () => {
+    try {
+      const reads = [];
+      for (const source of linked) {
+        const pulled = await pullReadOnly(connection, source.identifier, connection.cursor ?? "1970-01-01");
+        reads.push({ sourceId: source.id, balances: pulled.balances, movements: pulled.movements });
+      }
+      await recordSyncSuccess(books, connection.id, reads, actorName(session));
+    } catch (error) {
+      if (error instanceof ConnectionClosedError) throw new BooksWriteError(error.message);
+      if (error instanceof AdapterNotImplementedError) {
+        live = false;
+        await recordSyncFailure(
+          books,
+          connection.id,
+          statusAfterSyncFailure(connection.status),
+          SYNC_NOT_LIVE,
+          actorName(session),
+        );
+        return;
+      }
+      throw error;
+    }
+  });
+  finish(path, live ? "Balances and movements were read." : SYNC_NOT_LIVE);
+}
+
+export async function revokeConnectionAction(formData: FormData) {
+  const path = "/dashboard/sources";
+  const session = await guard(path, "source.write", formData);
+  requireWritable(path, session);
+  const connectionId = String(formData.get("connectionId") ?? "");
+  const books = await loadBooks();
+  const connection = books.connections.find((item) => item.id === connectionId);
+  if (!connection) fail(path, "That connection is not in this organization.");
+  assertEntityOrFail(path, session, connection.entityId);
+  await save(path, () => revokeConnection(books, connection.id, actorName(session)));
+  finish(path, "Connection disconnected. Past observations stay. Nothing further will be read.");
 }
 
 export async function importCsvAction(formData: FormData) {

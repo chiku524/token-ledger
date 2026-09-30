@@ -2,9 +2,11 @@
  * Token Ledger domain model, stored in Postgres.
  *
  * Organizations hold legal entities (Malaysia / Singapore first). Each entity
- * has sources (wallet, exchange, custodian), a chart of accounts, and a
- * double-entry journal. Source transactions are the external facts. Reconciliation
- * records tie those facts to journal lines.
+ * has read-only connections. A connection owns sources: a wallet address, an
+ * exchange account, or a custodian vault. Balance snapshots are observed
+ * holdings. Source transactions are movements. Neither is a journal.
+ * Reconciliation records tie movements to journal lines. No connection stores
+ * an API key or a signing key.
  *
  * Monetary and token amounts are bigint minor units. Posted journals must be
  * built with `postJournalEntry` before insert — the database stores the lines,
@@ -32,6 +34,8 @@ import {
 export const dataOrigin = pgEnum("data_origin", ["example", "live"]);
 export const sourceKind = pgEnum("source_kind", ["wallet", "exchange", "custodian"]);
 export const walletRole = pgEnum("wallet_role", ["hot", "cold", "staking"]);
+export const connectionMode = pgEnum("connection_mode", ["watch", "exchange_read", "custodian_read"]);
+export const connectionStatus = pgEnum("connection_status", ["pending", "healthy", "degraded", "revoked"]);
 export const assetClass = pgEnum("asset_class", ["crypto", "stablecoin", "fiat"]);
 export const accountType = pgEnum("account_type", ["asset", "liability", "equity", "income", "expense"]);
 export const normalBalance = pgEnum("normal_balance", ["debit", "credit"]);
@@ -89,6 +93,36 @@ export const assets = pgTable(
   ],
 );
 
+/**
+ * Consent for a read-only feed. Scopes are balances and movements only.
+ * The secret that would call an exchange or custodian is intentionally absent.
+ */
+export const connections = pgTable(
+  "connections",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    mode: connectionMode("mode").notNull(),
+    venue: text("venue").notNull(),
+    name: text("name").notNull(),
+    status: connectionStatus("status").notNull(),
+    scopes: text("scopes").notNull(),
+    cursor: text("cursor"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("connections_organization_id_idx").on(table.organizationId),
+    index("connections_entity_id_idx").on(table.entityId),
+  ],
+);
+
 export const sources = pgTable(
   "sources",
   {
@@ -99,6 +133,7 @@ export const sources = pgTable(
     entityId: text("entity_id")
       .notNull()
       .references(() => entities.id),
+    connectionId: text("connection_id").references(() => connections.id),
     kind: sourceKind("kind").notNull(),
     role: walletRole("role"),
     name: text("name").notNull(),
@@ -107,6 +142,7 @@ export const sources = pgTable(
   },
   (table) => [
     index("sources_entity_id_idx").on(table.entityId),
+    index("sources_connection_id_idx").on(table.connectionId),
     uniqueIndex("sources_entity_identifier_unique").on(table.entityId, table.identifier),
   ],
 );
@@ -230,6 +266,33 @@ export const sourceTransactions = pgTable(
     uniqueIndex("source_transactions_source_external_unique").on(table.sourceId, table.externalId),
     index("source_transactions_entity_date_idx").on(table.entityId, table.occurredOn),
     check("source_transactions_quantity_positive", sql`${table.quantityMinor} > 0`),
+  ],
+);
+
+/** Point-in-time quantity observed on a source. This is not a journal balance. */
+export const balanceSnapshots = pgTable(
+  "balance_snapshots",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => sources.id),
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => assets.id),
+    quantityMinor: bigint("quantity_minor", { mode: "bigint" }).notNull(),
+    asOf: timestamp("as_of", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("balance_snapshots_source_asset_as_of_unique").on(table.sourceId, table.assetId, table.asOf),
+    index("balance_snapshots_source_id_idx").on(table.sourceId),
+    check("balance_snapshots_quantity_non_negative", sql`${table.quantityMinor} >= 0`),
   ],
 );
 

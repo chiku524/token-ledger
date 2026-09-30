@@ -12,6 +12,8 @@ import {
   accounts,
   assets,
   auditEvents,
+  balanceSnapshots,
+  connections,
   entities,
   fxRates,
   invites,
@@ -44,6 +46,7 @@ async function main() {
     await tx.delete(users).where(eq(users.organizationId, organizationId));
     await tx.delete(signInAttempts).where(inArray(signInAttempts.email, EXAMPLE_USERS.map((user) => user.email)));
     await tx.delete(reconciliationRecords).where(eq(reconciliationRecords.organizationId, organizationId));
+    await tx.delete(balanceSnapshots).where(eq(balanceSnapshots.organizationId, organizationId));
     await tx.delete(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId));
     await tx.delete(journalLines).where(eq(journalLines.organizationId, organizationId));
     await tx.delete(journalEntries).where(eq(journalEntries.organizationId, organizationId));
@@ -51,6 +54,7 @@ async function main() {
     await tx.delete(fxRates).where(eq(fxRates.organizationId, organizationId));
     await tx.delete(accounts).where(eq(accounts.organizationId, organizationId));
     await tx.delete(sources).where(eq(sources.organizationId, organizationId));
+    await tx.delete(connections).where(eq(connections.organizationId, organizationId));
     await tx.delete(assets).where(eq(assets.organizationId, organizationId));
     await tx.delete(entities).where(eq(entities.organizationId, organizationId));
     await tx.delete(organizations).where(eq(organizations.id, organizationId));
@@ -59,6 +63,12 @@ async function main() {
     await tx.insert(entities).values(books.entities[0]);
     if (books.entities[1]) await tx.insert(entities).values(books.entities[1]);
     await tx.insert(assets).values([...books.assets]);
+    await tx.insert(connections).values(
+      books.connections.map((connection) => ({
+        ...connection,
+        lastSyncedAt: connection.lastSyncedAt ? new Date(connection.lastSyncedAt) : null,
+      })),
+    );
     await tx.insert(sources).values([...books.sources]);
     await tx.insert(accounts).values(books.accounts);
 
@@ -108,6 +118,22 @@ async function main() {
           };
         }),
       ),
+    );
+
+    await tx.insert(balanceSnapshots).values(
+      books.balanceSnapshots.map((snapshot) => {
+        const resolvedAsset = assetId.get(snapshot.assetCode);
+        if (!resolvedAsset) throw new Error(`No asset ${snapshot.assetCode}.`);
+        return {
+          id: snapshot.id,
+          organizationId,
+          entityId: snapshot.entityId,
+          sourceId: snapshot.sourceId,
+          assetId: resolvedAsset,
+          quantityMinor: snapshot.quantityMinor,
+          asOf: new Date(snapshot.asOf),
+        };
+      }),
     );
 
     await tx.insert(sourceTransactions).values(

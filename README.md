@@ -97,7 +97,7 @@ Environment variables:
 
 CSV import expects a header of `external_id,occurred_on,asset_code,direction,quantity,description`. Quantity is in major units. Import records source facts for reconciliation and does not post a journal.
 
-Do not add chain, exchange, custodian, Xero, or QuickBooks credentials. The adapters in `src/adapters` throw before making a network call.
+Do not add chain, exchange, custodian, Xero, or QuickBooks credentials. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. It does not store an API key. The adapters in `src/adapters` throw before making a network call. Checking a connection records that failure. It does not post a journal. Observed balances are separate from booked value.
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
@@ -111,7 +111,7 @@ src/auth                Passwords, sessions, roles, demo sign-in, and the owner 
 src/proxy.ts            Sends unsigned visitors from /dashboard to /sign-in
 src/ledger              Double-entry posting, reversals, FX, trial balance, reconciliation, CSV
 src/db                  Drizzle schema, client, seed, read, and write
-src/adapters            Stub chain, exchange, custodian, Xero, QuickBooks, and ERP ports
+src/adapters            Stub chain, exchange, and custodian readers, plus Xero, QuickBooks, and ERP ports
 src/data                Example books, validation, and the Postgres-or-example loader
 drizzle                 SQL migrations
 ```

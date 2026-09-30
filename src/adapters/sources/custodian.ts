@@ -7,6 +7,8 @@ import type {
   AdapterDescriptor,
   CustodianSourceAdapter as CustodianSourcePort,
   FetchSourceTransactionsQuery,
+  ListedAccount,
+  NormalizedBalance,
   NormalizedSourceTransaction,
 } from "../types";
 
@@ -22,6 +24,14 @@ export class CustodianSourceAdapter implements CustodianSourcePort {
   };
 
   fetchTransactions(_query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return Promise.reject(new AdapterNotImplementedError(this.descriptor.name));
+  }
+
+  fetchBalances(_query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return Promise.reject(new AdapterNotImplementedError(this.descriptor.name));
+  }
+
+  listAccounts(_query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
     return Promise.reject(new AdapterNotImplementedError(this.descriptor.name));
   }
 }

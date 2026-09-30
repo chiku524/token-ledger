@@ -8,6 +8,8 @@ import type {
   AdapterDescriptor,
   ExchangeSourceAdapter as ExchangeSourcePort,
   FetchSourceTransactionsQuery,
+  ListedAccount,
+  NormalizedBalance,
   NormalizedSourceTransaction,
 } from "../types";
 
@@ -23,6 +25,14 @@ export class ExchangeSourceAdapter implements ExchangeSourcePort {
   };
 
   fetchTransactions(_query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return Promise.reject(new AdapterNotImplementedError(this.descriptor.name));
+  }
+
+  fetchBalances(_query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return Promise.reject(new AdapterNotImplementedError(this.descriptor.name));
+  }
+
+  listAccounts(_query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
     return Promise.reject(new AdapterNotImplementedError(this.descriptor.name));
   }
 }

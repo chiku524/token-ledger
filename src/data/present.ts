@@ -47,6 +47,37 @@ export function walletRoleLabel(role: "hot" | "cold" | "staking" | null): string
   return "—";
 }
 
+export function connectionModeLabel(mode: "watch" | "exchange_read" | "custodian_read"): string {
+  if (mode === "watch") return "Watch-only wallet";
+  if (mode === "exchange_read") return "Exchange, read-only";
+  return "Custodian, read-only";
+}
+
+export function connectionStatusLabel(status: "pending" | "healthy" | "degraded" | "revoked"): string {
+  if (status === "healthy") return "Up to date";
+  if (status === "pending") return "Waiting";
+  if (status === "degraded") return "Needs attention";
+  return "Disconnected";
+}
+
+export function venueLabel(venue: string): string {
+  if (venue === "ethereum") return "Ethereum";
+  if (venue === "solana") return "Solana";
+  if (venue === "polygon") return "Polygon";
+  if (venue === "exchange") return "Exchange";
+  if (venue === "custodian") return "Custodian";
+  return venue;
+}
+
+export function scopeLabel(scopes: string): string {
+  const labels: Record<string, string> = { balances: "Balances", movements: "Movements" };
+  return scopes
+    .split(",")
+    .map((scope) => labels[scope.trim()] ?? scope.trim())
+    .filter(Boolean)
+    .join(" and ");
+}
+
 /** Plain label for a stored valuation tag such as IAS 38. The stored value is unchanged. */
 export function valuationLabel(basis: string | null): string {
   if (!basis) return "—";
@@ -64,6 +95,10 @@ const ACTION_LABELS: Record<string, string> = {
   "journal.reversed": "Entry corrected",
   "entity.created": "Company added",
   "source.created": "Place added",
+  "connection.created": "Connection added",
+  "connection.revoked": "Connection disconnected",
+  "connection.sync_failed": "Connection check failed",
+  "connection.synced": "Connection read",
   "source_transactions.imported": "Activity imported",
   "fx.recorded": "Rate saved",
   "auth.signed_in": "Signed in",
@@ -84,6 +119,7 @@ export function actionLabel(action: string): string {
 const SUBJECT_LABELS: Record<string, string> = {
   entity: "Company",
   source: "Place",
+  connection: "Connection",
   journal_entry: "Entry",
   user: "Person",
   fx_rate: "Rate",

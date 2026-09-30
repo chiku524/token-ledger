@@ -7,6 +7,8 @@ import {
   accounts,
   assets,
   auditEvents,
+  balanceSnapshots,
+  connections,
   entities,
   fxRates,
   journalEntries,
@@ -25,17 +27,20 @@ export async function loadBooksFromDatabase(): Promise<Books> {
   }
 
   const organizationId = organization.id;
-  const [entityRows, assetRows, sourceRows, accountRows, entryRows, lineRows, transactionRows, rateRows, auditRows] = await Promise.all([
-    db.select().from(entities).where(eq(entities.organizationId, organizationId)),
-    db.select().from(assets).where(eq(assets.organizationId, organizationId)),
-    db.select().from(sources).where(eq(sources.organizationId, organizationId)),
-    db.select().from(accounts).where(eq(accounts.organizationId, organizationId)),
-    db.select().from(journalEntries).where(eq(journalEntries.organizationId, organizationId)),
-    db.select().from(journalLines).where(eq(journalLines.organizationId, organizationId)),
-    db.select().from(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId)),
-    db.select().from(fxRates).where(eq(fxRates.organizationId, organizationId)),
-    db.select().from(auditEvents).where(eq(auditEvents.organizationId, organizationId)),
-  ]);
+  const [entityRows, assetRows, connectionRows, sourceRows, snapshotRows, accountRows, entryRows, lineRows, transactionRows, rateRows, auditRows] =
+    await Promise.all([
+      db.select().from(entities).where(eq(entities.organizationId, organizationId)),
+      db.select().from(assets).where(eq(assets.organizationId, organizationId)),
+      db.select().from(connections).where(eq(connections.organizationId, organizationId)),
+      db.select().from(sources).where(eq(sources.organizationId, organizationId)),
+      db.select().from(balanceSnapshots).where(eq(balanceSnapshots.organizationId, organizationId)),
+      db.select().from(accounts).where(eq(accounts.organizationId, organizationId)),
+      db.select().from(journalEntries).where(eq(journalEntries.organizationId, organizationId)),
+      db.select().from(journalLines).where(eq(journalLines.organizationId, organizationId)),
+      db.select().from(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId)),
+      db.select().from(fxRates).where(eq(fxRates.organizationId, organizationId)),
+      db.select().from(auditEvents).where(eq(auditEvents.organizationId, organizationId)),
+    ]);
 
   const accountCode = new Map(accountRows.map((account) => [account.id, account.code]));
   const assetCode = new Map(assetRows.map((asset) => [asset.id, asset.code]));
@@ -64,7 +69,33 @@ export async function loadBooksFromDatabase(): Promise<Books> {
     organization: { id: organization.id, name: organization.name, origin: organization.origin },
     entities: entityRows,
     assets: assetRows,
+    connections: connectionRows.map((connection) => ({
+      id: connection.id,
+      organizationId: connection.organizationId,
+      entityId: connection.entityId,
+      mode: connection.mode,
+      venue: connection.venue,
+      name: connection.name,
+      status: connection.status,
+      scopes: connection.scopes,
+      cursor: connection.cursor,
+      lastSyncedAt: connection.lastSyncedAt,
+      lastError: connection.lastError,
+    })),
     sources: sourceRows,
+    balanceSnapshots: snapshotRows.map((row) => {
+      const code = assetCode.get(row.assetId);
+      if (!code) throw new Error(`Balance snapshot ${row.id} points at a missing asset.`);
+      return {
+        id: row.id,
+        organizationId: row.organizationId,
+        entityId: row.entityId,
+        sourceId: row.sourceId,
+        assetCode: code,
+        quantityMinor: row.quantityMinor,
+        asOf: row.asOf,
+      };
+    }),
     accounts: accountRows.map((account) => ({ ...account, ifrsNote: account.ifrsNote ?? "" })),
     entries: entryRows.map((entry) => ({
       id: entry.id,

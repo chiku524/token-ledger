@@ -42,6 +42,25 @@ describe("example books", () => {
     ]);
   });
 
+  it("keeps observed balances on read-only connections, separate from the journal", () => {
+    expect(exampleBooks.connections.every((connection) => connection.scopes === "balances,movements")).toBe(true);
+    for (const source of exampleBooks.sources) {
+      const connection = exampleBooks.connections.find((item) => item.id === source.connectionId);
+      expect(connection?.entityId).toBe(source.entityId);
+    }
+    const pending = new Set(
+      exampleBooks.connections.filter((connection) => connection.status === "pending").map((connection) => connection.id),
+    );
+    expect(exampleBooks.connections.find((connection) => connection.id === "conn_sg_exchange")?.lastSyncedAt).toBeNull();
+    for (const snapshot of exampleBooks.balanceSnapshots) {
+      const source = exampleBooks.sources.find((item) => item.id === snapshot.sourceId);
+      expect(pending.has(source?.connectionId ?? "")).toBe(false);
+    }
+    expect(exampleBooks.balanceSnapshots.find((snapshot) => snapshot.sourceId === "src_my_hot")?.quantityMinor).toBe(toMinor("0.1", 18));
+    expect(exampleBooks.balanceSnapshots.find((snapshot) => snapshot.sourceId === "src_my_cold")?.quantityMinor).toBe(toMinor("1.998", 18));
+    expect(exampleBooks.sources.filter((source) => source.connectionId === "conn_my_eth")).toHaveLength(3);
+  });
+
   it("leaves one unmatched on-chain receipt as a reconciliation exception", () => {
     const exceptions = exampleBooks.reconciliations.filter((row) => row.status === "exception");
     expect(exceptions).toHaveLength(1);

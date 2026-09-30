@@ -28,12 +28,29 @@ export interface NormalizedSourceTransaction {
   chain?: string;
 }
 
+/** Observed holding. Zero is a real observation. This is not a journal balance. */
+export interface NormalizedBalance {
+  assetCode: string;
+  quantityMinor: bigint;
+  /** ISO-8601 time the venue reported this quantity. */
+  asOf: string;
+}
+
+/** Address, sub-account, or vault discovered under one read-only grant. */
+export interface ListedAccount {
+  externalAccountId: string;
+  name: string;
+  chain?: string;
+}
+
 export interface ChainSourceAdapter {
   readonly kind: "chain";
   readonly chain: string;
   readonly implemented: false;
   readonly descriptor: AdapterDescriptor;
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]>;
+  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]>;
+  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]>;
 }
 
 export interface ExchangeSourceAdapter {
@@ -41,6 +58,8 @@ export interface ExchangeSourceAdapter {
   readonly implemented: false;
   readonly descriptor: AdapterDescriptor;
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]>;
+  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]>;
+  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]>;
 }
 
 export interface CustodianSourceAdapter {
@@ -48,4 +67,6 @@ export interface CustodianSourceAdapter {
   readonly implemented: false;
   readonly descriptor: AdapterDescriptor;
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]>;
+  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]>;
+  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]>;
 }

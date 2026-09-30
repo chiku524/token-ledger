@@ -4,7 +4,14 @@
  * Replace `fetchTransactions` with a real client when a source is ready.
  */
 import { AdapterNotImplementedError } from "../errors";
-import type { AdapterDescriptor, ChainSourceAdapter, FetchSourceTransactionsQuery, NormalizedSourceTransaction } from "../types";
+import type {
+  AdapterDescriptor,
+  ChainSourceAdapter,
+  FetchSourceTransactionsQuery,
+  ListedAccount,
+  NormalizedBalance,
+  NormalizedSourceTransaction,
+} from "../types";
 
 function chainDescriptor(chain: string, name: string): AdapterDescriptor {
   return {
@@ -16,7 +23,7 @@ function chainDescriptor(chain: string, name: string): AdapterDescriptor {
   };
 }
 
-function reject(name: string, _query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+function reject(name: string, _query: FetchSourceTransactionsQuery): Promise<never> {
   return Promise.reject(new AdapterNotImplementedError(name));
 }
 
@@ -27,6 +34,14 @@ export class EthereumChainAdapter implements ChainSourceAdapter {
   readonly descriptor = chainDescriptor("Ethereum", "Ethereum wallets");
 
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return reject(this.descriptor.name, query);
+  }
+
+  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return reject(this.descriptor.name, query);
+  }
+
+  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
     return reject(this.descriptor.name, query);
   }
 }
@@ -40,6 +55,14 @@ export class SolanaChainAdapter implements ChainSourceAdapter {
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
     return reject(this.descriptor.name, query);
   }
+
+  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return reject(this.descriptor.name, query);
+  }
+
+  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
+    return reject(this.descriptor.name, query);
+  }
 }
 
 export class PolygonChainAdapter implements ChainSourceAdapter {
@@ -49,6 +72,14 @@ export class PolygonChainAdapter implements ChainSourceAdapter {
   readonly descriptor = chainDescriptor("Polygon", "Polygon wallets");
 
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return reject(this.descriptor.name, query);
+  }
+
+  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return reject(this.descriptor.name, query);
+  }
+
+  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
     return reject(this.descriptor.name, query);
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entityFormSchema, firstIssue, journalFormSchema, sourceFormSchema } from "./validate";
+import { connectionFormSchema, entityFormSchema, firstIssue, journalFormSchema } from "./validate";
 
 describe("form validation", () => {
   it("accepts an entity and rejects a wallet without a role", () => {
@@ -13,9 +13,9 @@ describe("form validation", () => {
       }).parentEntityId,
     ).toBeNull();
 
-    const wallet = sourceFormSchema.safeParse({
+    const wallet = connectionFormSchema.safeParse({
       entityId: "ent_1",
-      kind: "wallet",
+      mode: "watch",
       role: "",
       name: "Ops",
       chain: "ethereum",
@@ -25,9 +25,9 @@ describe("form validation", () => {
     if (!wallet.success) expect(firstIssue(wallet.error)).toContain("hot wallet");
 
     expect(
-      sourceFormSchema.parse({
+      connectionFormSchema.parse({
         entityId: "ent_1",
-        kind: "exchange",
+        mode: "exchange_read",
         role: "",
         name: "Desk",
         chain: "",
