@@ -15,6 +15,7 @@ export interface AccountUser {
   status: "active" | "invited" | "inactive";
   entityScope: string[];
   passwordHash: string | null;
+  connectionTourCompletedAt: Date | null;
 }
 
 const SESSION_MS = 12 * 60 * 60 * 1000;
@@ -116,6 +117,7 @@ export async function insertUser(input: {
     status: input.status,
     entityScope: input.entityScope.join(","),
     passwordHash: input.passwordHash,
+    connectionTourCompletedAt: null,
   });
   return id;
 }
@@ -172,6 +174,16 @@ export async function consumeInvite(token: string, passwordHash: string): Promis
   return mapUser({ ...current, passwordHash, status: "active", role: invite.role, entityScope: invite.entityScope });
 }
 
+export async function completeConnectionTour(userId: string): Promise<void> {
+  const db = getDb();
+  await db.update(users).set({ connectionTourCompletedAt: new Date() }).where(eq(users.id, userId));
+}
+
+export async function reopenConnectionTour(userId: string): Promise<void> {
+  const db = getDb();
+  await db.update(users).set({ connectionTourCompletedAt: null }).where(eq(users.id, userId));
+}
+
 export async function setUserAccess(userId: string, role: Role, entityScope: string[]): Promise<void> {
   const db = getDb();
   await db.update(users).set({ role, entityScope: entityScope.join(",") }).where(eq(users.id, userId));
@@ -225,6 +237,7 @@ function mapUser(row: {
   role: string;
   status: "active" | "invited" | "inactive";
   entityScope: string;
+  connectionTourCompletedAt?: Date | null;
 }): AccountUser {
   if (!isRole(row.role)) throw new Error(`Unknown role ${row.role}.`);
   return {
@@ -236,6 +249,7 @@ function mapUser(row: {
     status: row.status,
     entityScope: row.entityScope.split(",").map((id) => id.trim()).filter(Boolean),
     passwordHash: row.passwordHash,
+    connectionTourCompletedAt: row.connectionTourCompletedAt ?? null,
   };
 }
 

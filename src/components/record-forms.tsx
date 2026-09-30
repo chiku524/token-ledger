@@ -71,7 +71,7 @@ export function EntityForm({ books, csrf }: { books: Books; csrf: string }) {
 
 export function ConnectionForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
-    <form action={createConnectionAction} className="grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
+    <form id="connection-form" action={createConnectionAction} className="grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
       <input type="hidden" name="csrf" value={csrf} />
       <h2 className="font-serif text-2xl md:col-span-2">Add a read-only connection</h2>
       <p className="max-w-2xl text-sm leading-relaxed text-ink-soft md:col-span-2">

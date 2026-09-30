@@ -1,5 +1,8 @@
+import { cookies } from "next/headers";
 import { ensureCsrf } from "@/auth/current";
+import { CONNECTION_TOUR_COOKIE } from "@/auth/cookies";
 import { can } from "@/auth/roles";
+import { shouldShowConnectionTour } from "@/auth/tour";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
@@ -18,6 +21,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     session.entityScope.length > 0
       ? `Limited to ${books.entities.map((entity) => entity.name).join(", ") || "no companies"}`
       : null;
+  const dismissed = session.demo && (await cookies()).get(CONNECTION_TOUR_COOKIE)?.value === "1";
+  const showConnectionTour = shouldShowConnectionTour({
+    role: session.role,
+    completedAt: session.connectionTourCompletedAt,
+    dismissedInBrowser: dismissed,
+  });
 
   return (
     <DashboardShell
@@ -28,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       csrf={csrf}
       showUsers={can(session.role, "users.manage")}
       scopeLabel={scopeLabel}
+      showConnectionTour={showConnectionTour}
     >
       {children}
     </DashboardShell>

@@ -4,6 +4,7 @@ import type { SessionUser } from "@/auth/current";
 import { roleLabel } from "@/auth/roles";
 import { ThemeToggle } from "./theme-toggle";
 import { DashboardNav } from "./dashboard-nav";
+import { ConnectionTour } from "./connection-tour";
 import { ExampleBanner } from "./example-banner";
 
 export function DashboardShell({
@@ -15,6 +16,7 @@ export function DashboardShell({
   csrf,
   showUsers,
   scopeLabel,
+  showConnectionTour,
 }: {
   children: React.ReactNode;
   origin: "example" | "live";
@@ -24,6 +26,7 @@ export function DashboardShell({
   csrf: string;
   showUsers: boolean;
   scopeLabel: string | null;
+  showConnectionTour: boolean;
 }) {
   return (
     <div className="min-h-full md:grid md:grid-cols-[15.5rem_minmax(0,1fr)]">
@@ -63,6 +66,7 @@ export function DashboardShell({
         <main id="content" className="px-4 py-6 md:px-8 md:py-8">
           {children}
         </main>
+        {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}
       </div>
     </div>
   );

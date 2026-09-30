@@ -7,6 +7,7 @@ const links = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/entities", label: "Companies" },
   { href: "/dashboard/sources", label: "Holdings" },
+  { href: "/dashboard/guide", label: "Guide" },
   { href: "/dashboard/ledger", label: "Journal" },
   { href: "/dashboard/reconciliation", label: "Matching" },
   { href: "/dashboard/reports", label: "Reports" },

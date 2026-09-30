@@ -1,5 +1,6 @@
 export const SESSION_COOKIE = "tl_session";
 export const DEMO_COOKIE = "tl_demo";
+export const CONNECTION_TOUR_COOKIE = "tl_connection_tour";
 
 export function sessionCookieOptions(secure: boolean) {
   return {

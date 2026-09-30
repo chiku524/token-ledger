@@ -387,6 +387,8 @@ export const users = pgTable(
     status: userStatus("status").notNull(),
     /** Comma-separated entity ids. Empty means every entity in the organization. */
     entityScope: text("entity_scope").notNull().default(""),
+    /** Set when an admin finishes or skips the connection tour. Null means a new admin still needs it. */
+    connectionTourCompletedAt: timestamp("connection_tour_completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

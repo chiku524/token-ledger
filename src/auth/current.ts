@@ -17,6 +17,8 @@ export interface SessionUser {
   role: Role;
   entityScope: string[];
   demo: boolean;
+  /** Null until this admin finishes or skips the connection tour. */
+  connectionTourCompletedAt: string | null;
 }
 
 export class AuthError extends Error {
@@ -39,6 +41,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
         role: demo.role,
         entityScope: demo.entityScope,
         demo: true,
+        connectionTourCompletedAt: null,
       };
     }
   }
@@ -97,5 +100,6 @@ function toSession(user: AccountUser): SessionUser {
     role: user.role,
     entityScope: user.entityScope,
     demo: false,
+    connectionTourCompletedAt: user.connectionTourCompletedAt ? user.connectionTourCompletedAt.toISOString() : null,
   };
 }

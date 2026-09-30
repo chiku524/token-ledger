@@ -53,6 +53,7 @@ export default async function SourcesPage({
         description="Each wallet, exchange, and custodian is a read-only connection. Observed balances are what was read. Booked value is what the journal says."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
+      <section id="connections" className="scroll-mt-6">
       <h2 className="font-serif text-2xl">Connections</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         One connection can cover several addresses, accounts, or vaults. Scopes stay at balances and movements. No API key
@@ -111,7 +112,9 @@ export default async function SourcesPage({
           </table>
         </div>
       )}
+      </section>
 
+      <section id="observed-balances" className="scroll-mt-6">
       <h2 className="mt-10 font-serif text-2xl">Observed balances</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         These quantities were observed on the connection. They are not a market price and not the booked value. Activity
@@ -146,6 +149,7 @@ export default async function SourcesPage({
           </table>
         </div>
       )}
+      </section>
 
       <h2 className="mt-10 font-serif text-2xl">Booked value</h2>
       {panels.length === 0 ? (

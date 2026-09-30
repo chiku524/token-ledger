@@ -99,6 +99,8 @@ const ACTION_LABELS: Record<string, string> = {
   "connection.revoked": "Connection disconnected",
   "connection.sync_failed": "Connection check failed",
   "connection.synced": "Connection read",
+  "connection.tour_completed": "Connection tour finished",
+  "connection.tour_reopened": "Connection tour opened again",
   "source_transactions.imported": "Activity imported",
   "fx.recorded": "Rate saved",
   "auth.signed_in": "Signed in",
