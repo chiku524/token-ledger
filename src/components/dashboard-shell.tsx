@@ -6,6 +6,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { DashboardNav } from "./dashboard-nav";
 import { ConnectionTour } from "./connection-tour";
 import { ExampleBanner } from "./example-banner";
+import { Wordmark } from "./wordmark";
 
 export function DashboardShell({
   children,
@@ -35,8 +36,8 @@ export function DashboardShell({
       </a>
       <aside className="flex flex-col border-b border-line bg-paper-raised md:sticky md:top-0 md:h-screen md:border-r md:border-b-0">
         <div className="flex items-center justify-between gap-3 px-4 py-4 md:block">
-          <Link href="/" className="text-base font-semibold tracking-tight">
-            Token Ledger
+          <Link href="/">
+            <Wordmark />
           </Link>
           <p className="text-xs text-ink-soft md:mt-1">{subtitle}</p>
           <div className="md:mt-3">

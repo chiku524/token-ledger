@@ -61,7 +61,7 @@ export default async function ConsolidationPage({
               key={currency}
               href={`/dashboard/consolidation?currency=${currency}&from=${range.from}&to=${range.to}`}
               aria-current={current ? "page" : undefined}
-              className={`border px-3 py-2 text-sm ${current ? "border-ink bg-ink text-paper" : "border-line bg-paper-raised"}`}
+              className={`rounded-lg border px-3 py-2 text-sm ${current ? "border-transparent bg-lime text-on-lime" : "border-line bg-paper-raised"}`}
             >
               Show in {currency}
             </Link>

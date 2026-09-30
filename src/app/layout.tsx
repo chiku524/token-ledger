@@ -1,22 +1,23 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { JetBrains_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
+const grotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex",
+  weight: ["500", "700"],
+  variable: "--font-grotesk",
 });
 
-const plexMono = IBM_Plex_Mono({
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-manrope",
+});
+
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
-  variable: "--font-plex-mono",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-jetbrains",
 });
 
 export const metadata: Metadata = {
@@ -28,11 +29,11 @@ export const metadata: Metadata = {
     "See crypto held in wallets, exchanges, and custodians, then match it to the journal.",
 };
 
-const themeScript = `(function(){try{var stored=localStorage.getItem("tl-theme");var dark=stored==="dark"||(stored!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(dark)document.documentElement.classList.add("dark");document.documentElement.style.colorScheme=dark?"dark":"light";}catch(e){}})();`;
+const themeScript = `(function(){try{var stored=localStorage.getItem("tl-theme");var dark=stored!=="light";document.documentElement.classList.toggle("dark", dark);document.documentElement.style.colorScheme=dark?"dark":"light";}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${plex.variable} ${plexMono.variable} ${fraunces.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${grotesk.variable} ${manrope.variable} ${jetbrains.variable} dark h-full`} suppressHydrationWarning>
       <body className="min-h-full bg-paper font-sans text-ink antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}

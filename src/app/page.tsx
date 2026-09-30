@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Wordmark } from "@/components/wordmark";
 import { exampleBooks } from "@/data/example-books";
 import { accountLabel, formatMoney } from "@/data/present";
 
@@ -24,7 +25,7 @@ export default function HomePage() {
   return (
     <div className="min-h-full">
       <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-3 px-4 py-5 md:px-8">
-        <p className="text-base font-semibold tracking-tight whitespace-nowrap">Token Ledger</p>
+        <Wordmark />
         <div className="flex flex-wrap items-center gap-2">
           <ThemeToggle />
           <Link href="/sign-in?next=/dashboard" className="btn-secondary">
@@ -39,7 +40,7 @@ export default function HomePage() {
       <main className="mx-auto max-w-6xl px-4 pb-16 md:px-8">
         <section className="grid items-start gap-8 py-8 md:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.8fr)] md:py-14">
           <div>
-            <p className="text-sm font-medium text-accent">Malaysia · Singapore</p>
+            <p className="kicker">Malaysia · Singapore</p>
             <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">
               See every asset, wherever it is held.
             </h1>

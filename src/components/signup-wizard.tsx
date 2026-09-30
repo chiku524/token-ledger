@@ -37,7 +37,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
   return (
     <form action={signUpAction} className="mt-6 grid gap-4 panel p-4">
       <input type="hidden" name="csrf" value={csrf} />
-      <p className="text-xs font-medium text-accent">
+      <p className="kicker">
         Signup · {step + 1} of {STEPS.length}
       </p>
       <h2 className="text-lg font-semibold tracking-tight">{STEPS[step]}</h2>

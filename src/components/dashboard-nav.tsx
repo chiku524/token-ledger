@@ -33,7 +33,7 @@ export function DashboardNav({ showUsers }: { showUsers: boolean }) {
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm ${
-              active ? "bg-accent font-medium text-on-accent" : "text-ink-soft hover:bg-paper hover:text-ink"
+              active ? "bg-lime font-medium text-on-lime" : "text-ink-soft hover:bg-paper hover:text-ink"
             }`}
           >
             {link.label}

@@ -8,6 +8,7 @@ import { safeNextPath } from "@/auth/csrf";
 import { findInvite } from "@/db/auth-store";
 import { readDatabaseUrl } from "@/env";
 import { one } from "@/data/query";
+import { Wordmark } from "@/components/wordmark";
 
 export const metadata = { title: "Sign in" };
 
@@ -28,14 +29,14 @@ export default async function SignInPage({
   return (
     <div className="min-h-full">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5 md:px-8">
-        <Link href="/" className="text-base font-semibold tracking-tight">
-          Token Ledger
+        <Link href="/">
+          <Wordmark />
         </Link>
         <ThemeToggle />
       </header>
       <main className="mx-auto grid max-w-5xl gap-8 px-4 py-6 md:grid-cols-2 md:px-8">
         <section>
-          <p className="text-sm font-medium text-accent">Sign in</p>
+          <p className="kicker">Sign in</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Sign in to the books.</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
             Create an account to start a new organization, then connect a wallet, an exchange, a custodian, or all of
@@ -95,7 +96,7 @@ export default async function SignInPage({
           )}
         </section>
         <section className="panel p-4" aria-labelledby="demo-heading">
-          <p className="text-sm font-medium text-accent">Demo preview</p>
+          <p className="kicker">Demo preview</p>
           <h2 id="demo-heading" className="mt-2 text-lg font-semibold tracking-tight">
             Pick a role
           </h2>

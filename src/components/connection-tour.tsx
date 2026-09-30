@@ -76,7 +76,7 @@ export function ConnectionTour({ csrf }: { csrf: string }) {
         aria-labelledby="connection-tour-title"
         className="panel w-full max-w-lg p-6"
       >
-        <p className="text-xs font-medium text-accent">
+        <p className="kicker">
           Connection tour · {step + 1} of {STEPS.length}
         </p>
         <h2 id="connection-tour-title" className="mt-2 text-lg font-semibold tracking-tight">

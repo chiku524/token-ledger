@@ -9,7 +9,7 @@ export function PageHeader({
 }) {
   return (
     <header className="mb-8 max-w-3xl">
-      <p className="text-xs font-medium text-accent">{kicker}</p>
+      <p className="kicker">{kicker}</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">{title}</h1>
       {description ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{description}</p> : null}
     </header>

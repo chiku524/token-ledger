@@ -4,6 +4,7 @@ import { SignupWizard } from "@/components/signup-wizard";
 import { ensureCsrf } from "@/auth/current";
 import { readDatabaseUrl, authSecretConfigured } from "@/env";
 import { one } from "@/data/query";
+import { Wordmark } from "@/components/wordmark";
 
 export const metadata = { title: "Create an account" };
 
@@ -19,14 +20,14 @@ export default async function SignUpPage({
   return (
     <div className="min-h-full">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5 md:px-8">
-        <Link href="/" className="text-base font-semibold tracking-tight">
-          Token Ledger
+        <Link href="/">
+          <Wordmark />
         </Link>
         <ThemeToggle />
       </header>
       <main className="mx-auto grid max-w-5xl gap-8 px-4 py-6 md:grid-cols-2 md:px-8">
         <section>
-          <p className="text-sm font-medium text-accent">Create an account</p>
+          <p className="kicker">Create an account</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Start with what you hold.</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
             The wizard asks for the organization, then a wallet, an exchange, a custodian, or any combination. Each
@@ -48,7 +49,7 @@ export default async function SignUpPage({
           </p>
         </section>
         <section className="panel p-4">
-          <p className="text-sm font-medium text-accent">What gets saved</p>
+          <p className="kicker">What gets saved</p>
           <h2 className="mt-2 text-lg font-semibold tracking-tight">Read-only from the start</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-relaxed text-ink-soft">
             <li>A wallet is a public address and a type: hot, cold, or staking.</li>
