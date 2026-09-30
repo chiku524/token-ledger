@@ -16,9 +16,9 @@ export default async function AuditPage() {
         description="New companies, wallets and accounts, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. The name is the person who signed in. Sample history keeps its original name. A person limited to one company still sees the whole group's history."
       />
       {events.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">Nothing recorded yet.</p>
+        <p className="panel px-4 py-6 text-sm text-ink-soft">Nothing recorded yet.</p>
       ) : (
-        <div className="overflow-x-auto border border-line bg-paper-raised">
+        <div className="overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">History</caption>
             <thead>

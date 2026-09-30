@@ -113,9 +113,9 @@ export default async function DashboardPage() {
 
       <section className="mt-10 grid gap-4 md:grid-cols-2">
         {balances.map(({ entity, report }) => (
-          <article key={entity.id} className="border border-line bg-paper-raised p-5">
+          <article key={entity.id} className="panel p-5">
             <p className="text-xs tracking-[0.14em] text-ink-soft uppercase">{entity.jurisdiction} · {entity.functionalCurrency}</p>
-            <h2 className="mt-2 font-serif text-2xl">{entity.name}</h2>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight">{entity.name}</h2>
             <p className="mt-3 text-sm text-ink-soft">
               {entity.reportingFramework}
               {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId)}` : " · parent company"}
@@ -142,8 +142,8 @@ export default async function DashboardPage() {
       ) : null}
 
       <section className="mt-10">
-        <h2 className="font-serif text-2xl">Recent entries</h2>
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <h2 className="text-lg font-semibold tracking-tight">Recent entries</h2>
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Recent journal entries</caption>
             <thead>
@@ -180,9 +180,9 @@ export default async function DashboardPage() {
 function Stat({ label, value, tone = "ink" }: { label: string; value: string; tone?: "ink" | "seal" | "pine" }) {
   const color = tone === "seal" ? "text-seal" : tone === "pine" ? "text-pine" : "text-ink";
   return (
-    <div className="border border-line bg-paper-raised px-4 py-3">
-      <dt className="text-[0.68rem] tracking-[0.14em] text-ink-soft uppercase">{label}</dt>
-      <dd className={`mt-1 font-serif text-2xl ${color}`}>{value}</dd>
+    <div className="panel px-4 py-3">
+      <dt className="text-xs font-medium text-ink-soft">{label}</dt>
+      <dd className={`mt-1 text-2xl font-semibold tracking-tight ${color}`}>{value}</dd>
     </div>
   );
 }

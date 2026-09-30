@@ -31,7 +31,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="btn-secondary"
+      className="rounded-full border border-line bg-paper px-3 py-1 text-xs font-medium text-ink-soft hover:text-ink"
       onClick={toggle}
       aria-pressed={dark ?? undefined}
     >

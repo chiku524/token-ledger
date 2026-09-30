@@ -32,8 +32,8 @@ export default async function SettingsPage({
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
-      <section className="border border-line bg-paper-raised p-4">
-        <h2 className="font-serif text-2xl">Account</h2>
+      <section className="panel p-4">
+        <h2 className="text-lg font-semibold tracking-tight">Account</h2>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
           <div>
             <dt className="text-ink-soft">Name</dt>
@@ -56,7 +56,7 @@ export default async function SettingsPage({
 
       <section id="connections" className="mt-10 scroll-mt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="font-serif text-2xl">Connections</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Connections</h2>
           {canSource ? (
             <Link href="/dashboard/setup" className="text-sm underline">
               Open the connection steps
@@ -74,9 +74,9 @@ export default async function SettingsPage({
           </div>
         ) : null}
         {books.connections.length === 0 ? (
-          <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No connections yet.</p>
+          <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No connections yet.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+          <div className="mt-4 overflow-x-auto panel">
             <table className="ledger-table">
               <caption className="sr-only">Read-only connections</caption>
               <thead>

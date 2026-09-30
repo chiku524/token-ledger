@@ -27,16 +27,16 @@ export default async function SignInPage({
 
   return (
     <div className="min-h-full">
-      <header className="flex items-center justify-between border-b border-line px-4 py-4 md:px-8">
-        <Link href="/" className="font-serif text-xl tracking-tight">
+      <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5 md:px-8">
+        <Link href="/" className="text-base font-semibold tracking-tight">
           Token Ledger
         </Link>
         <ThemeToggle />
       </header>
-      <main className="mx-auto grid max-w-5xl gap-8 px-4 py-10 md:grid-cols-2 md:px-8">
+      <main className="mx-auto grid max-w-5xl gap-8 px-4 py-6 md:grid-cols-2 md:px-8">
         <section>
-          <p className="text-[0.7rem] font-medium tracking-[0.18em] text-ink-soft uppercase">Sign in</p>
-          <h1 className="mt-2 font-serif text-4xl tracking-tight">Sign in to the books.</h1>
+          <p className="text-sm font-medium text-accent">Sign in</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Sign in to the books.</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
             Create an account to start a new organization, then connect a wallet, an exchange, a custodian, or all of
             them. An owner can also invite people into an organization that already exists.
@@ -47,8 +47,8 @@ export default async function SignInPage({
             </p>
           ) : null}
           {invite ? (
-            <form action={acceptInviteAction} className="mt-6 grid gap-3 border border-line bg-paper-raised p-4">
-              <h2 className="font-serif text-2xl">Accept invite</h2>
+            <form action={acceptInviteAction} className="mt-6 grid gap-3 panel p-4">
+              <h2 className="text-lg font-semibold tracking-tight">Accept invite</h2>
               <p className="text-sm text-ink-soft">
                 {invite.email}. Choose a password of at least 12 characters. This link is shown in the app. It is not emailed.
               </p>
@@ -67,8 +67,8 @@ export default async function SignInPage({
               </button>
             </form>
           ) : (
-            <form action={signInAction} className="mt-6 grid gap-3 border border-line bg-paper-raised p-4">
-              <h2 className="font-serif text-2xl">Password</h2>
+            <form action={signInAction} className="mt-6 grid gap-3 panel p-4">
+              <h2 className="text-lg font-semibold tracking-tight">Password</h2>
               <input type="hidden" name="csrf" value={csrf} />
               <input type="hidden" name="next" value={next} />
               <label className="field">
@@ -94,9 +94,9 @@ export default async function SignInPage({
             </form>
           )}
         </section>
-        <section className="border border-line bg-paper-raised p-4" aria-labelledby="demo-heading">
-          <p className="text-[0.7rem] font-medium tracking-[0.16em] text-seal uppercase">Demo preview</p>
-          <h2 id="demo-heading" className="mt-2 font-serif text-2xl">
+        <section className="panel p-4" aria-labelledby="demo-heading">
+          <p className="text-sm font-medium text-accent">Demo preview</p>
+          <h2 id="demo-heading" className="mt-2 text-lg font-semibold tracking-tight">
             Pick a role
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">

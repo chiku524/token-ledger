@@ -25,9 +25,9 @@ export function RoleNote({ children }: { children: string }) {
 
 export function EntityForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
-    <form action={createEntityAction} className="mb-10 grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
+    <form action={createEntityAction} className="mb-10 grid gap-3 panel p-4 md:grid-cols-2">
       <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="font-serif text-2xl md:col-span-2">Add a company</h2>
+      <h2 className="text-lg font-semibold tracking-tight md:col-span-2">Add a company</h2>
       <label className="field">
         <span>Name</span>
         <input name="name" required maxLength={200} autoComplete="organization" />
@@ -104,9 +104,9 @@ export function ConnectionControls({
 
 export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
-    <form action={importCsvAction} className="grid gap-3 border border-line bg-paper-raised p-4">
+    <form action={importCsvAction} className="grid gap-3 panel p-4">
       <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="font-serif text-2xl">Import activity</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Import activity</h2>
       <p className="max-w-2xl text-sm leading-relaxed text-ink-soft">
         Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the
         amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian. It does not
@@ -142,9 +142,9 @@ export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
 export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
   const accounts = books.accounts;
   return (
-    <form action={postJournalAction} className="mb-10 grid gap-3 border border-line bg-paper-raised p-4">
+    <form action={postJournalAction} className="mb-10 grid gap-3 panel p-4">
       <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="font-serif text-2xl">Post an entry</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Post an entry</h2>
       <p className="max-w-2xl text-sm leading-relaxed text-ink-soft">
         Debits must equal credits, in the company&apos;s currency. Leave unused lines blank. A token amount needs the
         asset, whether it was received or sent, and where it was held.
@@ -314,9 +314,9 @@ export function ReverseJournalForm({
 
 export function FxRateForm({ csrf, defaultDate }: { csrf: string; defaultDate: string }) {
   return (
-    <form action={createFxRateAction} className="mt-4 grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
+    <form action={createFxRateAction} className="mt-4 grid gap-3 panel p-4 md:grid-cols-2">
       <input type="hidden" name="csrf" value={csrf} />
-      <h3 className="font-serif text-2xl md:col-span-2">Add a rate</h3>
+      <h3 className="text-lg font-semibold tracking-tight md:col-span-2">Add a rate</h3>
       <p className="text-sm text-ink-soft md:col-span-2">
         Save one direction. The other direction is calculated from it, so the two cannot disagree.
       </p>

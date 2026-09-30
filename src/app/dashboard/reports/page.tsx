@@ -34,7 +34,7 @@ export default async function ReportsPage({
     return (
       <>
         <PageHeader kicker="Reports" title="Reports" description="Add a company before balances can be prepared." />
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
+        <p className="panel px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
       </>
     );
   }
@@ -99,7 +99,7 @@ export default async function ReportsPage({
             <MoneyBars rows={assetBars} currency={entity.functionalCurrency} />
           </ChartFrame>
         ) : (
-          <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No crypto values in these dates.</p>
+          <p className="panel px-4 py-6 text-sm text-ink-soft">No crypto values in these dates.</p>
         )}
         {composition.length > 0 ? (
           <ChartFrame
@@ -110,19 +110,19 @@ export default async function ReportsPage({
             <MoneyBars rows={composition} currency={entity.functionalCurrency} />
           </ChartFrame>
         ) : (
-          <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No account activity in these dates.</p>
+          <p className="panel px-4 py-6 text-sm text-ink-soft">No account activity in these dates.</p>
         )}
       </div>
 
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-serif text-2xl">Account balances</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Account balances</h2>
           <p className={balanced ? "text-sm text-pine" : "text-sm text-seal"}>
             {balance.rows.length === 0 ? "No accounts" : balanced ? "Debits equal credits" : "Out of balance"}
             {balance.currency ? ` · ${formatMoney(balance.debitTotal, balance.currency)}` : ""}
           </p>
         </div>
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Account balances for {entity.name}</caption>
             <thead>
@@ -158,11 +158,11 @@ export default async function ReportsPage({
       </section>
 
       <section className="mt-10">
-        <h2 className="font-serif text-2xl">Crypto held</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Crypto held</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
           Grouped by what the account is for: crypto, crypto held for sale, or stablecoins. The sample uses those labels as examples.
         </p>
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Crypto held by {entity.name}</caption>
             <thead>

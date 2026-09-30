@@ -55,7 +55,7 @@ export default async function SourcesPage({
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       <section id="connections" className="scroll-mt-6">
-      <h2 className="font-serif text-2xl">Connections</h2>
+      <h2 className="text-lg font-semibold tracking-tight">Connections</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         One connection can cover several addresses, accounts, or vaults. Scopes stay at balances and movements. No API key
         is stored. Add, check, and disconnect a connection in{" "}
@@ -65,9 +65,9 @@ export default async function SourcesPage({
         .
       </p>
       {books.connections.length === 0 ? (
-        <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No connections yet.</p>
+        <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No connections yet.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Read-only connections</caption>
             <thead>
@@ -114,15 +114,15 @@ export default async function SourcesPage({
       </section>
 
       <section id="observed-balances" className="scroll-mt-6">
-      <h2 className="mt-10 font-serif text-2xl">Observed balances</h2>
+      <h2 className="mt-10 text-lg font-semibold tracking-tight">Observed balances</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         These quantities were observed on the connection. They are not a market price and not the booked value. Activity
         that has not been journaled still appears here.
       </p>
       {books.balanceSnapshots.length === 0 ? (
-        <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No balances observed yet.</p>
+        <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No balances observed yet.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Observed balances</caption>
             <thead>
@@ -150,9 +150,9 @@ export default async function SourcesPage({
       )}
       </section>
 
-      <h2 className="mt-10 font-serif text-2xl">Booked value</h2>
+      <h2 className="mt-10 text-lg font-semibold tracking-tight">Booked value</h2>
       {panels.length === 0 ? (
-        <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No booked value to chart yet.</p>
+        <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No booked value to chart yet.</p>
       ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-2">
           {panels.map((panel) => (
@@ -182,14 +182,14 @@ export default async function SourcesPage({
         {canImport ? <CsvImportForm books={books} csrf={csrf} /> : null}
       </div>
 
-      <h2 className="mt-10 font-serif text-2xl">Accounts</h2>
+      <h2 className="mt-10 text-lg font-semibold tracking-tight">Accounts</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         Each row is one address, exchange account, or vault under a connection.
       </p>
       {books.sources.length === 0 ? (
-        <p className="mt-8 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No wallets, exchanges, or custodians yet.</p>
+        <p className="mt-8 panel px-4 py-6 text-sm text-ink-soft">No wallets, exchanges, or custodians yet.</p>
       ) : (
-        <div className="mt-8 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-8 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Wallets, exchanges, and custodians</caption>
             <thead>
@@ -220,14 +220,14 @@ export default async function SourcesPage({
         </div>
       )}
 
-      <h2 className="mt-10 font-serif text-2xl">Connectors</h2>
+      <h2 className="mt-10 text-lg font-semibold tracking-tight">Connectors</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
         These readers are not live. A check records that and does not send a request or store a key. Until one is live,
         import a CSV of activity for that wallet, exchange, or custodian.
       </p>
       <ul className="mt-4 grid gap-3 md:grid-cols-2">
         {connectors.map((connector) => (
-          <li key={connector.name} className="border border-line bg-paper-raised p-4">
+          <li key={connector.name} className="panel p-4">
             <p className="text-xs tracking-[0.14em] text-seal uppercase">
               Not connected · {connectionKind[connector.category] ?? connector.category}
             </p>

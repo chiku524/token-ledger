@@ -29,21 +29,21 @@ export function DashboardShell({
   showConnectionTour: boolean;
 }) {
   return (
-    <div className="min-h-full md:grid md:grid-cols-[15.5rem_minmax(0,1fr)]">
+    <div className="min-h-full bg-paper md:grid md:grid-cols-[16.75rem_minmax(0,1fr)]">
       <a href="#content" className="skip-link">
         Skip to content
       </a>
-      <aside className="border-b border-line md:min-h-screen md:border-r md:border-b-0">
-        <div className="flex items-baseline justify-between gap-3 px-4 py-4 md:block">
-          <Link href="/" className="font-serif text-xl tracking-tight">
+      <aside className="flex flex-col border-b border-line bg-paper-raised md:sticky md:top-0 md:h-screen md:border-r md:border-b-0">
+        <div className="flex items-center justify-between gap-3 px-4 py-4 md:block">
+          <Link href="/" className="text-base font-semibold tracking-tight">
             Token Ledger
           </Link>
-          <p className="text-xs tracking-wide text-ink-soft md:mt-1">{subtitle}</p>
+          <p className="text-xs text-ink-soft md:mt-1">{subtitle}</p>
           <div className="md:mt-3">
             <ThemeToggle />
           </div>
         </div>
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 md:min-h-0 md:flex-1 md:overflow-y-auto">
           <DashboardNav showUsers={showUsers} />
         </div>
         <div className="border-t border-line px-4 py-4 text-sm">

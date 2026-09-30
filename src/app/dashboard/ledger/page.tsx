@@ -47,11 +47,11 @@ export default async function LedgerPage({
         <RoleNote>You can view entries and download CSVs. Posting and corrections are hidden.</RoleNote>
       )}
       {visible.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No entries in these dates.</p>
+        <p className="panel px-4 py-6 text-sm text-ink-soft">No entries in these dates.</p>
       ) : (
         <div className="space-y-6">
           {visible.map((entry) => (
-            <article key={entry.id} className="border border-line bg-paper-raised">
+            <article key={entry.id} className="panel">
               <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-4 py-3">
                 <div>
                   <h2 className="font-medium">

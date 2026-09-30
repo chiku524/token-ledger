@@ -37,9 +37,9 @@ export default async function EntitiesPage({
         <RoleNote>You can view companies. Adding one is for owners and admins.</RoleNote>
       )}
       {books.entities.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
+        <p className="panel px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
       ) : (
-        <div className="overflow-x-auto border border-line bg-paper-raised">
+        <div className="overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Companies</caption>
             <thead>

@@ -69,17 +69,17 @@ export function ConnectionTour({ csrf }: { csrf: string }) {
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-ink/40 p-4 md:items-center">
+    <div className="fixed inset-0 z-30 flex items-end justify-center bg-ink/50 p-4 backdrop-blur-sm md:items-center">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="connection-tour-title"
-        className="w-full max-w-lg border border-line bg-paper-raised p-5 shadow-none"
+        className="panel w-full max-w-lg p-6"
       >
-        <p className="text-[0.7rem] font-medium tracking-[0.16em] text-seal uppercase">
+        <p className="text-xs font-medium text-accent">
           Connection tour · {step + 1} of {STEPS.length}
         </p>
-        <h2 id="connection-tour-title" className="mt-2 font-serif text-2xl">
+        <h2 id="connection-tour-title" className="mt-2 text-lg font-semibold tracking-tight">
           {current.title}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">{current.body}</p>

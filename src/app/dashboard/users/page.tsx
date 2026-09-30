@@ -28,7 +28,7 @@ export default async function UsersPage({
           title="Users"
           description="Owners and admins decide who can sign in. You can view the books and download CSVs."
         />
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">
+        <p className="panel px-4 py-6 text-sm text-ink-soft">
           You do not have permission to manage users.
         </p>
       </>
@@ -77,8 +77,8 @@ export default async function UsersPage({
           This demo lists the sample Harbourline staff and shows the invite form. Adding a person needs a database.
         </p>
       ) : null}
-      <form action={inviteUserAction} className="mb-10 grid gap-3 border border-line bg-paper-raised p-4 md:grid-cols-2">
-        <h2 className="font-serif text-2xl md:col-span-2">Invite someone</h2>
+      <form action={inviteUserAction} className="mb-10 grid gap-3 panel p-4 md:grid-cols-2">
+        <h2 className="text-lg font-semibold tracking-tight md:col-span-2">Invite someone</h2>
         <input type="hidden" name="csrf" value={csrf} />
         <label className="field">
           <span>Name</span>
@@ -118,7 +118,7 @@ export default async function UsersPage({
           </button>
         </div>
       </form>
-      <div className="overflow-x-auto border border-line bg-paper-raised">
+      <div className="overflow-x-auto panel">
         <table className="ledger-table">
           <caption className="sr-only">Organization users</caption>
           <thead>

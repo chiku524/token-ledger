@@ -35,12 +35,12 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
   }
 
   return (
-    <form action={signUpAction} className="mt-6 grid gap-4 border border-line bg-paper-raised p-4">
+    <form action={signUpAction} className="mt-6 grid gap-4 panel p-4">
       <input type="hidden" name="csrf" value={csrf} />
-      <p className="text-[0.7rem] font-medium tracking-[0.16em] text-seal uppercase">
+      <p className="text-xs font-medium text-accent">
         Signup · {step + 1} of {STEPS.length}
       </p>
-      <h2 className="font-serif text-2xl">{STEPS[step]}</h2>
+      <h2 className="text-lg font-semibold tracking-tight">{STEPS[step]}</h2>
       {error && step === 0 ? (
         <p role="alert" className="border border-seal/40 px-4 py-3 text-sm text-seal">
           {error}

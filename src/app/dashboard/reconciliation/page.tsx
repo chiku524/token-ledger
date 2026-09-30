@@ -43,7 +43,7 @@ export default async function ReconciliationPage({
       ) : null}
       <PeriodForm path="/dashboard/reconciliation" range={range} />
       {ordered.length === 0 ? (
-        <p className="border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">Nothing to match in these dates.</p>
+        <p className="panel px-4 py-6 text-sm text-ink-soft">Nothing to match in these dates.</p>
       ) : (
         <>
           <div className="mb-8 grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -65,7 +65,7 @@ export default async function ReconciliationPage({
               <StatusBars rows={bySource} />
             </ChartFrame>
           </div>
-          <div className="overflow-x-auto border border-line bg-paper-raised">
+          <div className="overflow-x-auto panel">
             <table className="ledger-table">
               <caption className="sr-only">Matching for {range.from} to {range.to}</caption>
               <thead>

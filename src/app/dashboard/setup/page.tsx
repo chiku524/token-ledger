@@ -35,7 +35,7 @@ export default async function SetupPage({
         description="Connect a wallet, an exchange, a custodian, or any combination. Skip any step. Nothing here can move funds."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
-      <p className="text-[0.7rem] font-medium tracking-[0.16em] text-seal uppercase">
+      <p className="text-xs font-medium text-accent">
         {current.id === "done" ? "Done" : `Step ${current.index + 1} of ${SETUP_FLOW.length}`}
       </p>
       {!writable ? (
@@ -70,7 +70,7 @@ export default async function SetupPage({
         <p className="mt-4 text-sm text-ink-soft">Add a company before connecting a wallet, exchange, or custodian.</p>
       ) : null}
       {current.id === "done" ? (
-        <div className="mt-4 max-w-2xl border border-line bg-paper-raised p-4">
+        <div className="mt-4 max-w-2xl panel p-4">
           <p className="text-sm leading-relaxed text-ink-soft">
             Skipped steps stay empty. Holdings shows what was observed. Settings is where you add another connection,
             check one, or disconnect it.

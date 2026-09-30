@@ -71,13 +71,13 @@ export default async function ConsolidationPage({
       <PeriodForm path="/dashboard/consolidation" range={range} hidden={{ currency: presentation }} />
 
       <section>
-        <h2 className="font-serif text-2xl">Rates</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Rates</h2>
         {books.fxRates.length === 0 ? (
-          <p className="mt-4 border border-line bg-paper-raised px-4 py-6 text-sm text-ink-soft">
+          <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">
             No exchange rates are saved, so only companies already in {presentation} can be included.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+          <div className="mt-4 overflow-x-auto panel">
             <table className="ledger-table">
               <caption className="sr-only">Saved exchange rates</caption>
               <thead>
@@ -113,10 +113,10 @@ export default async function ConsolidationPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="font-serif text-2xl">Companies in this view</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Companies in this view</h2>
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
           {group.entities.map((entity) => (
-            <li key={entity.entityId} className="border border-line bg-paper-raised p-4">
+            <li key={entity.entityId} className="panel p-4">
               <p className="font-medium">{entity.entityName}</p>
               <p className={`mt-1 text-sm ${entity.included ? "text-pine" : "text-seal"}`}>
                 {entity.included ? "Included" : "Left out"} · {entity.functionalCurrency}
@@ -129,13 +129,13 @@ export default async function ConsolidationPage({
 
       <section className="mt-8">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-serif text-2xl">Combined balances · {presentation}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Combined balances · {presentation}</h2>
           <p className="text-sm text-pine">
             Debits equal credits
             {group.rows.length > 0 ? ` · ${formatMoney(group.debitTotal, presentation)}` : ""}
           </p>
         </div>
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Combined balances in {presentation}</caption>
             <thead>

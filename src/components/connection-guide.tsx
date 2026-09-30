@@ -32,7 +32,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
   return (
     <div className="grid max-w-5xl gap-12">
       <section aria-labelledby="shape-heading">
-        <h2 id="shape-heading" className="font-serif text-2xl">
+        <h2 id="shape-heading" className="text-lg font-semibold tracking-tight">
           Where a connection sits
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
@@ -46,14 +46,14 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
               ["Account", "One address, exchange account, or vault."],
               ["Observation", "A balance at a moment, plus the movements since the last cursor."],
             ].map(([title, detail], index) => (
-              <li key={title} className="border border-line bg-paper-raised px-4 py-3" style={{ marginLeft: `${index * 0.75}rem` }}>
+              <li key={title} className="panel px-4 py-3" style={{ marginLeft: `${index * 0.75}rem` }}>
                 <p className="text-xs tracking-[0.14em] text-ink-soft uppercase">{index + 1}</p>
                 <p className="mt-1 font-medium">{title}</p>
                 <p className="mt-1 text-sm text-ink-soft">{detail}</p>
               </li>
             ))}
           </ol>
-          <div className="border border-line bg-paper-raised p-4">
+          <div className="panel p-4">
             <p className="text-xs tracking-[0.14em] text-ink-soft uppercase">Beside the read, not inside it</p>
             <ul className="mt-3 grid gap-3 text-sm">
               <li>
@@ -78,12 +78,12 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
       </section>
 
       <section aria-labelledby="modes-heading">
-        <h2 id="modes-heading" className="font-serif text-2xl">
+        <h2 id="modes-heading" className="text-lg font-semibold tracking-tight">
           Three ways in
         </h2>
         <ul className="mt-4 grid gap-3 md:grid-cols-3">
           {MODES.map((mode) => (
-            <li key={mode.title} className="border border-line bg-paper-raised p-4">
+            <li key={mode.title} className="panel p-4">
               <h3 className="font-medium">{mode.title}</h3>
               <dl className="mt-3 grid gap-3 text-sm">
                 <div>
@@ -105,19 +105,19 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
       </section>
 
       <section aria-labelledby="life-heading">
-        <h2 id="life-heading" className="font-serif text-2xl">
+        <h2 id="life-heading" className="text-lg font-semibold tracking-tight">
           From add to disconnect
         </h2>
         <ol className="mt-4 grid gap-3 md:grid-cols-4" aria-label="Connection lifecycle">
           {LIFE.map((step, index) => (
-            <li key={step.title} className="border border-line bg-paper-raised p-4">
+            <li key={step.title} className="panel p-4">
               <p className="text-xs tracking-[0.14em] text-pine uppercase">{index + 1}</p>
               <h3 className="mt-2 font-medium">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.detail}</p>
             </li>
           ))}
         </ol>
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">What each status means</caption>
             <thead>
@@ -149,10 +149,10 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
       </section>
 
       <section aria-labelledby="roles-heading">
-        <h2 id="roles-heading" className="font-serif text-2xl">
+        <h2 id="roles-heading" className="text-lg font-semibold tracking-tight">
           Who does what
         </h2>
-        <div className="mt-4 overflow-x-auto border border-line bg-paper-raised">
+        <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
             <caption className="sr-only">Roles for connections</caption>
             <thead>
