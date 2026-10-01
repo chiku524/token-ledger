@@ -40,11 +40,6 @@ export function normalizeCoinType(coinType: string): string {
   return `0x${short}::${module}::${name}`;
 }
 
-/** A Move coin type is `<packageId>::<module>::<NAME>`. */
-export function isSuiCoinType(value: unknown): value is string {
-  return typeof value === "string" && /^0x[0-9a-fA-F]+::[A-Za-z0-9_]+::[A-Za-z0-9_]+$/.test(value);
-}
-
 export function resolveSuiCoin(coinType: string): SuiCoin | null {
   return COINS.get(normalizeCoinType(coinType)) ?? null;
 }
