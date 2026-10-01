@@ -1,4 +1,5 @@
 import { formatMinor } from "@/ledger";
+import { watchVenueLabel } from "./connections";
 import { assetByCode, exampleAccounts, exampleAssets, exampleEntities, exampleSources } from "./example-books";
 
 const FIAT_DECIMALS: Record<string, number> = { MYR: 2, SGD: 2, USD: 2 };
@@ -76,12 +77,9 @@ export function syncRunTriggerLabel(trigger: "manual" | "scheduled" | "webhook" 
 }
 
 export function venueLabel(venue: string): string {
-  if (venue === "ethereum") return "Ethereum";
-  if (venue === "solana") return "Solana";
-  if (venue === "polygon") return "Polygon";
   if (venue === "exchange") return "Exchange";
   if (venue === "custodian") return "Custodian";
-  return venue;
+  return watchVenueLabel(venue);
 }
 
 export function scopeLabel(scopes: string): string {

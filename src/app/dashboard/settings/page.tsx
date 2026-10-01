@@ -6,6 +6,7 @@ import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
 import { ConnectionControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { WATCH_CHAIN_LABELS } from "@/data/connections";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { connectionModeLabel, connectionStatusLabel, entityName, scopeLabel, venueLabel } from "@/data/present";
@@ -137,7 +138,7 @@ export default async function SettingsPage({
             mode="watch"
             next="/dashboard/settings"
             title="Watch-only wallet"
-            intro="A public address on Ethereum, Solana, or Polygon. Choose hot, cold, or staking. No key is stored."
+            intro={`A public address on ${WATCH_CHAIN_LABELS}. Choose hot, cold, or staking. No key is stored.`}
           />
           <ConnectorForm
             id="exchange"

@@ -1,9 +1,11 @@
+import { WATCH_CHAIN_LABELS } from "./connections";
+
 export const SETUP_FLOW = [
   {
     id: "wallet",
     mode: "watch",
     title: "Connect a wallet",
-    lede: "A public address on Ethereum, Solana, or Polygon. Nothing is signed, and no key is stored.",
+    lede: `A public address on ${WATCH_CHAIN_LABELS}. Nothing is signed, and no key is stored.`,
     next: "/dashboard/setup?step=exchange",
     skip: "Skip wallet",
   },

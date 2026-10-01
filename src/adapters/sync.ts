@@ -4,7 +4,13 @@
  */
 import { AdapterNotImplementedError } from "./errors";
 import { BitGoCustodianAdapter, CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
-import { EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "./sources/chain";
+import {
+  BitcoinChainAdapter,
+  EthereumChainAdapter,
+  PolygonChainAdapter,
+  SolanaChainAdapter,
+  SuiChainAdapter,
+} from "./sources/chain";
 import { ExchangeSourceAdapter, VenueExchangeAdapter } from "./sources/exchange";
 import { venueDefinition } from "./sources/exchange/registry";
 import type { ExchangeCredentialInput } from "./credentials/store";
@@ -50,6 +56,8 @@ export function adapterForConnection(
   if (connection.mode === "watch" && connection.venue === "ethereum") return new EthereumChainAdapter();
   if (connection.mode === "watch" && connection.venue === "solana") return new SolanaChainAdapter();
   if (connection.mode === "watch" && connection.venue === "polygon") return new PolygonChainAdapter();
+  if (connection.mode === "watch" && connection.venue === "bitcoin") return new BitcoinChainAdapter();
+  if (connection.mode === "watch" && connection.venue === "sui") return new SuiChainAdapter();
   if (connection.mode === "exchange_read" && options.exchangeCredential) {
     const venue = venueDefinition(connection.venue);
     if (venue) return new VenueExchangeAdapter(venue, { credential: options.exchangeCredential });

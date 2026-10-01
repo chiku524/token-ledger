@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { completeConnectionTourAction } from "@/app/dashboard/tour-actions";
+import { WATCH_CHAIN_LABELS } from "@/data/connections";
 
 const STEPS = [
   {
@@ -12,7 +13,7 @@ const STEPS = [
   },
   {
     title: "Choose how the place is held",
-    body: "In Settings, watch a public address on Ethereum, Solana, or Polygon. Or record an exchange account id, or a custodian vault id. A wallet also needs a type: hot, cold, or staking.",
+    body: `In Settings, watch a public address on ${WATCH_CHAIN_LABELS}. Or record an exchange account id, or a custodian vault id. A wallet also needs a type: hot, cold, or staking.`,
     href: "/dashboard/settings#wallet",
   },
   {
