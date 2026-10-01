@@ -67,6 +67,7 @@ async function main() {
       books.connections.map((connection) => ({
         ...connection,
         lastSyncedAt: connection.lastSyncedAt ? new Date(connection.lastSyncedAt) : null,
+        nextAttemptAt: connection.nextAttemptAt ? new Date(connection.nextAttemptAt) : null,
       })),
     );
     await tx.insert(sources).values([...books.sources]);

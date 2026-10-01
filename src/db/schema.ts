@@ -24,6 +24,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -44,6 +45,9 @@ export const quantityDirection = pgEnum("quantity_direction", ["in", "out"]);
 export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", "exception"]);
 export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "viewer"]);
 export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
+export const syncRunStatus = pgEnum("sync_run_status", ["running", "ok", "partial", "failed", "not_live"]);
+export const syncRunTrigger = pgEnum("sync_run_trigger", ["manual", "scheduled", "webhook", "cli"]);
+export const matchJobStatus = pgEnum("match_job_status", ["queued", "done"]);
 
 export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
@@ -116,6 +120,12 @@ export const connections = pgTable(
     cursor: text("cursor"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     lastError: text("last_error"),
+    /**
+     * When a failed connection is next eligible for a scheduled pull. Set on a
+     * failure (last start + backoff), cleared on success. Null means due now.
+     * A manual refresh ignores it; the scheduler reads it.
+     */
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -467,4 +477,120 @@ export const connectionCredentials = pgTable(
     uniqueIndex("connection_credentials_connection_unique").on(table.connectionId),
     index("connection_credentials_organization_id_idx").on(table.organizationId),
   ],
+);
+
+/**
+ * One attempt to pull a connection, whether manual, scheduled, or a re-run.
+ * Every run leaves a row, so the history is auditable and the operations view
+ * can show connector health. `status` records the outcome of the whole run.
+ */
+export const syncRuns = pgTable(
+  "sync_runs",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => connections.id),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    status: syncRunStatus("status").notNull(),
+    /** How the run was started. */
+    trigger: syncRunTrigger("trigger").notNull(),
+    balancesRead: integer("balances_read").notNull().default(0),
+    movementsRead: integer("movements_read").notNull().default(0),
+    accountsRead: integer("accounts_read").notNull().default(0),
+    error: text("error"),
+  },
+  (table) => [
+    index("sync_runs_connection_started_idx").on(table.connectionId, table.startedAt),
+    index("sync_runs_organization_started_idx").on(table.organizationId, table.startedAt),
+  ],
+);
+
+/**
+ * Raw payload retained from a run, for audit and replay. Payloads can be large,
+ * so retention is a rolling window: only the most recent runs keep payloads
+ * (see `RAW_PAYLOAD_RUN_RETENTION` in src/db/sync-runs.ts). The run row itself
+ * is always kept; only the payload ages out.
+ *
+ * `payload` is the adapter output as JSON. `quantityMinor` values are stored as
+ * decimal strings to survive JSON without precision loss.
+ */
+export const syncRunPayloads = pgTable(
+  "sync_run_payloads",
+  {
+    id: text("id").primaryKey(),
+    runId: text("run_id")
+      .notNull()
+      .references(() => syncRuns.id),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => connections.id),
+    /** "balances" or "movements". */
+    kind: text("kind").notNull(),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("sync_run_payloads_run_id_idx").on(table.runId)],
+);
+
+/**
+ * A signed event pushed by a source, kept as the audit trail for event
+ * ingestion. `externalId` is unique per source, so a redelivery is a no-op.
+ * The raw body is retained for dispute and replay; it is small and bounded by
+ * the receiver's size limit.
+ */
+export const webhookEvents = pgTable(
+  "webhook_events",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => sources.id),
+    /** Delivery id from the signature header, when the sender supplies one. */
+    deliveryId: text("delivery_id"),
+    externalId: text("external_id").notNull(),
+    /** Fingerprint of the normalized event, to reject an exact duplicate. */
+    fingerprint: text("fingerprint").notNull(),
+    rawBody: text("raw_body").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("webhook_events_source_external_unique").on(table.sourceId, table.externalId),
+    index("webhook_events_organization_received_idx").on(table.organizationId, table.receivedAt),
+  ],
+);
+
+/**
+ * A queued reconciliation pass after an event lands. Event ingestion writes
+ * source transactions; matching them to the ledger is a follow-up job, so the
+ * webhook response is fast and the same queue can back a later worker.
+ */
+export const matchJobs = pgTable(
+  "match_jobs",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => sources.id),
+    status: matchJobStatus("status").notNull(),
+    enqueuedAt: timestamp("enqueued_at", { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [index("match_jobs_status_enqueued_idx").on(table.status, table.enqueuedAt)],
 );

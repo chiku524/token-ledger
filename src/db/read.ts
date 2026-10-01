@@ -18,6 +18,13 @@ import {
   sources,
 } from "./schema";
 
+/** Every organization id, for the scheduled pass over all connections. */
+export async function listOrganizationIds(): Promise<string[]> {
+  const db = getDb();
+  const rows = await db.select({ id: organizations.id }).from(organizations);
+  return rows.map((row) => row.id);
+}
+
 export async function loadBooksFromDatabase(requestedOrganizationId?: string): Promise<Books> {
   const db = getDb();
   const organization = requestedOrganizationId
@@ -86,6 +93,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
       cursor: connection.cursor,
       lastSyncedAt: connection.lastSyncedAt,
       lastError: connection.lastError,
+      nextAttemptAt: connection.nextAttemptAt,
     })),
     sources: sourceRows,
     balanceSnapshots: snapshotRows.map((row) => {
