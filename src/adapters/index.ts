@@ -1,7 +1,7 @@
 import { ErpSyncAdapter } from "./accounting/erp";
 import { QuickBooksSyncAdapter } from "./accounting/quickbooks";
 import { XeroSyncAdapter } from "./accounting/xero";
-import { CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
+import { BitGoCustodianAdapter, CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
 import { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter, SuiChainAdapter } from "./sources/chain";
 import { ExchangeSourceAdapter, VenueExchangeAdapter } from "./sources/exchange";
 import { VENUES } from "./sources/exchange/registry";
@@ -13,7 +13,7 @@ export { ErpSyncAdapter } from "./accounting/erp";
 export { QuickBooksSyncAdapter } from "./accounting/quickbooks";
 export { XeroSyncAdapter } from "./accounting/xero";
 export type { AccountingSyncAdapter, JournalSyncBatch, JournalSyncResult } from "./accounting/types";
-export { CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
+export { BitGoCustodianAdapter, CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
 export { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter, SuiChainAdapter } from "./sources/chain";
 export { ExchangeSourceAdapter, KrakenExchangeAdapter, VenueExchangeAdapter } from "./sources/exchange";
 export { VENUES, VENUE_KEYS, venueDefinition, createVenueConnector } from "./sources/exchange/registry";
@@ -42,6 +42,7 @@ const stubAdapters = [
   ...Object.values(VENUES).map((venue) => new VenueExchangeAdapter(venue)),
   new CustodianSourceAdapter(),
   new FireblocksCustodianAdapter(),
+  new BitGoCustodianAdapter(),
   new XeroSyncAdapter(),
   new QuickBooksSyncAdapter(),
   new ErpSyncAdapter(),

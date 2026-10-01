@@ -1,4 +1,4 @@
-# ADR: Custodian connectors and first provider (Fireblocks)
+# ADR: Custodian connectors (BitGo, Fireblocks)
 
 Status: accepted
 Applies to: issue #57 (`Sub-epic: Custodian connectors` → `Choose the first custodian provider and vault model`) and #10 (`Implement first read-only custodian connector`).
@@ -6,89 +6,89 @@ Applies to: issue #57 (`Sub-epic: Custodian connectors` → `Choose the first cu
 ## Decision
 
 Build custodian connectors one provider at a time behind the existing
-`CustodianSourceAdapter` port. The **first provider is Fireblocks**, read-only,
-via its REST API using a user-supplied **API key and RSA private key** with a
-read-only role.
+`CustodianSourceAdapter` port. Two are implemented, both read-only:
 
-Target providers, in order: **Fireblocks, Copper, BitGo, Anchorage**. Each is a
-separate connector behind the `CustodianSourceAdapter` port, sharing the
-credential store and the frontend consent flow used by exchanges (#13, #94).
+- **BitGo** — the first provider, chosen for its simpler bearer-token auth and
+  ready test environment.
+- **Fireblocks** — also implemented; JWT RS256 with a Viewer API user.
 
-## Read-only credential model
+Later providers: Copper and Anchorage. Each is a separate connector behind the
+port, sharing the credential store and the frontend consent flow used by
+exchanges (#13, #94).
 
-Fireblocks API users carry a **role** (the same roles as Console users). A
-connector API user is created with the **Viewer** role, which can read vault
-accounts, balances, and transactions and cannot initiate or sign a transaction.
-A Viewer API user is the read-only guarantee: even a bug cannot move funds.
+## BitGo (first)
 
-Authentication is a **JWT signed with RS256**:
+- **Auth:** a bearer **access token** (`Authorization: Bearer <token>`). No CSR
+  or RSA key. The token is created by a user with view permissions; a
+  read-only token cannot sign or send.
+- **Test environment:** `https://app.bitgo-test.com` (production is
+  `https://www.bitgo.com`). Selected by base URL.
+- **Balances:** `GET /api/v2/wallet/balances` returns every wallet balance
+  across coins in one call. `balanceString`, `confirmedBalanceString`,
+  `spendableBalanceString` are **base-unit integers as strings** (satoshis, wei),
+  so they convert to bigint directly with no scaling.
+- **Transfers:** `GET /api/v2/{coin}/wallet/{walletId}/transfer`, per coin and
+  wallet, paginated by `prevId`. A transfer has a `type` (`receive`/`send`),
+  a `date`, a `state`, and `entries`; change entries (`isChange`) are internal
+  and not counted.
+- **Coin keys:** `btc`, testnet `tbtc`, or a token `eth:usdc`. The ledger asset
+  is the token symbol when present, otherwise the base symbol, with a testnet
+  `t` prefix stripped. The network for a token is the base coin.
 
-- The user generates an RSA 4096 key and CSR, and uploads the CSR in the
-  Fireblocks Console to obtain an API key.
-- Each request carries `X-API-Key` and `Authorization: Bearer <JWT>`, where the
-  JWT payload has `uri`, `nonce`, `iat`, `exp` (< 30s), `sub` (the API key), and
-  `bodyHash` (hex SHA-256 of the empty body for a GET), signed with the private
-  key using RS256.
+## Fireblocks (second)
 
-The API key and the RSA private key are sealed with AES-256-GCM under
-`CONNECTOR_ENCRYPTION_KEY` (#13) and never returned to the browser.
+- **Auth:** JWT signed with RS256 using the API user's RSA private key. Each
+  request carries `X-API-Key` and `Authorization: Bearer <JWT>` with `uri`,
+  `nonce`, `iat`, `exp` (< 30s), `sub`, and `bodyHash`.
+- **Read-only:** a **Viewer** API user cannot sign or move funds.
+- **Model:** a workspace of **vault accounts**, each holding **vault wallets**,
+  one per asset. `VaultAsset.total` is the balance; the network is the asset's
+  `blockchain` when present, else null.
+- **Endpoints:** `/v1/vault/accounts_paged`, `/v1/vault/accounts/{id}`,
+  `/v1/transactions`.
 
-## Vault model
+## Why a shared port
 
-Fireblocks models custody as **vault accounts**, each holding **vault wallets**,
-one per asset. A vault wallet is identified by the pair `(vaultAccountId,
-assetId)`, and Fireblocks reports the on-chain network as the asset's
-`blockchain`/`network` (for example `ETH`, `SOL`, `BTC`, or an ERC-20 asset with
-its own id). This maps cleanly onto the ledger:
+Both providers reduce to the same normalized shapes: observed balances (asset,
+minor units, as-of) and movements (asset, in/out, minor units, date, external
+id). The vault model differs — BitGo is coin/wallet keyed, Fireblocks is
+vault-account keyed — but both fit `CustodianSourceAdapter` unchanged. A vault
+with no network is supported with a null network, as the port allows.
 
-- A **connection** is one Fireblocks workspace (one API key).
-- A **source** is one vault account, identified by its numeric vault account id.
-- A **balance** is a vault wallet: asset, total, available, and the network when
-  Fireblocks reports one. Some assets have no network (for example a fiat-like
-  balance); those are supported with a null network, as the port already allows.
+## Endpoints used
 
-## Why Fireblocks first
+**BitGo**
+- `GET /api/v2/wallet/balances` — balances (view)
+- `GET /api/v2/{coin}/wallet` — wallets for a coin (view)
+- `GET /api/v2/{coin}/wallet/{walletId}/transfer` — transfers (view)
 
-- **Role-based read-only.** The Viewer role is a real guarantee, matching the
-  Kraken model.
-- **Reachable and testable.** The API is reachable (`api.fireblocks.io` returns a
-  typed unauthorized error without a key) and there is a free developer sandbox.
-- **Institutional standard.** Fireblocks is widely used and its vault/transaction
-  model is the reference for programmatic custody.
-- **Well-specified shapes.** The OpenAPI spec publishes `VaultAsset` and
-  `Transaction` schemas, so the mapping is exact rather than guessed.
-
-## Endpoints used (Fireblocks)
-
-- `GET /v1/vault/accounts_paged` — list vault accounts (Viewer)
-- `GET /v1/vault/assets` — asset balance across accounts (Viewer)
-- `GET /v1/vault/accounts/{vaultAccountId}/{assetId}` — one vault wallet (Viewer)
-- `GET /v1/transactions` — transactions with `after`/`before` cursor (Viewer)
+**Fireblocks**
+- `GET /v1/vault/accounts_paged`, `GET /v1/vault/accounts/{id}`, `GET /v1/transactions` (Viewer)
 
 No endpoint that creates, signs, or broadcasts a transaction is ever called.
 
 ## Providers compared
 
-| Provider | Read-only role/key | Auth | Notes |
+| Provider | Read-only access | Auth | Notes |
 | --- | --- | --- | --- |
-| **Fireblocks** (chosen) | Viewer role | JWT RS256 | Free sandbox; published OpenAPI spec |
+| **BitGo** (first) | View token | Bearer token | Instant test env; one-call balances; base-unit string balances |
+| **Fireblocks** (second) | Viewer role | JWT RS256 | Free sandbox; CSR + RSA key required |
 | Copper | View-only user | API key + HMAC | Institutional; onboarding-gated |
-| BitGo | View wallet permission | Access token + HMAC | Test env; wallet-scoped |
 | Anchorage | Read-only key | API key | Institutional; onboarding-gated |
 
 ## Consequences
 
-- Custodian connectors reuse the credential store (#13) and consent flow (#94);
-  Fireblocks needs an RSA key rather than a secret string, so the stored secret
-  is the PEM private key, sealed like any other.
-- Fireblocks vault wallets carry a network per asset; the mapping keeps it and
-  leaves it null when absent.
-- Adding Copper, BitGo, or Anchorage later is one connector plus a registry entry,
-  the same pattern as exchanges.
+- Custodian connectors reuse the credential store (#13) and consent flow (#94).
+  BitGo stores the access token as the `apiKey`; Fireblocks stores the API key as
+  `apiKey` and the RSA private key PEM as `apiSecret`.
+- BitGo balances are base-unit strings, unlike exchanges (major units with
+  decimals); the BitGo mapper converts them directly.
+- Adding Copper or Anchorage later is one connector plus a registry entry, the
+  same pattern as exchanges.
 
 ## References
 
+- BitGo REST API: https://developers.bitgo.com/reference/overview
+- BitGo environments: https://developers.bitgo.com/docs/get-started-environments
 - Fireblocks API authentication (JWT RS256): https://developers.fireblocks.com/reference/signing-a-request-jwt-structure
 - Fireblocks API key management and roles: https://developers.fireblocks.com/docs/manage-api-keys
-- Fireblocks vaults: https://developers.fireblocks.com/_llms/api/api-endpoints/vaults.md
-- Fireblocks OpenAPI spec: https://swagger.fireblocks.com/openapi.yaml

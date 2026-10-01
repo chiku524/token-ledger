@@ -95,9 +95,9 @@ export function ConnectorForm({
       {mode === "custodian_read" ? (
         <>
           <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">
-            Create a <strong>Viewer</strong> API user in Fireblocks and upload a CSR. Viewer can read vaults and
-            transactions and <strong>cannot</strong> sign or move funds. Paste the API user id and the RSA private key
-            (PEM) below. Both are checked, then sealed.
+            Enter a read-only credential. <strong>BitGo:</strong> a view-only access token in the API key field (leave
+            the secret blank). <strong>Fireblocks:</strong> a Viewer API user id as the key and its RSA private key
+            (PEM) as the secret. Both are checked, then sealed, and cannot sign or move funds.
           </p>
           <label className="field">
             <span>API user id</span>

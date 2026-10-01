@@ -6,6 +6,8 @@
 import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
 import type { FireblocksCustodianAdapterOptions } from "../custodian";
 import { FireblocksCustodianAdapter } from "../custodian";
+import { BitGoClient } from "./bitgo-client";
+import { BitGoReader } from "./bitgo-reader";
 
 export interface CustodianDefinition {
   key: string;
@@ -13,11 +15,21 @@ export interface CustodianDefinition {
   keyUrl: string;
   scopes: string[];
   implemented: boolean;
-  /** Build a reader for credential verification, or null when not implemented. */
+  /** Verify a credential with a real read-only call, or resolve when not implemented. */
   verify(credential: ExchangeCredentialInput, options?: FireblocksCustodianAdapterOptions): Promise<void>;
 }
 
 export const CUSTODIANS: Record<string, CustodianDefinition> = {
+  bitgo: {
+    key: "bitgo",
+    label: "BitGo",
+    keyUrl: "https://app.bitgo-test.com/web/auth/login",
+    scopes: ["Wallet view (read-only)"],
+    implemented: true,
+    async verify(credential) {
+      await new BitGoReader(new BitGoClient(credential)).fetchBalances();
+    },
+  },
   fireblocks: {
     key: "fireblocks",
     label: "Fireblocks",
@@ -35,3 +47,4 @@ export const CUSTODIAN_KEYS = Object.keys(CUSTODIANS);
 export function custodianDefinition(key: string): CustodianDefinition | null {
   return CUSTODIANS[key] ?? null;
 }
+

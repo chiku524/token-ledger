@@ -3,7 +3,7 @@
  * A revoked connection is not read. Success is left to the caller to store.
  */
 import { AdapterNotImplementedError } from "./errors";
-import { CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
+import { BitGoCustodianAdapter, CustodianSourceAdapter, FireblocksCustodianAdapter } from "./sources/custodian";
 import { EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "./sources/chain";
 import { ExchangeSourceAdapter, VenueExchangeAdapter } from "./sources/exchange";
 import { venueDefinition } from "./sources/exchange/registry";
@@ -57,6 +57,9 @@ export function adapterForConnection(
   if (connection.mode === "exchange_read" && connection.venue === "exchange") return new ExchangeSourceAdapter();
   if (connection.mode === "custodian_read" && connection.venue === "fireblocks" && options.exchangeCredential) {
     return new FireblocksCustodianAdapter({ credential: options.exchangeCredential });
+  }
+  if (connection.mode === "custodian_read" && connection.venue === "bitgo" && options.exchangeCredential) {
+    return new BitGoCustodianAdapter({ credential: options.exchangeCredential });
   }
   if (connection.mode === "custodian_read" && connection.venue === "custodian") return new CustodianSourceAdapter();
   return null;
