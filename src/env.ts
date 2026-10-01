@@ -24,6 +24,27 @@ export function readDatabaseUrl(env: { DATABASE_URL?: string } = { DATABASE_URL:
   return url;
 }
 
+/**
+ * Required to store or read connector credentials (exchange API keys). At least
+ * 32 characters, server-only. Derives the AES-256-GCM key that seals secrets at
+ * rest. Never sent to the browser and never logged.
+ */
+export function readConnectorEncryptionKey(
+  env: { CONNECTOR_ENCRYPTION_KEY?: string } = { CONNECTOR_ENCRYPTION_KEY: process.env.CONNECTOR_ENCRYPTION_KEY },
+): string {
+  const key = env.CONNECTOR_ENCRYPTION_KEY?.trim() ?? "";
+  if (key.length < 32) {
+    throw new Error("CONNECTOR_ENCRYPTION_KEY must be at least 32 characters.");
+  }
+  return key;
+}
+
+export function connectorEncryptionConfigured(
+  env: { CONNECTOR_ENCRYPTION_KEY?: string } = { CONNECTOR_ENCRYPTION_KEY: process.env.CONNECTOR_ENCRYPTION_KEY },
+): boolean {
+  return (env.CONNECTOR_ENCRYPTION_KEY?.trim().length ?? 0) >= 32;
+}
+
 /** The free, keyless public cluster. See docs/adr-solana-data-source.md. */
 export const SOLANA_PUBLIC_RPC_URL = "https://api.mainnet-beta.solana.com";
 
