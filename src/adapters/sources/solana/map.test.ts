@@ -30,7 +30,7 @@ describe("mapBalancesToObservations", () => {
 
   it("includes an SPL token once its mint is registered", () => {
     const firstMint = tokens.value[0]!.account.data.parsed.info.mint;
-    const registry = new Map([[firstMint, { code: "TOK", decimals: 6 }]]);
+    const registry = new Map([[firstMint, { code: "TOK", name: "Test Token", decimals: 6 }]]);
     const rows = mapBalancesToObservations(balance, tokens, observedAt, registry);
     const byCode = Object.fromEntries(rows.map((row) => [row.assetCode, row.quantityMinor]));
     expect(byCode.SOL).toBe(BigInt(balance.value));
