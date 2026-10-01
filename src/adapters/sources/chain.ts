@@ -1,7 +1,7 @@
 /**
- * STUB chain adapters. No RPC, no indexer, no API key.
- * Ethereum, Solana, and Polygon are the first chains the product names.
- * Replace `fetchTransactions` with a real client when a source is ready.
+ * Chain source adapters. Solana is live and read-only: it calls the public
+ * JSON-RPC interface (or a private endpoint via SOLANA_RPC_URL) and never
+ * signs. Ethereum and Polygon remain stubs until their epic lands.
  */
 import { AdapterNotImplementedError } from "../errors";
 import type {
@@ -12,6 +12,8 @@ import type {
   NormalizedBalance,
   NormalizedSourceTransaction,
 } from "../types";
+import { SolanaReader } from "./solana/reader";
+import { SolanaRpcClient } from "./solana/rpc";
 
 function chainDescriptor(chain: string, name: string): AdapterDescriptor {
   return {
@@ -46,22 +48,48 @@ export class EthereumChainAdapter implements ChainSourceAdapter {
   }
 }
 
+export interface SolanaChainAdapterOptions {
+  reader?: SolanaReader;
+  client?: SolanaRpcClient;
+}
+
 export class SolanaChainAdapter implements ChainSourceAdapter {
   readonly kind = "chain" as const;
   readonly chain = "solana";
-  readonly implemented = false as const;
-  readonly descriptor = chainDescriptor("Solana", "Solana wallets");
+  readonly implemented = true as const;
+  readonly descriptor: AdapterDescriptor = {
+    name: "Solana wallets",
+    category: "chain",
+    system: "Solana",
+    implemented: true,
+    summary: "Read-only balances and transfers on Solana, including SPL tokens. No key is stored.",
+  };
+  private readonly reader: SolanaReader;
 
-  fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
-    return reject(this.descriptor.name, query);
+  constructor(options: SolanaChainAdapterOptions = {}) {
+    this.reader = options.reader ?? new SolanaReader(options.client ?? new SolanaRpcClient());
   }
 
-  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
-    return reject(this.descriptor.name, query);
+  async fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return this.reader.fetchTransactions(this.address(query), query.since, query.until);
   }
 
-  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
-    return reject(this.descriptor.name, query);
+  async fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return this.reader.fetchBalances(this.address(query));
+  }
+
+  /** One connection covers one address. The address itself is the listed account. */
+  async listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
+    const address = this.address(query);
+    return [{ externalAccountId: address, name: "Solana account", chain: "solana" }];
+  }
+
+  private address(query: FetchSourceTransactionsQuery): string {
+    const address = query.externalAccountId?.trim();
+    if (!address) {
+      throw new Error("A Solana address is required.");
+    }
+    return address;
   }
 }
 
