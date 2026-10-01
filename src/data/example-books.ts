@@ -59,6 +59,8 @@ export const exampleAssets = [
   { id: "asset_sol", organizationId: ORG_ID, code: "SOL", name: "Solana", chain: "solana", decimals: 9, assetClass: "crypto" as const },
   { id: "asset_usdc", organizationId: ORG_ID, code: "USDC", name: "USD Coin", chain: "ethereum", decimals: 6, assetClass: "stablecoin" as const },
   { id: "asset_pol", organizationId: ORG_ID, code: "POL", name: "Polygon", chain: "polygon", decimals: 18, assetClass: "crypto" as const },
+  { id: "asset_btc", organizationId: ORG_ID, code: "BTC", name: "Bitcoin", chain: "bitcoin", decimals: 8, assetClass: "crypto" as const },
+  { id: "asset_sui", organizationId: ORG_ID, code: "SUI", name: "Sui", chain: "sui", decimals: 9, assetClass: "crypto" as const },
 ];
 
 const OBSERVED_AT = "2026-06-30T00:00:00.000Z";

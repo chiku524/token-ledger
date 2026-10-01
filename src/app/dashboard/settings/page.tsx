@@ -147,7 +147,7 @@ export default async function SettingsPage({
             mode="exchange_read"
             next="/dashboard/settings"
             title="Exchange, read-only"
-            intro="An account id. This form does not ask for an API key, and the connection cannot trade or withdraw."
+            intro="An account label and a read-only API key. The key is checked with a real read-only call, then sealed. The connection cannot trade or withdraw."
           />
           <ConnectorForm
             id="custodian"
