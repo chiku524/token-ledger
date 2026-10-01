@@ -17,9 +17,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { SolanaChainAdapter } from "@/adapters/sources/chain";
 import { SolanaReader } from "@/adapters/sources/solana/reader";
 import { SolanaRpcClient } from "@/adapters/sources/solana/rpc";
+import { toAssetHoldings } from "@/adapters/sources/solana/assets";
 import { DEFAULT_MINT_REGISTRY } from "@/adapters/sources/solana/mints";
 import { isValidSolanaAddress } from "@/adapters/sources/solana/address";
 import { readSolanaRpcUrl } from "@/env";
+import { formatMinor } from "@/ledger";
 
 const DEFAULT_ADDRESS = "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9";
 
@@ -58,19 +60,28 @@ async function main() {
   const adapter = new SolanaChainAdapter();
   console.log(`Adapter  : ${adapter.descriptor.name} (implemented: ${adapter.implemented})\n`);
 
+  const accounts = await adapter.listAccounts({ since: "1970-01-01", externalAccountId: address });
+  console.log(`Account  : ${accounts[0]?.name ?? "—"} (${accounts[0]?.externalAccountId ?? address})\n`);
+
   const balances = await adapter.fetchBalances({ since: "1970-01-01", externalAccountId: address });
-  console.log(`Observed balances (${balances.length}):`);
-  for (const balance of balances) {
-    console.log(`  ${balance.assetCode.padEnd(6)} ${balance.quantityMinor.toString().padStart(20)}  as of ${balance.asOf}`);
+  const holdings = toAssetHoldings(balances, DEFAULT_MINT_REGISTRY);
+  console.log(`Assets held (${holdings.length}):`);
+  for (const holding of holdings) {
+    console.log(
+      `  ${holding.assetCode.padEnd(6)} ${holding.name.padEnd(12)} ${holding.formatted.padStart(24)}  (${holding.decimals} dp)`,
+    );
   }
 
   const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 365).toISOString().slice(0, 10);
   const reader = new SolanaReader(new SolanaRpcClient(), DEFAULT_MINT_REGISTRY);
   const movements = await reader.fetchTransactions(address, since, undefined, { maxSignatures: limit });
-  console.log(`\nMovements (${movements.length}) since ${since}, up to ${limit} signatures:`);
+  console.log(`\nTransactions (${movements.length}) since ${since}, up to ${limit} signatures:`);
+  const decimalsByCode = new Map(holdings.map((holding) => [holding.assetCode, holding.decimals]));
   for (const movement of movements) {
+    const decimals = decimalsByCode.get(movement.assetCode) ?? 9;
+    const amount = formatMinor(movement.quantityMinor, decimals, { grouping: false });
     console.log(
-      `  ${movement.occurredOn}  ${movement.direction.padEnd(3)}  ${movement.assetCode.padEnd(6)} ${movement.quantityMinor.toString().padStart(20)}  ${movement.externalId.slice(0, 20)}…`,
+      `  ${movement.occurredOn}  ${movement.direction.padEnd(3)}  ${movement.assetCode.padEnd(6)} ${amount.padStart(18)}  ${movement.externalId.slice(0, 20)}…`,
     );
   }
 
