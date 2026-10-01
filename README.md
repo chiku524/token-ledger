@@ -9,7 +9,7 @@ Planned tiers:
 - **Startup** — Web3 startups and funds, quarterly reporting.
 - **Institutional** — TradFi and scaling Web3 firms, monthly reporting, multi-entity consolidation, and asset valuation reporting.
 
-Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Harbourline Digital. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates MYR and SGD with stored rates. The Harbourline rates are example data, not a market price.
+Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the Solana chain reader is live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Harbourline Digital. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates MYR and SGD with stored rates. The Harbourline rates are example data, not a market price.
 
 ## Stack
 
@@ -94,10 +94,13 @@ Environment variables:
 - `DATABASE_URL` — optional Postgres URL. Unset means example books and demo sign-in.
 - `AUTH_SECRET` — required for password sessions, at least 32 characters.
 - `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, `BOOTSTRAP_OWNER_PASSWORD` — used only by `pnpm auth:bootstrap`.
+- `SOLANA_RPC_URL` — optional. A private Solana RPC endpoint. Unset uses the free, keyless public cluster (`https://api.mainnet-beta.solana.com`). Must be `https://` with no embedded credentials.
 
 CSV import expects a header of `external_id,occurred_on,asset_code,direction,quantity,description`. Quantity is in major units. Import records source facts for reconciliation and does not post a journal.
 
-Do not add chain, exchange, custodian, Xero, or QuickBooks credentials. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. It does not store an API key. The adapters in `src/adapters` throw before making a network call. Checking a connection records that failure. It does not post a journal. Observed balances are separate from booked value.
+Do not add chain, exchange, custodian, Xero, or QuickBooks credentials. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. It does not store an API key. The Solana reader is live and read-only: it calls the public JSON-RPC interface and never signs. Every other adapter in `src/adapters` throws before making a network call. Checking a connection records the outcome. It does not post a journal. Observed balances are separate from booked value.
+
+The Solana reader returns native SOL and registered SPL tokens as observed balances, and derives movements from the net change of each asset for a watched address. Unknown mints are skipped rather than guessed, and a mint registry (`src/adapters/sources/solana/mints.ts`) maps well-known mints such as USDC to an asset code. See `docs/adr-solana-data-source.md` for the endpoint choice and rate limits.
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
@@ -111,9 +114,10 @@ src/auth                Passwords, sessions, roles, demo sign-in, and the owner 
 src/proxy.ts            Sends unsigned visitors from /dashboard to /sign-in
 src/ledger              Double-entry posting, reversals, FX, trial balance, reconciliation, CSV
 src/db                  Drizzle schema, client, seed, read, and write
-src/adapters            Stub chain, exchange, and custodian readers, plus Xero, QuickBooks, and ERP ports
+src/adapters            Read-only source readers (Solana live, others stubs) and accounting ports
 src/data                Example books, validation, and the Postgres-or-example loader
 drizzle                 SQL migrations
+docs                    Decisions, including docs/adr-solana-data-source.md
 ```
 
 Journal amounts are bigint minor units (sen, cents, wei, lamports). `postJournalEntry` rejects an entry unless it has at least two lines and debits equal credits in a single functional currency. Measurement-basis labels on the sample chart (IAS 38, IAS 2, IFRS 9) are illustrations, not accounting advice.

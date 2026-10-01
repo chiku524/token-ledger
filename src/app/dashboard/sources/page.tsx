@@ -1,4 +1,4 @@
-import { listStubAdapters } from "@/adapters";
+import { listLiveAdapters, listStubAdapters } from "@/adapters";
 import { MoneyBars } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
 import { ensureCsrf } from "@/auth/current";
@@ -44,6 +44,7 @@ export default async function SourcesPage({
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
   const connectors = listStubAdapters();
+  const liveConnectors = listLiveAdapters();
   const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
 
   return (
@@ -222,10 +223,20 @@ export default async function SourcesPage({
 
       <h2 className="mt-10 text-lg font-semibold tracking-tight">Connectors</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-        These readers are not live. A check records that and does not send a request or store a key. Until one is live,
+        Solana wallets are read live and read-only; checking one records the observation and does not post a journal. The
+        readers below are not live yet. A check records that and does not send a request or store a key. Until one is live,
         import a CSV of activity for that wallet, exchange, or custodian.
       </p>
       <ul className="mt-4 grid gap-3 md:grid-cols-2">
+        {liveConnectors.map((connector) => (
+          <li key={connector.name} className="panel border-pine/40 p-4">
+            <p className="text-xs tracking-[0.14em] text-pine uppercase">
+              Live · {connectionKind[connector.category] ?? connector.category}
+            </p>
+            <h3 className="mt-2 font-medium">{connector.name}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{connector.summary}</p>
+          </li>
+        ))}
         {connectors.map((connector) => (
           <li key={connector.name} className="panel p-4">
             <p className="text-xs tracking-[0.14em] text-seal uppercase">
