@@ -5,6 +5,7 @@ import { READ_ONLY_SCOPES, type ConnectionDraft } from "@/data/connections";
 import { ENTITY_CHART } from "@/data/chart-template";
 import type { Books, ConnectionStatus } from "@/data/books";
 import type { ParsedSourceTransaction } from "@/data/source-csv";
+import { splitKnownAssets } from "@/data/sync-assets";
 import { LedgerError, reverseJournalEntry, type PostedJournalEntry } from "@/ledger";
 import { getDb } from "./client";
 import {
@@ -145,17 +146,25 @@ export async function recordSyncFailure(
   });
 }
 
+/**
+ * Store what a read observed. An asset the organization does not track is
+ * skipped, not fatal: a wallet may hold a token we have no row for, and that
+ * must not sink the balances and movements we can record. Returns the codes
+ * that were skipped so the caller can mark the run partial.
+ */
 export async function recordSyncSuccess(
   books: Books,
   connectionId: string,
   reads: readonly { sourceId: string; balances: readonly NormalizedBalance[]; movements: readonly NormalizedSourceTransaction[] }[],
   actor: string,
-): Promise<void> {
+): Promise<{ skippedAssets: string[] }> {
   const connection = requireConnection(books, connectionId);
   if (connection.status === "revoked") throw new BooksWriteError("This connection is disconnected.");
   const linked = new Set(books.sources.filter((source) => source.connectionId === connection.id).map((source) => source.id));
   const assetId = new Map(books.assets.map((asset) => [asset.code, asset.id]));
+  const tracked = new Set(assetId.keys());
   const seen = new Set(books.sourceTransactions.map((transaction) => `${transaction.sourceId}:${transaction.externalId}`));
+  const skipped = new Set<string>();
   let cursor = connection.cursor;
   const db = getDb();
   await db.transaction(async (tx) => {
@@ -163,51 +172,53 @@ export async function recordSyncSuccess(
       if (!linked.has(read.sourceId)) throw new BooksWriteError("That account is not on this connection.");
       const source = books.sources.find((item) => item.id === read.sourceId);
       if (!source) throw new BooksWriteError("That account is not on this connection.");
-      if (read.balances.length > 0) {
-        await tx.insert(balanceSnapshots).values(
-          read.balances.map((balance) => {
-            const resolved = assetId.get(balance.assetCode);
-            if (!resolved) throw new BooksWriteError(`Unknown asset ${balance.assetCode}.`);
-            if (balance.quantityMinor < 0n) throw new BooksWriteError(`Quantity for ${balance.assetCode} cannot be negative.`);
-            const asOf = new Date(balance.asOf);
-            if (Number.isNaN(asOf.getTime())) throw new BooksWriteError(`Balance for ${balance.assetCode} has no time.`);
-            return {
-              id: newId("snap"),
-              organizationId: books.organization.id,
-              entityId: source.entityId,
-              sourceId: source.id,
-              assetId: resolved,
-              quantityMinor: balance.quantityMinor,
-              asOf,
-            };
-          }),
-        );
-      }
-      const movements = read.movements.filter((movement) => {
-        const key = `${read.sourceId}:${movement.externalId}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        if (movement.occurredOn > (cursor ?? "")) cursor = movement.occurredOn;
-        return true;
+
+      const balanceSplit = splitKnownAssets(read.balances, tracked);
+      for (const code of balanceSplit.skipped) skipped.add(code);
+      const balances = balanceSplit.known.map((balance) => {
+        const resolved = assetId.get(balance.assetCode)!;
+        if (balance.quantityMinor < 0n) throw new BooksWriteError(`Quantity for ${balance.assetCode} cannot be negative.`);
+        const asOf = new Date(balance.asOf);
+        if (Number.isNaN(asOf.getTime())) throw new BooksWriteError(`Balance for ${balance.assetCode} has no time.`);
+        return {
+          id: newId("snap"),
+          organizationId: books.organization.id,
+          entityId: source.entityId,
+          sourceId: source.id,
+          assetId: resolved,
+          quantityMinor: balance.quantityMinor,
+          asOf,
+        };
       });
+      if (balances.length > 0) {
+        await tx.insert(balanceSnapshots).values(balances);
+      }
+
+      // Dedupe first, then skip unknown assets. The cursor is advanced only by
+      // known movements, so an unknown one does not silently disappear from the
+      // cursor range without being recorded.
+      const fresh = read.movements.filter((movement) => !seen.has(`${read.sourceId}:${movement.externalId}`));
+      const movementSplit = splitKnownAssets(fresh, tracked);
+      for (const code of movementSplit.skipped) skipped.add(code);
+      const movements = movementSplit.known;
+      for (const movement of movements) {
+        seen.add(`${read.sourceId}:${movement.externalId}`);
+        if (movement.occurredOn > (cursor ?? "")) cursor = movement.occurredOn;
+      }
       if (movements.length > 0) {
         await tx.insert(sourceTransactions).values(
-          movements.map((movement) => {
-            const resolved = assetId.get(movement.assetCode);
-            if (!resolved) throw new BooksWriteError(`Unknown asset ${movement.assetCode}.`);
-            return {
-              id: newId("stx"),
-              organizationId: books.organization.id,
-              entityId: source.entityId,
-              sourceId: source.id,
-              externalId: movement.externalId,
-              occurredOn: movement.occurredOn,
-              assetId: resolved,
-              direction: movement.direction,
-              quantityMinor: movement.quantityMinor,
-              description: movement.description,
-            };
-          }),
+          movements.map((movement) => ({
+            id: newId("stx"),
+            organizationId: books.organization.id,
+            entityId: source.entityId,
+            sourceId: source.id,
+            externalId: movement.externalId,
+            occurredOn: movement.occurredOn,
+            assetId: assetId.get(movement.assetCode)!,
+            direction: movement.direction,
+            quantityMinor: movement.quantityMinor,
+            description: movement.description,
+          })),
         );
       }
     }
@@ -216,9 +227,19 @@ export async function recordSyncSuccess(
       .set({ status: "healthy", lastError: null, lastSyncedAt: new Date(), nextAttemptAt: null, cursor })
       .where(and(eq(connections.id, connection.id), eq(connections.organizationId, books.organization.id)));
     await tx.insert(auditEvents).values(
-      auditRow(books, actor, "connection.synced", "connection", connection.id, `Read ${connection.name}.`),
+      auditRow(
+        books,
+        actor,
+        "connection.synced",
+        "connection",
+        connection.id,
+        skipped.size > 0
+          ? `Read ${connection.name}. Skipped untracked assets: ${[...skipped].join(", ")}.`
+          : `Read ${connection.name}.`,
+      ),
     );
   });
+  return { skippedAssets: [...skipped] };
 }
 
 function requireConnection(books: Books, connectionId: string) {

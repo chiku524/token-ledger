@@ -104,16 +104,19 @@ export async function runConnectionSync(
       movements: reads.reduce((sum, read) => sum + read.movements.length, 0),
       accounts: reads.length,
     };
-    await recordSyncSuccess(books, connection.id, reads, options.actor);
+    const { skippedAssets } = await recordSyncSuccess(books, connection.id, reads, options.actor);
+    const partial = skippedAssets.length > 0;
     await finishSyncRun(organizationId, runId, {
-      status: "ok",
+      status: partial ? "partial" : "ok",
       counts,
       payloads: [
         { kind: "balances", data: reads.flatMap((read) => read.balances) },
         { kind: "movements", data: reads.flatMap((read) => read.movements) },
       ],
     });
-    return result("ok", "Balances and movements were read.", counts);
+    return partial
+      ? result("partial", `Read. Skipped untracked assets: ${skippedAssets.join(", ")}.`, counts)
+      : result("ok", "Balances and movements were read.", counts);
   } catch (error) {
     if (error instanceof ConnectionClosedError) {
       await finishSyncRun(organizationId, runId, { status: "not_live", error: error.message });
