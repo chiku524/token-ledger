@@ -6,7 +6,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { KrakenExchangeAdapter } from "../exchange";
+import { VenueExchangeAdapter } from "../exchange";
+import { KrakenReader } from "./kraken-reader";
+import { krakenVenue } from "./venues/kraken";
 import type { KrakenClient } from "./kraken-client";
 import type {
   KrakenAssetsResult,
@@ -33,9 +35,20 @@ function fakeClient(): KrakenClient {
   } as unknown as KrakenClient;
 }
 
+function adapterWithFakeClient(): VenueExchangeAdapter {
+  const reader = new KrakenReader(fakeClient());
+  return new VenueExchangeAdapter(krakenVenue, {
+    connector: {
+      fetchBalances: (now?: Date) => reader.fetchBalances(now),
+      fetchTransactions: (since: string, until?: string) => reader.fetchTransactions(since, until),
+      verify: async () => {},
+    },
+  });
+}
+
 describe("reading a Kraken account", () => {
   const query = { since: "2024-08-01", until: "2024-09-30", externalAccountId: "kraken-main" };
-  const adapter = new KrakenExchangeAdapter({ client: fakeClient() });
+  const adapter = adapterWithFakeClient();
 
   it("returns balances for the account", async () => {
     const balances = await adapter.fetchBalances(query);

@@ -1,6 +1,6 @@
 "use server";
 
-import { AdapterNotImplementedError, ConnectionClosedError, KrakenExchangeAdapter, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "@/adapters";
+import { AdapterNotImplementedError, ConnectionClosedError, createVenueConnector, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE, venueDefinition } from "@/adapters";
 import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
 import { getConnectionCredential, openStoredCredential } from "@/db/credentials";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
@@ -77,14 +77,16 @@ export async function createConnectionAction(formData: FormData) {
 
   // An exchange credential is validated by a real read-only call before it is
   // sealed and stored, so a bad key is rejected up front.
+  const venue = venueDefinition(draft.connection.venue);
   let credential: ExchangeCredentialInput | undefined;
-  if (draft.connection.venue === "kraken" && parsed.data.apiKey && parsed.data.apiSecret) {
-    credential = { apiKey: parsed.data.apiKey, apiSecret: parsed.data.apiSecret };
+  if (venue) {
+    if (!parsed.data.apiKey || !parsed.data.apiSecret) {
+      fail(path, `A ${venue.label} connection needs a read-only API key and secret.`);
+    }
+    credential = { apiKey: parsed.data.apiKey!, apiSecret: parsed.data.apiSecret! };
     await save(path, async () => {
-      await validateKrakenCredential(credential!);
+      await validateExchangeCredential(venue.key, credential!);
     });
-  } else if (draft.connection.venue === "kraken") {
-    fail(path, "A Kraken connection needs a read-only API key and secret.");
   }
 
   await save(path, async () => {
@@ -100,13 +102,12 @@ export async function createConnectionAction(formData: FormData) {
 }
 
 /** A successful balance read proves the read-only key works. The credential is discarded. */
-async function validateKrakenCredential(credential: ExchangeCredentialInput): Promise<void> {
+async function validateExchangeCredential(venueKey: string, credential: ExchangeCredentialInput): Promise<void> {
   try {
-    const adapter = new KrakenExchangeAdapter({ credential });
-    await adapter.fetchBalances({ since: "1970-01-01", externalAccountId: "kraken-validation" });
+    await createVenueConnector(venueKey, credential).verify();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Kraken rejected the credential.";
-    throw new BooksWriteError(`Kraken credential check failed: ${message}`);
+    const message = error instanceof Error ? error.message : "The exchange rejected the credential.";
+    throw new BooksWriteError(`Credential check failed: ${message}`);
   }
 }
 
@@ -125,7 +126,7 @@ export async function refreshConnectionAction(formData: FormData) {
   let live = true;
   // An exchange credential is opened here, in server code, and never logged.
   let exchangeCredential: ExchangeCredentialInput | undefined;
-  if (connection.venue === "kraken") {
+  if (venueDefinition(connection.venue)) {
     const stored = await getConnectionCredential(session.organizationId, connection.id);
     if (!stored) fail(path, "This exchange connection has no stored key. Re-enter it in Settings.");
     exchangeCredential = openStoredCredential(stored);

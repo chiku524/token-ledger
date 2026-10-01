@@ -34,7 +34,7 @@ describe("adapters", () => {
   });
 
   it("lists the live chain connectors", () => {
-    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken"]);
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken", "bybit", "binance", "gate", "backpack"]);
     expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 

@@ -5,9 +5,19 @@ Applies to: issue #55 (`Sub-epic: Exchange connectors` → `Choose the first exc
 
 ## Decision
 
-Build exchange connectors one venue at a time. The **first venue is Kraken**, read-only, via its REST API using a user-supplied **read-only API key** stored sealed at rest (see #13).
+Build exchange connectors one venue at a time behind a shared framework. Each venue supplies a read-only connector (balances, deposits, withdrawals, and trades where available) that implements one `VenueConnector` interface, and the generic `VenueExchangeAdapter` exposes it through the `ExchangeSourceAdapter` port. A user-supplied credential is stored sealed at rest (see #13).
 
-Target exchanges, in order: **Kraken, Bybit, Binance, Gate.io, Backpack**. Each is a separate adapter behind the existing `ExchangeSourceAdapter` port.
+Venues: **Kraken, Bybit, Binance, Gate.io, Backpack**.
+
+| Venue | Auth | Read-only scopes |
+| --- | --- | --- |
+| Kraken | HMAC-SHA512 | Query Funds, Query Ledger Entries, Query Closed Orders & Trades |
+| Bybit | HMAC-SHA256 | Read-Only / Wallet (read) |
+| Binance | HMAC-SHA256 | Enable Reading |
+| Gate.io | HMAC-SHA512 | Spot account read, Wallet read |
+| Backpack | ED25519 | Read-only API key |
+
+Each venue's client only calls read endpoints; no order, cancel, or withdraw path exists in any connector, and tests assert no request URL matches a write route.
 
 ## Read-only credential model
 

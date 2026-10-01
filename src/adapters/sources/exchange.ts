@@ -1,8 +1,8 @@
 /**
- * Exchange source adapters. Kraken is live and read-only; it needs a
- * user-supplied read-only credential, which is sealed at rest. The generic
- * `ExchangeSourceAdapter` port remains for other venues (Bybit, Binance,
- * Gate.io, Backpack) to implement later. See docs/adr-exchange-connectors.md.
+ * Exchange source adapters. Any venue in the registry is live and read-only
+ * through one generic adapter; each venue supplies a read-only connector and
+ * needs a user-supplied credential that is sealed at rest.
+ * See docs/adr-exchange-connectors.md.
  */
 import type { ExchangeCredentialInput } from "../credentials/store";
 import { AdapterNotImplementedError } from "../errors";
@@ -14,8 +14,8 @@ import type {
   NormalizedBalance,
   NormalizedSourceTransaction,
 } from "../types";
-import { KrakenClient, type KrakenClientOptions } from "./exchange/kraken-client";
-import { KrakenReader } from "./exchange/kraken-reader";
+import { createVenueConnector, VENUES } from "./exchange/registry";
+import { listAccountsFor, type VenueConnector, type VenueDefinition } from "./exchange/venue";
 
 /** The generic port, still unimplemented for venues without a connector. */
 export class ExchangeSourceAdapter implements ExchangeSourcePort {
@@ -42,67 +42,84 @@ export class ExchangeSourceAdapter implements ExchangeSourcePort {
   }
 }
 
-export interface KrakenExchangeAdapterOptions {
+export interface VenueExchangeAdapterOptions {
   credential?: ExchangeCredentialInput;
-  client?: KrakenClient;
-  clientOptions?: KrakenClientOptions;
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  /** Test seam: supply a connector directly instead of building one. */
+  connector?: VenueConnector;
 }
 
 /**
- * Live read-only Kraken connector. One connection covers the whole account, so
- * the external account id is a label, not a per-asset address.
+ * Live read-only exchange connector for any registered venue. One connection
+ * covers the whole account.
  */
-export class KrakenExchangeAdapter implements ExchangeSourcePort {
+export class VenueExchangeAdapter implements ExchangeSourcePort {
   readonly kind = "exchange" as const;
   readonly implemented = true as const;
-  readonly descriptor: AdapterDescriptor = {
-    name: "Kraken",
-    category: "exchange",
-    system: "kraken",
-    implemented: true,
-    summary: "Read-only balances, deposits, withdrawals, and trades from a Kraken account. A read-only API key is stored sealed; it cannot trade or withdraw.",
-  };
-  private readonly options: KrakenExchangeAdapterOptions;
-  private cachedReader: KrakenReader | null = null;
+  readonly descriptor: AdapterDescriptor;
+  private readonly options: VenueExchangeAdapterOptions;
+  private cachedConnector: ReturnType<typeof createVenueConnector> | null = null;
 
-  constructor(options: KrakenExchangeAdapterOptions = {}) {
+  constructor(private readonly venue: VenueDefinition, options: VenueExchangeAdapterOptions = {}) {
     this.options = options;
+    this.descriptor = {
+      name: venue.label,
+      category: "exchange",
+      system: venue.key,
+      implemented: true,
+      summary: `${venue.summary} A read-only API key is stored sealed; it cannot trade or withdraw.`,
+    };
   }
 
   /** Built lazily so listing adapters never requires a credential. */
-  private get reader(): KrakenReader {
-    if (!this.cachedReader) {
-      const client = this.options.client ?? new KrakenClient(requireCredential(this.options), this.options.clientOptions);
-      this.cachedReader = new KrakenReader(client);
+  private get connector(): VenueConnector {
+    if (!this.cachedConnector) {
+      if (this.options.connector) {
+        this.cachedConnector = this.options.connector;
+        return this.cachedConnector;
+      }
+      if (!this.options.credential) {
+        throw new Error(`A ${this.venue.label} credential is required (read-only API key and secret).`);
+      }
+      this.cachedConnector = createVenueConnector(this.venue.key, this.options.credential, {
+        baseUrl: this.options.baseUrl,
+        fetchImpl: this.options.fetchImpl,
+      });
     }
-    return this.cachedReader;
+    return this.cachedConnector;
   }
 
   async fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
-    assertAccount(query);
-    return this.reader.fetchBalances();
+    assertAccount(this.venue, query);
+    return this.connector.fetchBalances();
   }
 
   async fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
-    assertAccount(query);
-    return this.reader.fetchTransactions(query.since, query.until);
+    assertAccount(this.venue, query);
+    return this.connector.fetchTransactions(query.since, query.until);
   }
 
-  /** One connection is the whole account; there is a single listed account. */
   async listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
-    return [{ externalAccountId: query.externalAccountId?.trim() || "kraken-account", name: "Kraken account", chain: "kraken" }];
+    return listAccountsFor(this.venue.label, query.externalAccountId);
   }
 }
 
-function requireCredential(options: KrakenExchangeAdapterOptions): ExchangeCredentialInput {
-  if (!options.credential) {
-    throw new Error("A Kraken credential is required (read-only API key and secret).");
+/**
+ * Backwards-compatible Kraken adapter alias. Prefer creating adapters through
+ * the registry. Kept so existing imports still resolve.
+ */
+export class KrakenExchangeAdapter extends VenueExchangeAdapter {
+  constructor(options: VenueExchangeAdapterOptions = {}) {
+    super(VENUES.kraken!, options);
   }
-  return options.credential;
 }
 
-function assertAccount(query: FetchSourceTransactionsQuery): void {
+function assertAccount(venue: VenueDefinition, query: FetchSourceTransactionsQuery): void {
   if (!query.externalAccountId?.trim()) {
-    throw new Error("A Kraken account reference is required.");
+    throw new Error(`A ${venue.label} account reference is required.`);
   }
 }
+
+export { VENUES, VENUE_KEYS, venueDefinition, createVenueConnector } from "./exchange/registry";
+export { listVenues, venueInfo, type VenueInfo } from "./exchange/venue-info";

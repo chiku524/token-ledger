@@ -1,5 +1,6 @@
 import { createConnectionAction } from "@/app/dashboard/actions";
 import type { Books, ConnectionMode } from "@/data/books";
+import { listVenues } from "@/adapters";
 
 export function ConnectorForm({
   books,
@@ -77,7 +78,11 @@ export function ConnectorForm({
         <label className="field md:col-span-2">
           <span>Exchange</span>
           <select name="exchangeVenue" defaultValue="kraken">
-            <option value="kraken">Kraken</option>
+            {listVenues().map((venue) => (
+              <option key={venue.key} value={venue.key}>
+                {venue.label}
+              </option>
+            ))}
           </select>
         </label>
       ) : null}
@@ -88,9 +93,13 @@ export function ConnectorForm({
       {mode === "exchange_read" ? (
         <>
           <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">
-            Create a <strong>read-only</strong> Kraken API key with Query Funds, Query Ledger Entries, and Query
-            Closed Orders &amp; Trades only. Leave Create &amp; Modify Orders and Withdraw Funds <strong>off</strong>.
-            The key is checked, then sealed; it cannot trade or withdraw.
+            Create a <strong>read-only</strong> API key with the exchange that can read balances, ledger entries, and
+            trade history only. Leave trading and withdrawal <strong>off</strong>. The key is checked, then sealed; it
+            cannot trade or withdraw. Read-only scopes per exchange:{" "}
+            {listVenues()
+              .map((venue) => `${venue.label} — ${venue.scopes.join(", ")}`)
+              .join(" · ")}
+            .
           </p>
           <label className="field">
             <span>API key</span>
