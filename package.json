@@ -12,7 +12,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
-    "auth:bootstrap": "tsx src/auth/bootstrap.ts"
+    "auth:bootstrap": "tsx src/auth/bootstrap.ts",
+    "solana:verify": "tsx scripts/solana-verify.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",

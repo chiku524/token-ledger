@@ -4,7 +4,7 @@ export interface AdapterDescriptor {
   name: string;
   category: "chain" | "exchange" | "custodian" | "accounting";
   system: string;
-  implemented: false;
+  implemented: boolean;
   summary: string;
 }
 
@@ -46,7 +46,7 @@ export interface ListedAccount {
 export interface ChainSourceAdapter {
   readonly kind: "chain";
   readonly chain: string;
-  readonly implemented: false;
+  readonly implemented: boolean;
   readonly descriptor: AdapterDescriptor;
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]>;
   fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]>;

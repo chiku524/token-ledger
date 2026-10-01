@@ -6,6 +6,7 @@ import {
   ErpSyncAdapter,
   EthereumChainAdapter,
   ExchangeSourceAdapter,
+  listLiveAdapters,
   listStubAdapters,
   PolygonChainAdapter,
   pullReadOnly,
@@ -22,18 +23,22 @@ const batch = {
   entries: [],
 };
 
-describe("stub adapters", () => {
-  it("lists every planned connector as unimplemented", () => {
+describe("adapters", () => {
+  it("lists the still-unimplemented connectors", () => {
     const systems = listStubAdapters().map((adapter) => adapter.system);
-    expect(systems).toEqual(["Ethereum", "Solana", "Polygon", "exchange", "custodian", "xero", "quickbooks", "erp"]);
+    expect(systems).toEqual(["Ethereum", "Polygon", "exchange", "custodian", "xero", "quickbooks", "erp"]);
     expect(listStubAdapters().every((adapter) => adapter.implemented === false)).toBe(true);
+  });
+
+  it("lists Solana as a live connector", () => {
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Solana"]);
+    expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 
   it("does not call fetch or read credentials", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network should not be used"));
     const adapters = [
       new EthereumChainAdapter(),
-      new SolanaChainAdapter(),
       new PolygonChainAdapter(),
       new ExchangeSourceAdapter(),
       new CustodianSourceAdapter(),
@@ -52,6 +57,13 @@ describe("stub adapters", () => {
     expect(process.env.XERO_CLIENT_SECRET).toBeUndefined();
     expect(process.env.QUICKBOOKS_CLIENT_SECRET).toBeUndefined();
     fetchSpy.mockRestore();
+  });
+
+  it("exposes Solana as implemented and validates the address", async () => {
+    const adapter = new SolanaChainAdapter();
+    expect(adapter.implemented).toBe(true);
+    expect(adapter.descriptor.implemented).toBe(true);
+    await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
   });
 
   it("pulls through the stub and does not call the network", async () => {

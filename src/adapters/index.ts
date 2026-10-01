@@ -14,8 +14,7 @@ export { XeroSyncAdapter } from "./accounting/xero";
 export type { AccountingSyncAdapter, JournalSyncBatch, JournalSyncResult } from "./accounting/types";
 export { CustodianSourceAdapter } from "./sources/custodian";
 export { EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "./sources/chain";
-export { ExchangeSourceAdapter } from "./sources/exchange";
-export { adapterForConnection, ConnectionClosedError, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "./sync";
+export { ExchangeSourceAdapter } from "./sources/exchange";export { adapterForConnection, ConnectionClosedError, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "./sync";
 export type { ConnectionMode, ConnectionStatus, ReadOnlyConnection } from "./sync";
 export type {
   AdapterDescriptor,
@@ -40,5 +39,9 @@ const stubAdapters = [
 ];
 
 export function listStubAdapters(): AdapterDescriptor[] {
-  return stubAdapters.map((adapter) => adapter.descriptor);
+  return stubAdapters.filter((adapter) => !adapter.implemented).map((adapter) => adapter.descriptor);
+}
+
+export function listLiveAdapters(): AdapterDescriptor[] {
+  return stubAdapters.filter((adapter) => adapter.implemented).map((adapter) => adapter.descriptor);
 }
