@@ -73,7 +73,7 @@ export async function insertConnection(
   const connectionId = newId("conn");
   const sourceId = newId("src");
   // Seal before opening the transaction; a bad credential must not half-write.
-  const sealed = credential ? sealExchangeCredential(credential) : null;
+  const sealed = credential ? await sealExchangeCredential(credential) : null;
   const db = getDb();
   await db.transaction(async (tx) => {
     await tx.insert(connections).values({

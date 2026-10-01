@@ -115,6 +115,8 @@ Exchange connectors are live and read-only for Kraken, Bybit, Binance, Gate.io, 
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
+**Optional: Cloudflare Workers.** Vercel is the supported target; Cloudflare is an optional, low-priority alternative (issue #98). Password hashing and credential sealing are already on Web Crypto so they run on Workerd, and `wrangler.jsonc` holds the Worker config and cron. The one remaining change is the database driver: bind Hyperdrive or use a serverless HTTP driver in `src/db/client.ts`. Cloudflare needs no dependency in the default install — add `@opennextjs/cloudflare` and `wrangler` only when you build for it. See `docs/adr-cloudflare-deployment.md`.
+
 Report pages can download a trial balance, journal, or reconciliation CSV for the selected period. The export route is `/dashboard/reports/export`.
 
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
