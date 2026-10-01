@@ -94,6 +94,7 @@ Environment variables:
 - `DATABASE_URL` — optional Postgres URL. Unset means example books and demo sign-in.
 - `AUTH_SECRET` — required for password sessions, at least 32 characters.
 - `CONNECTOR_ENCRYPTION_KEY` — required to store exchange credentials, at least 32 characters, server-only. Derives the AES-256-GCM key that seals secrets at rest.
+- `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` — a read-only Kraken key, used by `pnpm exchange:verify`. In the app, a credential is entered by the user and stored sealed.
 - `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, `BOOTSTRAP_OWNER_PASSWORD` — used only by `pnpm auth:bootstrap`.
 - `SOLANA_RPC_URL` — optional. A private Solana RPC endpoint. Unset uses the free, keyless public cluster (`https://api.mainnet-beta.solana.com`). Must be `https://` with no embedded credentials.
 - `ALCHEMY_API_KEY` — optional. Unlocks EVM ERC-20 balances and transfers for Ethereum and Polygon. Unset falls back to a keyless public RPC for native balances only.
@@ -101,13 +102,13 @@ Environment variables:
 - `BITCOIN_ESPLORA_URL` — optional. A self-hosted Esplora instance or Blockstream. Unset uses the keyless mempool.space API. `https://` only, no embedded credentials.
 - `SUI_RPC_URL` — optional. A Sui GraphQL endpoint. Unset uses the keyless public endpoint (`https://graphql.mainnet.sui.io/graphql`). Uses GraphQL because Sui Foundation removed JSON-RPC from its public nodes (see `docs/adr-sui-data-source.md`).
 
-Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin|sui] [ADDRESS]`.
+Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin|sui] [ADDRESS]`, and a live exchange read with `pnpm exchange:verify` (needs a read-only Kraken key).
 
 CSV import expects a header of `external_id,occurred_on,asset_code,direction,quantity,description`. Quantity is in major units. Import records source facts for reconciliation and does not post a journal.
 
 Chain, custodian, Xero, and QuickBooks credentials are not stored. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. Exchange credentials are the one exception: a read-only API key and secret are entered by the user, sealed with AES-256-GCM under `CONNECTOR_ENCRYPTION_KEY`, and stored in `connection_credentials`. The plaintext never reaches the database and is never returned to the browser. The chain readers are live and read-only: they call JSON-RPC and never sign. Every other adapter in `src/adapters` throws before making a network call. Checking a connection records the outcome. It does not post a journal. Observed balances are separate from booked value.
 
-The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or balance changes (EVM, Sui) for a watched address. Sui reads through GraphQL, since JSON-RPC was removed from Sui's public nodes. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, `docs/adr-bitcoin-data-source.md`, and `docs/adr-sui-data-source.md` for the endpoint choices and rate limits.
+Exchange connectors are live and read-only one venue at a time; the first is Kraken (see `docs/adr-exchange-connectors.md`). A user authorises it from the frontend. The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or balance changes (EVM, Sui) for a watched address. Sui reads through GraphQL, since JSON-RPC was removed from Sui's public nodes. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, `docs/adr-bitcoin-data-source.md`, and `docs/adr-sui-data-source.md` for the endpoint choices and rate limits.
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
