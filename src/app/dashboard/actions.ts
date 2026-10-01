@@ -130,7 +130,12 @@ export async function refreshConnectionAction(formData: FormData) {
   await save(path, async () => {
     outcome = await runConnectionSync(books, connection.id, { actor: actorName(session), trigger: "manual" });
   });
-  finish(path, outcome?.message ?? "Sync finished.");
+  // A failed or not-live pull is an error, not a success. The message is
+  // caller-safe; a raw driver error is never shown here.
+  if (!outcome || outcome.status === "failed" || outcome.status === "not_live") {
+    fail(path, outcome?.message ?? "The connection could not be read.");
+  }
+  finish(path, outcome.message);
 }
 
 export async function revokeConnectionAction(formData: FormData) {

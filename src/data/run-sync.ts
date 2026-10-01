@@ -20,7 +20,7 @@ import {
   type SyncRunStatus,
   type SyncRunTrigger,
 } from "@/db/sync-runs";
-import { recordSyncFailure, recordSyncSuccess } from "@/db/write";
+import { BooksWriteError, recordSyncFailure, recordSyncSuccess } from "@/db/write";
 import type { Books, BooksConnection } from "./books";
 import { booksAreWritable, loadBooks } from "./load-books";
 import { sourcesForConnection } from "./connections";
@@ -126,10 +126,21 @@ export async function runConnectionSync(
       await failRun(organizationId, books, connection, runId, statusAfterSyncFailure(connection.status), SYNC_NOT_LIVE, error, options.actor);
       return result("not_live", SYNC_NOT_LIVE);
     }
-    const message = error instanceof Error ? error.message : "Sync failed.";
+    const message = syncFailureMessage(error);
     await failRun(organizationId, books, connection, runId, statusAfterSyncFailure(connection.status), message, error, options.actor);
     return result("failed", message);
   }
+}
+
+/**
+ * A caller-safe failure message. A `BooksWriteError` is ours and is safe to
+ * show; anything else (a raw driver or SQL error) is summarised, so a query and
+ * its parameters are never surfaced to the user or written to the run history.
+ */
+export function syncFailureMessage(error: unknown): string {
+  if (error instanceof BooksWriteError) return error.message;
+  if (error instanceof Error && /unknown asset/i.test(error.message)) return error.message;
+  return "The connection could not be read. See the run history for details.";
 }
 
 /**

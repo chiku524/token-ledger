@@ -25,12 +25,21 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+/**
+ * An observed or booked asset quantity, as an integer count of the smallest
+ * unit at the asset's decimals (wei, lamports, sats). Quantities are unbounded,
+ * so this is `numeric(78, 0)` — Postgres `bigint` tops out at ~9.2e18, which is
+ * only ~9.2 ETH at 18 decimals. Kept as a JS `bigint`.
+ */
+const quantity = (name: string) => numeric(name, { precision: 78, scale: 0, mode: "bigint" });
 
 export const dataOrigin = pgEnum("data_origin", ["example", "live"]);
 export const sourceKind = pgEnum("source_kind", ["wallet", "exchange", "custodian"]);
@@ -234,7 +243,7 @@ export const journalLines = pgTable(
     side: journalSide("side").notNull(),
     amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
     currency: text("currency").notNull(),
-    quantityMinor: bigint("quantity_minor", { mode: "bigint" }),
+    quantityMinor: quantity("quantity_minor"),
     quantityDirection: quantityDirection("quantity_direction"),
     assetId: text("asset_id").references(() => assets.id),
     sourceId: text("source_id").references(() => sources.id),
@@ -270,7 +279,7 @@ export const sourceTransactions = pgTable(
       .notNull()
       .references(() => assets.id),
     direction: quantityDirection("direction").notNull(),
-    quantityMinor: bigint("quantity_minor", { mode: "bigint" }).notNull(),
+    quantityMinor: quantity("quantity_minor").notNull(),
     description: text("description").notNull(),
   },
   (table) => [
@@ -297,7 +306,7 @@ export const balanceSnapshots = pgTable(
     assetId: text("asset_id")
       .notNull()
       .references(() => assets.id),
-    quantityMinor: bigint("quantity_minor", { mode: "bigint" }).notNull(),
+    quantityMinor: quantity("quantity_minor").notNull(),
     asOf: timestamp("as_of", { withTimezone: true }).notNull(),
   },
   (table) => [
@@ -327,7 +336,7 @@ export const reconciliationRecords = pgTable(
       .notNull()
       .references(() => assets.id),
     direction: quantityDirection("direction").notNull(),
-    quantityMinor: bigint("quantity_minor", { mode: "bigint" }).notNull(),
+    quantityMinor: quantity("quantity_minor").notNull(),
     sourceTransactionId: text("source_transaction_id").references(() => sourceTransactions.id),
     journalEntryId: text("journal_entry_id").references(() => journalEntries.id),
     journalLineNumber: integer("journal_line_number"),
