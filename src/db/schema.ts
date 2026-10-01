@@ -95,7 +95,8 @@ export const assets = pgTable(
 
 /**
  * Consent for a read-only feed. Scopes are balances and movements only.
- * The secret that would call an exchange or custodian is intentionally absent.
+ * A custodian secret is intentionally absent. An exchange credential, when one
+ * is needed, is stored sealed in `connection_credentials`, never here.
  */
 export const connections = pgTable(
   "connections",
@@ -437,4 +438,33 @@ export const invites = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("invites_token_hash_unique").on(table.tokenHash)],
+);
+
+/**
+ * A connector credential (an exchange read-only API key and secret), sealed at
+ * rest. The plaintext never reaches the database: `sealedKey` and `sealedSecret`
+ * hold AES-256-GCM blobs produced by the credentials module. A credential is
+ * bound to one connection and is never returned to the browser.
+ */
+export const connectionCredentials = pgTable(
+  "connection_credentials",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => connections.id),
+    /** Redacted hint for display only, e.g. the last 4 characters. Never a secret. */
+    keyHint: text("key_hint").notNull(),
+    sealedKey: text("sealed_key").notNull(),
+    sealedSecret: text("sealed_secret").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("connection_credentials_connection_unique").on(table.connectionId),
+    index("connection_credentials_organization_id_idx").on(table.organizationId),
+  ],
 );

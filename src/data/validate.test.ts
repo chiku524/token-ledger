@@ -32,8 +32,46 @@ describe("form validation", () => {
         name: "Desk",
         chain: "",
         identifier: "acct-1",
+        exchangeVenue: "kraken",
       }).role,
     ).toBeNull();
+  });
+
+  it("requires an exchange venue and a complete key pair for an exchange", () => {
+    const noVenue = connectionFormSchema.safeParse({
+      entityId: "ent_1",
+      mode: "exchange_read",
+      role: "",
+      name: "Desk",
+      chain: "",
+      identifier: "acct-1",
+    });
+    expect(noVenue.success).toBe(false);
+
+    const halfKey = connectionFormSchema.safeParse({
+      entityId: "ent_1",
+      mode: "exchange_read",
+      role: "",
+      name: "Desk",
+      chain: "",
+      identifier: "acct-1",
+      exchangeVenue: "kraken",
+      apiKey: "only-key",
+    });
+    expect(halfKey.success).toBe(false);
+
+    const ok = connectionFormSchema.safeParse({
+      entityId: "ent_1",
+      mode: "exchange_read",
+      role: "",
+      name: "Desk",
+      chain: "",
+      identifier: "acct-1",
+      exchangeVenue: "kraken",
+      apiKey: "key",
+      apiSecret: "secret",
+    });
+    expect(ok.success).toBe(true);
   });
 
   it("requires a balanced-looking journal to have two lines, a date, and a name", () => {

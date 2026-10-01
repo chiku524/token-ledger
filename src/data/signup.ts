@@ -64,6 +64,9 @@ export function parseSignup(formData: FormData): { ok: true; value: ParsedSignup
       chain: formData.get(`${prefix}Chain`) ?? "",
       role: formData.get(`${prefix}Role`) ?? "",
       identifier: formData.get(`${prefix}Identifier`),
+      // A signup connection records the venue only; the user adds a read-only
+      // credential later. It stays pending until they do.
+      exchangeVenue: mode === "exchange_read" ? formData.get("exchangeVenue") ?? "kraken" : "",
     });
     if (!parsed.success) return { ok: false, message: firstIssue(parsed.error) };
     connections.push(connectionFromForm(parsed.data));

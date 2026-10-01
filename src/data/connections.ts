@@ -4,6 +4,8 @@ import type { BooksConnection, BooksSource, ConnectionMode } from "./books";
 export const READ_ONLY_SCOPES = "balances,movements";
 
 const WATCH_VENUES = ["ethereum", "solana", "polygon"] as const;
+const EXCHANGE_VENUES = ["kraken", "bybit", "binance", "gate", "backpack", "exchange"] as const;
+const CUSTODIAN_VENUES = ["fireblocks", "custodian"] as const;
 
 export interface ConnectionDraft {
   connection: {
@@ -31,6 +33,8 @@ export function connectionFromForm(input: {
   chain: string | null;
   role: BooksSource["role"];
   identifier: string;
+  exchangeVenue?: string | null;
+  custodianVenue?: string | null;
 }): ConnectionDraft {
   const shared = {
     entityId: input.entityId,
@@ -56,8 +60,12 @@ export function connectionFromForm(input: {
     };
   }
   if (input.mode === "exchange_read") {
+    const venue = input.exchangeVenue ?? "exchange";
+    if (!EXCHANGE_VENUES.includes(venue as (typeof EXCHANGE_VENUES)[number])) {
+      throw new Error("Choose an exchange.");
+    }
     return {
-      connection: { ...shared, mode: "exchange_read", venue: "exchange", scopes: READ_ONLY_SCOPES },
+      connection: { ...shared, mode: "exchange_read", venue, scopes: READ_ONLY_SCOPES },
       source: {
         entityId: input.entityId,
         kind: "exchange",
@@ -68,8 +76,12 @@ export function connectionFromForm(input: {
       },
     };
   }
+  const venue = input.custodianVenue ?? "custodian";
+  if (!CUSTODIAN_VENUES.includes(venue as (typeof CUSTODIAN_VENUES)[number])) {
+    throw new Error("Choose a custodian.");
+  }
   return {
-    connection: { ...shared, mode: "custodian_read", venue: "custodian", scopes: READ_ONLY_SCOPES },
+    connection: { ...shared, mode: "custodian_read", venue, scopes: READ_ONLY_SCOPES },
     source: {
       entityId: input.entityId,
       kind: "custodian",
