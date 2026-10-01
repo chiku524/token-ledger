@@ -33,6 +33,26 @@ describe("connectionFromForm", () => {
     expect(draft.source).toMatchObject({ kind: "exchange", role: null, chain: null });
   });
 
+  it("accepts every supported watch chain, including Bitcoin and Sui", () => {
+    for (const chain of ["ethereum", "solana", "polygon", "bitcoin", "sui"]) {
+      const draft = connectionFromForm({
+        entityId: "ent_1",
+        mode: "watch",
+        name: "Wallet",
+        chain,
+        role: "hot",
+        identifier: "addr",
+      });
+      expect(draft.connection).toMatchObject({ mode: "watch", venue: chain });
+    }
+  });
+
+  it("rejects a chain that is not supported", () => {
+    expect(() =>
+      connectionFromForm({ entityId: "ent_1", mode: "watch", name: "Wallet", chain: "dogecoin", role: "hot", identifier: "addr" }),
+    ).toThrow(/supported chain/i);
+  });
+
   it("keeps the chosen exchange venue", () => {
     for (const venue of ["kraken", "bybit", "binance", "gate", "backpack"]) {
       const draft = connectionFromForm({

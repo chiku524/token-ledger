@@ -4,4 +4,6 @@ export const STARTER_ASSETS = [
   { code: "SOL", name: "Solana", chain: "solana", decimals: 9, assetClass: "crypto" },
   { code: "USDC", name: "USD Coin", chain: "ethereum", decimals: 6, assetClass: "stablecoin" },
   { code: "POL", name: "Polygon", chain: "polygon", decimals: 18, assetClass: "crypto" },
+  { code: "BTC", name: "Bitcoin", chain: "bitcoin", decimals: 8, assetClass: "crypto" },
+  { code: "SUI", name: "Sui", chain: "sui", decimals: 9, assetClass: "crypto" },
 ] as const;

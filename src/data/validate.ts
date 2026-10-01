@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WATCH_CHAIN_LABELS, WATCH_VENUE_KEYS } from "./connections";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) =>
@@ -21,7 +22,7 @@ export const entityFormSchema = z.object({
     .transform((value) => (value ? value : null)),
 });
 
-const watchVenue = z.enum(["ethereum", "solana", "polygon"]);
+const watchVenue = z.enum(WATCH_VENUE_KEYS as [string, ...string[]]);
 const exchangeVenue = z.enum(["kraken", "bybit", "binance", "gate", "backpack", "exchange"]);
 const custodianVenue = z.enum(["fireblocks", "custodian"]);
 
@@ -52,10 +53,10 @@ export const connectionFormSchema = z
       context.addIssue({ code: "custom", path: ["role"], message: "Only a watch-only wallet has a hot, cold, or staking type." });
     }
     if (value.mode === "watch" && !watchVenue.safeParse(value.chain).success) {
-      context.addIssue({ code: "custom", path: ["chain"], message: "Choose Ethereum, Solana, or Polygon." });
+      context.addIssue({ code: "custom", path: ["chain"], message: `Choose a supported chain: ${WATCH_CHAIN_LABELS}.` });
     }
     if (value.mode === "custodian_read" && value.chain && !watchVenue.safeParse(value.chain).success) {
-      context.addIssue({ code: "custom", path: ["chain"], message: "Choose Ethereum, Solana, or Polygon, or leave the network blank." });
+      context.addIssue({ code: "custom", path: ["chain"], message: `Choose a supported chain: ${WATCH_CHAIN_LABELS}, or leave the network blank.` });
     }
     if (value.mode === "exchange_read") {
       if (!value.exchangeVenue) {

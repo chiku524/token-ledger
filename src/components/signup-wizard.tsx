@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signUpAction } from "@/app/sign-up/actions";
+import { WATCH_VENUES } from "@/data/connections";
 
 const STEPS = ["Account", "Company", "Connections", "Review"] as const;
 
@@ -119,9 +120,11 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
           <label className="field">
             <span>Network</span>
             <select name="walletChain" defaultValue="ethereum" disabled={!wallet} data-step="2">
-              <option value="ethereum">Ethereum</option>
-              <option value="solana">Solana</option>
-              <option value="polygon">Polygon</option>
+              {WATCH_VENUES.map((venue) => (
+                <option key={venue.key} value={venue.key}>
+                  {venue.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field">
@@ -175,9 +178,11 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
             <span>Network</span>
             <select name="custodianChain" defaultValue="" disabled={!custodian} data-step="2">
               <option value="">None</option>
-              <option value="ethereum">Ethereum</option>
-              <option value="solana">Solana</option>
-              <option value="polygon">Polygon</option>
+              {WATCH_VENUES.map((venue) => (
+                <option key={venue.key} value={venue.key}>
+                  {venue.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field">

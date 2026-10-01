@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   AdapterNotImplementedError,
+  adapterForConnection,
   BitcoinChainAdapter,
   ConnectionClosedError,
   CustodianSourceAdapter,
@@ -19,6 +20,7 @@ import {
   SuiChainAdapter,
   XeroSyncAdapter,
 } from "./index";
+import { WATCH_VENUE_KEYS } from "@/data/connections";
 
 const query = { since: "2026-04-01", until: "2026-06-30", externalAccountId: "example" };
 
@@ -83,6 +85,17 @@ describe("adapters", () => {
     expect(adapter.implemented).toBe(true);
     expect(adapter.descriptor.implemented).toBe(true);
     await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
+  });
+
+  it("resolves every supported watch chain through adapterForConnection", () => {
+    // Guards the gap where an adapter is implemented but unreachable from the app.
+    for (const venue of WATCH_VENUE_KEYS) {
+      const adapter = adapterForConnection({ mode: "watch", venue });
+      expect(adapter, `${venue} is selectable but adapterForConnection returns null`).not.toBeNull();
+      expect(adapter?.implemented).toBe(true);
+      expect(adapter?.kind).toBe("chain");
+      if (adapter?.kind === "chain") expect(adapter.chain).toBe(venue);
+    }
   });
 
   it("exposes Fireblocks as implemented and needs a vault account id", async () => {

@@ -2,6 +2,7 @@ import { createConnectionAction } from "@/app/dashboard/actions";
 import type { Books, ConnectionMode } from "@/data/books";
 import { listVenues } from "@/adapters";
 import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
+import { WATCH_VENUES } from "@/data/connections";
 
 export function ConnectorForm({
   books,
@@ -49,9 +50,11 @@ export function ConnectorForm({
           <label className="field">
             <span>Network</span>
             <select name="chain" defaultValue="ethereum">
-              <option value="ethereum">Ethereum</option>
-              <option value="solana">Solana</option>
-              <option value="polygon">Polygon</option>
+              {WATCH_VENUES.map((venue) => (
+                <option key={venue.key} value={venue.key}>
+                  {venue.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field">
