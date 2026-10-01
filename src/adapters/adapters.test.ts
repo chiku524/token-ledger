@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   AdapterNotImplementedError,
+  BitcoinChainAdapter,
   ConnectionClosedError,
   CustodianSourceAdapter,
   ErpSyncAdapter,
@@ -31,7 +32,7 @@ describe("adapters", () => {
   });
 
   it("lists the live chain connectors", () => {
-    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon"]);
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin"]);
     expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 
@@ -67,6 +68,13 @@ describe("adapters", () => {
       expect(adapter.descriptor.implemented).toBe(true);
       await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
     }
+  });
+
+  it("exposes Bitcoin as implemented and validates the address", async () => {
+    const adapter = new BitcoinChainAdapter();
+    expect(adapter.implemented).toBe(true);
+    expect(adapter.descriptor.implemented).toBe(true);
+    await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
   });
 
   it("pulls through a stub and does not call the network", async () => {

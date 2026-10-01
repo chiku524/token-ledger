@@ -14,6 +14,8 @@ import type {
 import { evmChain, type EvmChain } from "./evm/chains";
 import { EvmReader } from "./evm/reader";
 import { EvmRpcClient, type EvmRpcClientOptions } from "./evm/rpc";
+import { EsploraClient, type EsploraClientOptions } from "./bitcoin/esplora";
+import { BitcoinReader } from "./bitcoin/reader";
 import { SolanaReader } from "./solana/reader";
 import { SolanaRpcClient } from "./solana/rpc";
 
@@ -84,7 +86,6 @@ export interface SolanaChainAdapterOptions {
   reader?: SolanaReader;
   client?: SolanaRpcClient;
 }
-
 export class SolanaChainAdapter implements ChainSourceAdapter {
   readonly kind = "chain" as const;
   readonly chain = "solana";
@@ -120,6 +121,51 @@ export class SolanaChainAdapter implements ChainSourceAdapter {
     const address = query.externalAccountId?.trim();
     if (!address) {
       throw new Error("A Solana address is required.");
+    }
+    return address;
+  }
+}
+
+export interface BitcoinChainAdapterOptions {
+  reader?: BitcoinReader;
+  esplora?: EsploraClientOptions;
+}
+
+export class BitcoinChainAdapter implements ChainSourceAdapter {
+  readonly kind = "chain" as const;
+  readonly chain = "bitcoin";
+  readonly implemented = true as const;
+  readonly descriptor: AdapterDescriptor = {
+    name: "Bitcoin wallets",
+    category: "chain",
+    system: "Bitcoin",
+    implemented: true,
+    summary: "Read-only BTC balances and transfers on Bitcoin. No key is stored.",
+  };
+  private readonly reader: BitcoinReader;
+
+  constructor(options: BitcoinChainAdapterOptions = {}) {
+    this.reader = options.reader ?? new BitcoinReader(new EsploraClient(options.esplora));
+  }
+
+  async fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return this.reader.fetchTransactions(this.address(query), query.since, query.until);
+  }
+
+  async fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return this.reader.fetchBalances(this.address(query));
+  }
+
+  /** One connection covers one address. The address itself is the listed account. */
+  async listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
+    const address = this.address(query);
+    return [{ externalAccountId: address, name: "Bitcoin account", chain: "bitcoin" }];
+  }
+
+  private address(query: FetchSourceTransactionsQuery): string {
+    const address = query.externalAccountId?.trim();
+    if (!address) {
+      throw new Error("A Bitcoin address is required.");
     }
     return address;
   }
