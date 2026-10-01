@@ -90,7 +90,7 @@ export async function runConnectionSync(
       await finishSyncRun(organizationId, runId, { status: "failed", error: message });
       return result("failed", message);
     }
-    exchangeCredential = openStoredCredential(stored);
+    exchangeCredential = await openStoredCredential(stored);
   }
 
   try {

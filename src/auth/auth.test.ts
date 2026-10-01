@@ -4,16 +4,27 @@ import { sessionCookieOptions } from "./cookies";
 import { demoSessionFromCookie, demoSignInAllowed, readDemoToken, signDemoToken } from "./demo";
 import { hashToken, sealToken } from "./tokens";
 import { lockoutRemaining } from "./lockout";
-import { hashPassword, verifyPassword } from "./password";
+import { hashPassword, needsRehash, verifyPassword } from "./password";
 import { can, canAccessEntity, canAssignRole, canDeactivate, PERMISSIONS, removesLastOwner, ROLES } from "./roles";
 
 describe("password hashing", () => {
-  it("verifies a scrypt hash and rejects a different password", async () => {
+  it("hashes with PBKDF2 and rejects a different password", async () => {
     const stored = await hashPassword("Harbourline-owner-1");
-    expect(stored.startsWith("scrypt$")).toBe(true);
+    expect(stored.startsWith("pbkdf2$")).toBe(true);
     expect(await verifyPassword("Harbourline-owner-1", stored)).toBe(true);
     expect(await verifyPassword("wrong-password", stored)).toBe(false);
     expect(await verifyPassword("Harbourline-owner-1", "not-a-hash")).toBe(false);
+    expect(needsRehash(stored)).toBe(false);
+  });
+
+  it("still verifies a legacy scrypt hash and flags it for re-hash", async () => {
+    const { scryptSync } = await import("node:crypto");
+    const salt = Buffer.from("0123456789abcdef");
+    const hash = scryptSync("Harbourline-owner-1", salt, 32, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+    const stored = `scrypt$16384$8$1$${salt.toString("base64url")}$${hash.toString("base64url")}`;
+    expect(await verifyPassword("Harbourline-owner-1", stored)).toBe(true);
+    expect(await verifyPassword("wrong-password", stored)).toBe(false);
+    expect(needsRehash(stored)).toBe(true);
   });
 });
 

@@ -19,7 +19,10 @@ export interface SealedExchangeCredential {
   sealedSecret: string;
 }
 
-export function sealExchangeCredential(input: ExchangeCredentialInput, passphrase?: string): SealedExchangeCredential {
+export async function sealExchangeCredential(
+  input: ExchangeCredentialInput,
+  passphrase?: string,
+): Promise<SealedExchangeCredential> {
   const key = input.apiKey.trim();
   const secret = input.apiSecret.trim();
   if (key.length === 0 || secret.length === 0) {
@@ -28,19 +31,19 @@ export function sealExchangeCredential(input: ExchangeCredentialInput, passphras
   const pass = passphrase ?? readConnectorEncryptionKey();
   return {
     keyHint: redactSecret(key),
-    sealedKey: sealSecret(key, pass),
-    sealedSecret: sealSecret(secret, pass),
+    sealedKey: await sealSecret(key, pass),
+    sealedSecret: await sealSecret(secret, pass),
   };
 }
 
-export function openExchangeCredential(
+export async function openExchangeCredential(
   sealed: { sealedKey: string; sealedSecret: string },
   passphrase?: string,
-): ExchangeCredentialInput {
+): Promise<ExchangeCredentialInput> {
   const pass = passphrase ?? readConnectorEncryptionKey();
   return {
-    apiKey: openSecret(sealed.sealedKey, pass),
-    apiSecret: openSecret(sealed.sealedSecret, pass),
+    apiKey: await openSecret(sealed.sealedKey, pass),
+    apiSecret: await openSecret(sealed.sealedSecret, pass),
   };
 }
 
