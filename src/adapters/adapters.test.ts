@@ -7,6 +7,7 @@ import {
   ErpSyncAdapter,
   EthereumChainAdapter,
   ExchangeSourceAdapter,
+  KrakenExchangeAdapter,
   listLiveAdapters,
   listStubAdapters,
   PolygonChainAdapter,
@@ -33,7 +34,7 @@ describe("adapters", () => {
   });
 
   it("lists the live chain connectors", () => {
-    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui"]);
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken"]);
     expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 
@@ -83,6 +84,14 @@ describe("adapters", () => {
     expect(adapter.implemented).toBe(true);
     expect(adapter.descriptor.implemented).toBe(true);
     await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
+  });
+
+  it("exposes Kraken as implemented and needs an account", async () => {
+    const adapter = new KrakenExchangeAdapter();
+    expect(adapter.implemented).toBe(true);
+    expect(adapter.descriptor.implemented).toBe(true);
+    expect(adapter.descriptor.system).toBe("kraken");
+    await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/account reference/i);
   });
 
   it("pulls through a stub and does not call the network", async () => {

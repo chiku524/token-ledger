@@ -55,7 +55,7 @@ export interface ChainSourceAdapter {
 
 export interface ExchangeSourceAdapter {
   readonly kind: "exchange";
-  readonly implemented: false;
+  readonly implemented: boolean;
   readonly descriptor: AdapterDescriptor;
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]>;
   fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]>;
