@@ -9,7 +9,7 @@ Planned tiers:
 - **Startup** — Web3 startups and funds, quarterly reporting.
 - **Institutional** — TradFi and scaling Web3 firms, monthly reporting, multi-entity consolidation, and asset valuation reporting.
 
-Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the chain readers for Ethereum, Solana, and Polygon are live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Harbourline Digital. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates MYR and SGD with stored rates. The Harbourline rates are example data, not a market price.
+Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the chain readers for Ethereum, Solana, Polygon, and Bitcoin are live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Harbourline Digital. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates MYR and SGD with stored rates. The Harbourline rates are example data, not a market price.
 
 ## Stack
 
@@ -97,14 +97,15 @@ Environment variables:
 - `SOLANA_RPC_URL` — optional. A private Solana RPC endpoint. Unset uses the free, keyless public cluster (`https://api.mainnet-beta.solana.com`). Must be `https://` with no embedded credentials.
 - `ALCHEMY_API_KEY` — optional. Unlocks EVM ERC-20 balances and transfers for Ethereum and Polygon. Unset falls back to a keyless public RPC for native balances only.
 - `EVM_RPC_URL_ETHEREUM`, `EVM_RPC_URL_POLYGON` — optional per-chain EVM RPC overrides. `https://` only, no embedded credentials.
+- `BITCOIN_ESPLORA_URL` — optional. A self-hosted Esplora instance or Blockstream. Unset uses the keyless mempool.space API. `https://` only, no embedded credentials.
 
-Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon] [ADDRESS]`.
+Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin] [ADDRESS]`.
 
 CSV import expects a header of `external_id,occurred_on,asset_code,direction,quantity,description`. Quantity is in major units. Import records source facts for reconciliation and does not post a journal.
 
 Do not add chain, exchange, custodian, Xero, or QuickBooks credentials. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. It does not store an API key. The chain readers are live and read-only: they call JSON-RPC and never sign. Every other adapter in `src/adapters` throws before making a network call. Checking a connection records the outcome. It does not post a journal. Observed balances are separate from booked value.
 
-The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana) or asset transfers (EVM) for a watched address. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md` and `docs/adr-evm-data-source.md` for the endpoint choices and rate limits.
+The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or asset transfers (EVM) for a watched address. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, and `docs/adr-bitcoin-data-source.md` for the endpoint choices and rate limits.
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
@@ -118,10 +119,10 @@ src/auth                Passwords, sessions, roles, demo sign-in, and the owner 
 src/proxy.ts            Sends unsigned visitors from /dashboard to /sign-in
 src/ledger              Double-entry posting, reversals, FX, trial balance, reconciliation, CSV
 src/db                  Drizzle schema, client, seed, read, and write
-src/adapters            Read-only source readers (Ethereum, Solana, Polygon live) and accounting ports
+src/adapters            Read-only source readers (Ethereum, Solana, Polygon, Bitcoin live) and accounting ports
 src/data                Example books, validation, and the Postgres-or-example loader
 drizzle                 SQL migrations
-docs                    Decisions, including docs/adr-solana-data-source.md and docs/adr-evm-data-source.md
+docs                    Decisions, including docs/adr-{solana,evm,bitcoin}-data-source.md
 ```
 
 Journal amounts are bigint minor units (sen, cents, wei, lamports). `postJournalEntry` rejects an entry unless it has at least two lines and debits equal credits in a single functional currency. Measurement-basis labels on the sample chart (IAS 38, IAS 2, IFRS 9) are illustrations, not accounting advice.
