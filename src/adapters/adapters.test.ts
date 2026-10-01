@@ -21,21 +21,16 @@ import {
 } from "./index";
 
 const query = { since: "2026-04-01", until: "2026-06-30", externalAccountId: "example" };
-const batch = {
-  entityName: "Harbourline Digital Sdn. Bhd.",
-  functionalCurrency: "MYR",
-  entries: [],
-};
 
 describe("adapters", () => {
   it("lists the still-unimplemented connectors", () => {
     const systems = listStubAdapters().map((adapter) => adapter.system);
-    expect(systems).toEqual(["exchange", "custodian", "xero", "quickbooks", "erp"]);
+    expect(systems).toEqual(["exchange", "custodian"]);
     expect(listStubAdapters().every((adapter) => adapter.implemented === false)).toBe(true);
   });
 
   it("lists the live chain connectors", () => {
-    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken", "bybit", "binance", "gate", "backpack", "fireblocks", "bitgo"]);
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken", "bybit", "binance", "gate", "backpack", "fireblocks", "bitgo", "xero", "quickbooks", "erp"]);
     expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 
@@ -48,14 +43,17 @@ describe("adapters", () => {
       await expect(adapter.fetchBalances(query)).rejects.toBeInstanceOf(AdapterNotImplementedError);
       await expect(adapter.listAccounts(query)).rejects.toBeInstanceOf(AdapterNotImplementedError);
     }
-    await expect(new XeroSyncAdapter().pushJournalEntries(batch)).rejects.toBeInstanceOf(AdapterNotImplementedError);
-    await expect(new QuickBooksSyncAdapter().pushJournalEntries(batch)).rejects.toBeInstanceOf(AdapterNotImplementedError);
-    await expect(new ErpSyncAdapter().pushJournalEntries(batch)).rejects.toBeInstanceOf(AdapterNotImplementedError);
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(process.env.XERO_CLIENT_SECRET).toBeUndefined();
     expect(process.env.QUICKBOOKS_CLIENT_SECRET).toBeUndefined();
     fetchSpy.mockRestore();
+  });
+
+  it("lists the accounting sync adapters as implemented", () => {
+    expect(new XeroSyncAdapter().implemented).toBe(true);
+    expect(new QuickBooksSyncAdapter().implemented).toBe(true);
+    expect(new ErpSyncAdapter().implemented).toBe(true);
   });
 
   it("exposes Solana as implemented and validates the address", async () => {

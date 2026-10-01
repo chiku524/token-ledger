@@ -9,6 +9,10 @@ import type { AdapterDescriptor } from "./types";
 
 export { AdapterNotImplementedError } from "./errors";
 export { toJournalSyncBatch } from "./accounting/map";
+export { idempotencyKeyFor } from "./accounting/types";
+export { buildXeroAuthorizeUrl, exchangeXeroCode, listXeroConnections, refreshXeroToken, XERO_SCOPES } from "./accounting/xero-client";
+export { buildQboAuthorizeUrl, exchangeQboCode, refreshQboToken, QBO_SCOPES } from "./accounting/quickbooks-client";
+export { InMemoryErpClient, type ErpClient } from "./accounting/erp";
 export { ErpSyncAdapter } from "./accounting/erp";
 export { QuickBooksSyncAdapter } from "./accounting/quickbooks";
 export { XeroSyncAdapter } from "./accounting/xero";

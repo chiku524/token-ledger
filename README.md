@@ -114,6 +114,8 @@ On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you at
 
 Report pages can download a trial balance, journal, or reconciliation CSV for the selected period. The export route is `/dashboard/reports/export`.
 
+Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
+
 ## Layout
 
 ```text
@@ -122,8 +124,8 @@ src/auth                Passwords, sessions, roles, demo sign-in, and the owner 
 src/proxy.ts            Sends unsigned visitors from /dashboard to /sign-in
 src/ledger              Double-entry posting, reversals, FX, trial balance, reconciliation, CSV
 src/db                  Drizzle schema, client, seed, read, and write
-src/adapters            Read-only source readers (chains, exchanges, custodians) and a shared adapter contract
-                        (src/adapters/contract-suite.ts, run for every adapter in contract.test.ts)
+src/adapters            Source readers (chains, exchanges, custodians), a shared adapter contract
+                        (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
 src/data                Example books, validation, and the Postgres-or-example loader
 drizzle                 SQL migrations
 docs                    Decisions, including docs/adr-{solana,evm,bitcoin,sui}-data-source.md
