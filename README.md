@@ -94,6 +94,9 @@ Environment variables:
 - `DATABASE_URL` — optional Postgres URL. Unset means example books and demo sign-in.
 - `AUTH_SECRET` — required for password sessions, at least 32 characters.
 - `CONNECTOR_ENCRYPTION_KEY` — required to store exchange credentials, at least 32 characters, server-only. Derives the AES-256-GCM key that seals secrets at rest.
+- `CRON_SECRET` — optional. When set, the scheduled sync route (`/api/cron/sync`) requires it as a bearer token; Vercel Cron sends it automatically. At least 16 characters.
+- `WEBHOOK_SIGNING_SECRET` — required to accept signed source webhooks (`/api/webhooks/source`), at least 32 characters, server-only. A per-source signing secret is derived from it.
+- `WEBHOOK_URL` — optional. The receiver URL `pnpm webhook:send` posts to.
 - `KRAKEN_API_KEY`/`_SECRET`, `BYBIT_API_KEY`/`_SECRET`, `BINANCE_API_KEY`/`_SECRET`, `GATE_API_KEY`/`_SECRET`, `BACKPACK_API_KEY`/`_SECRET` — read-only keys used by `pnpm exchange:verify`. In the app a credential is entered by the user and stored sealed.
 - `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, `BOOTSTRAP_OWNER_PASSWORD` — used only by `pnpm auth:bootstrap`.
 - `SOLANA_RPC_URL` — optional. A private Solana RPC endpoint. Unset uses the free, keyless public cluster (`https://api.mainnet-beta.solana.com`). Must be `https://` with no embedded credentials.
@@ -112,6 +115,8 @@ Exchange connectors are live and read-only for Kraken, Bybit, Binance, Gate.io, 
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
+**Optional: Cloudflare Workers.** Vercel is the supported target; Cloudflare is an optional, low-priority alternative (issue #98). Password hashing and credential sealing are already on Web Crypto so they run on Workerd, and `wrangler.jsonc` holds the Worker config and cron. The one remaining change is the database driver: bind Hyperdrive or use a serverless HTTP driver in `src/db/client.ts`. Cloudflare needs no dependency in the default install — add `@opennextjs/cloudflare` and `wrangler` only when you build for it. See `docs/adr-cloudflare-deployment.md`.
+
 **Optional: containers.** For a crypto-native or neutral host (Akash, Spheron, Flux), a committed `Dockerfile` and `deploy/akash.yaml` build and run the app unchanged — a container is real Linux, so `postgres` and the Node crypto work as-is, with no Workers-style rewrite. The standalone output is enabled only with `DEPLOY_TARGET=container`, so the Vercel build is unaffected. See `docs/adr-container-deployment.md`.
 
 ```bash
@@ -124,6 +129,16 @@ Report pages can download a trial balance, journal, or reconciliation CSV for th
 
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
 
+## Scheduled sync and operations
+
+Connections pull on a schedule, not only on a click. Every pull goes through one path (`runConnectionSync`) and leaves a row in `sync_runs` with its outcome, trigger, and counts. Raw adapter payloads are retained as JSONB for the most recent runs and then age out. A failing connection is retried with a growing backoff (5m, 30m, 2h, 6h) and marked degraded after a failure that follows a success.
+
+- Vercel Cron calls `GET /api/cron/sync` on the schedule in `vercel.json` (once daily at 03:00 UTC, which fits the Hobby plan). On Pro, tighten it to `*/15 * * * *` to match the in-code interval. Any scheduler that can send the bearer token can call the route instead. With `CRON_SECRET` set, the route requires it as a bearer token; Vercel sends it automatically. Without a database the pass is a no-op.
+- `pnpm sync:run` runs the same pass locally — all organizations, or one with `pnpm sync:run <ORG_ID> --all` to ignore the interval and backoff.
+- **Operations** in the dashboard shows each connection's last run, counts, error, and health, with failing connections first, and offers a manual re-run.
+
+Sources that can push post a signed JSON event to `POST /api/webhooks/source`. The signature header is Stripe-like: `X-Token-Ledger-Signature: t=<unix seconds>,v1=<hex hmac-sha256>` over `${t}.${rawBody}`, with the per-source secret derived from `WEBHOOK_SIGNING_SECRET`. A timestamp outside five minutes is rejected, and the unique `(source, external id)` key makes a redelivery a no-op. `pnpm webhook:send <SOURCE_ID> <ASSET_CODE> <in|out> <QUANTITY>` sends a signed event for local verification. See `docs/adr-scheduled-ingestion.md`.
+
 ## Layout
 
 ```text
@@ -134,9 +149,10 @@ src/ledger              Double-entry posting, reversals, FX, trial balance, reco
 src/db                  Drizzle schema, client, seed, read, and write
 src/adapters            Source readers (chains, exchanges, custodians), a shared adapter contract
                         (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
-src/data                Example books, validation, and the Postgres-or-example loader
+src/data                Example books, validation, the Postgres-or-example loader, and the sync/webhook policy
+src/app/api             Route handlers: the scheduled cron pass and the signed webhook receiver
 drizzle                 SQL migrations
-docs                    Decisions, including docs/adr-{solana,evm,bitcoin,sui}-data-source.md
+docs                    Decisions, including docs/adr-{solana,evm,bitcoin,sui}-data-source.md and docs/adr-scheduled-ingestion.md
 ```
 
 Journal amounts are bigint minor units (sen, cents, wei, lamports). `postJournalEntry` rejects an entry unless it has at least two lines and debits equal credits in a single functional currency. Measurement-basis labels on the sample chart (IAS 38, IAS 2, IFRS 9) are illustrations, not accounting advice.

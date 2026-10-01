@@ -23,7 +23,7 @@ export async function putConnectionCredential(
   connectionId: string,
   input: ExchangeCredentialInput,
 ): Promise<{ keyHint: string }> {
-  const sealed = sealExchangeCredential(input);
+  const sealed = await sealExchangeCredential(input);
   const db = getDb();
   const existing = await db
     .select({ id: connectionCredentials.id })
@@ -63,7 +63,9 @@ export async function getConnectionCredential(
 }
 
 /** Open a stored credential for use in a read-only call. Never return this. */
-export function openStoredCredential(stored: Pick<StoredCredential, "sealedKey" | "sealedSecret">): ExchangeCredentialInput {
+export function openStoredCredential(
+  stored: Pick<StoredCredential, "sealedKey" | "sealedSecret">,
+): Promise<ExchangeCredentialInput> {
   return openExchangeCredential(stored);
 }
 

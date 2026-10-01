@@ -45,6 +45,41 @@ export function connectorEncryptionConfigured(
   return (env.CONNECTOR_ENCRYPTION_KEY?.trim().length ?? 0) >= 32;
 }
 
+/**
+ * Optional. When set, the scheduled sync route requires it as a bearer token, so
+ * only the scheduler can trigger a pass. Vercel Cron sends the matching
+ * `CRON_SECRET` automatically. At least 16 characters.
+ */
+export function readCronSecret(
+  env: { CRON_SECRET?: string } = { CRON_SECRET: process.env.CRON_SECRET },
+): string | null {
+  const secret = env.CRON_SECRET?.trim() ?? "";
+  if (secret === "") return null;
+  if (secret.length < 16) throw new Error("CRON_SECRET must be at least 16 characters.");
+  return secret;
+}
+
+/**
+ * Required to accept signed source webhooks. At least 32 characters,
+ * server-only. A per-source signing secret is derived from it, so the source
+ * never shares the raw value. See docs/adr-scheduled-ingestion.md.
+ */
+export function readWebhookSigningSecret(
+  env: { WEBHOOK_SIGNING_SECRET?: string } = { WEBHOOK_SIGNING_SECRET: process.env.WEBHOOK_SIGNING_SECRET },
+): string {
+  const secret = env.WEBHOOK_SIGNING_SECRET?.trim() ?? "";
+  if (secret.length < 32) {
+    throw new Error("WEBHOOK_SIGNING_SECRET must be at least 32 characters.");
+  }
+  return secret;
+}
+
+export function webhookSigningConfigured(
+  env: { WEBHOOK_SIGNING_SECRET?: string } = { WEBHOOK_SIGNING_SECRET: process.env.WEBHOOK_SIGNING_SECRET },
+): boolean {
+  return (env.WEBHOOK_SIGNING_SECRET?.trim().length ?? 0) >= 32;
+}
+
 /** The free, keyless public cluster. See docs/adr-solana-data-source.md. */
 export const SOLANA_PUBLIC_RPC_URL = "https://api.mainnet-beta.solana.com";
 
