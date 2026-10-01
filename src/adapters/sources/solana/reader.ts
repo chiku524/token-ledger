@@ -38,11 +38,20 @@ export class SolanaReader {
     return mapBalancesToObservations(native, tokens, now, this.registry);
   }
 
-  async fetchTransactions(address: string, since: string, until?: string): Promise<NormalizedSourceTransaction[]> {
+  async fetchTransactions(
+    address: string,
+    since: string,
+    until?: string,
+    options: { maxSignatures?: number } = {},
+  ): Promise<NormalizedSourceTransaction[]> {
     assertAddress(address);
+    const limit = options.maxSignatures ?? DEFAULT_SIGNATURE_LIMIT;
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new Error("maxSignatures must be a positive integer.");
+    }
     const signatures = await this.client.call<SignaturesResult>("getSignaturesForAddress", [
       address,
-      { limit: DEFAULT_SIGNATURE_LIMIT, commitment: "finalized" },
+      { limit, commitment: "finalized" },
     ]);
 
     const inRange = signatures.filter((entry) => {
