@@ -95,7 +95,8 @@ export const assets = pgTable(
 
 /**
  * Consent for a read-only feed. Scopes are balances and movements only.
- * The secret that would call an exchange or custodian is intentionally absent.
+ * A custodian secret is intentionally absent. An exchange credential, when one
+ * is needed, is stored sealed in `connection_credentials`, never here.
  */
 export const connections = pgTable(
   "connections",
