@@ -64,7 +64,7 @@ export interface ExchangeSourceAdapter {
 
 export interface CustodianSourceAdapter {
   readonly kind: "custodian";
-  readonly implemented: false;
+  readonly implemented: boolean;
   readonly descriptor: AdapterDescriptor;
   fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]>;
   fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]>;

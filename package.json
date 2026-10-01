@@ -14,7 +14,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "auth:bootstrap": "tsx src/auth/bootstrap.ts",
     "chain:verify": "tsx scripts/chain-verify.ts",
-    "exchange:verify": "tsx scripts/exchange-verify.ts"
+    "exchange:verify": "tsx scripts/exchange-verify.ts",
+    "custodian:verify": "tsx scripts/custodian-verify.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",

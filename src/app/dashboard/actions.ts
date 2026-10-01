@@ -3,6 +3,7 @@
 import { AdapterNotImplementedError, ConnectionClosedError, createVenueConnector, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE, venueDefinition } from "@/adapters";
 import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
 import { getConnectionCredential, openStoredCredential } from "@/db/credentials";
+import { custodianDefinition } from "@/adapters/sources/custodian/registry";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
@@ -68,6 +69,7 @@ export async function createConnectionAction(formData: FormData) {
     role: formData.get("role") ?? "",
     identifier: formData.get("identifier"),
     exchangeVenue: formData.get("exchangeVenue") ?? "",
+    custodianVenue: formData.get("custodianVenue") ?? "",
     apiKey: formData.get("apiKey") ?? "",
     apiSecret: formData.get("apiSecret") ?? "",
   });
@@ -75,17 +77,20 @@ export async function createConnectionAction(formData: FormData) {
   const books = await loadBooks(session.organizationId);
   const draft = connectionFromForm(parsed.data);
 
-  // An exchange credential is validated by a real read-only call before it is
-  // sealed and stored, so a bad key is rejected up front.
+  // An exchange or custodian credential is validated by a real read-only call
+  // before it is sealed and stored, so a bad key is rejected up front.
   const venue = venueDefinition(draft.connection.venue);
+  const custodian = custodianDefinition(draft.connection.venue);
   let credential: ExchangeCredentialInput | undefined;
-  if (venue) {
+  if (venue || custodian) {
+    const label = venue?.label ?? custodian!.label;
     if (!parsed.data.apiKey || !parsed.data.apiSecret) {
-      fail(path, `A ${venue.label} connection needs a read-only API key and secret.`);
+      fail(path, `A ${label} connection needs a read-only credential.`);
     }
     credential = { apiKey: parsed.data.apiKey!, apiSecret: parsed.data.apiSecret! };
     await save(path, async () => {
-      await validateExchangeCredential(venue.key, credential!);
+      if (venue) await validateExchangeCredential(venue.key, credential!);
+      else await custodian!.verify(credential!);
     });
   }
 
@@ -96,7 +101,7 @@ export async function createConnectionAction(formData: FormData) {
   finish(
     path,
     credential
-      ? "Read-only exchange connection added. The key is stored sealed and cannot trade or withdraw."
+      ? "Read-only connection added. The credential is stored sealed and cannot trade, withdraw, or sign."
       : "Read-only connection added. It is waiting for a check, and no key was stored.",
   );
 }
@@ -126,7 +131,7 @@ export async function refreshConnectionAction(formData: FormData) {
   let live = true;
   // An exchange credential is opened here, in server code, and never logged.
   let exchangeCredential: ExchangeCredentialInput | undefined;
-  if (venueDefinition(connection.venue)) {
+  if (venueDefinition(connection.venue) || custodianDefinition(connection.venue)) {
     const stored = await getConnectionCredential(session.organizationId, connection.id);
     if (!stored) fail(path, "This exchange connection has no stored key. Re-enter it in Settings.");
     exchangeCredential = openStoredCredential(stored);

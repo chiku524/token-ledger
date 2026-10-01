@@ -7,6 +7,7 @@ import {
   ErpSyncAdapter,
   EthereumChainAdapter,
   ExchangeSourceAdapter,
+  FireblocksCustodianAdapter,
   KrakenExchangeAdapter,
   listLiveAdapters,
   listStubAdapters,
@@ -34,7 +35,7 @@ describe("adapters", () => {
   });
 
   it("lists the live chain connectors", () => {
-    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken", "bybit", "binance", "gate", "backpack"]);
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon", "Bitcoin", "Sui", "kraken", "bybit", "binance", "gate", "backpack", "fireblocks"]);
     expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 
@@ -84,6 +85,14 @@ describe("adapters", () => {
     expect(adapter.implemented).toBe(true);
     expect(adapter.descriptor.implemented).toBe(true);
     await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
+  });
+
+  it("exposes Fireblocks as implemented and needs a vault account id", async () => {
+    const adapter = new FireblocksCustodianAdapter();
+    expect(adapter.implemented).toBe(true);
+    expect(adapter.descriptor.implemented).toBe(true);
+    expect(adapter.descriptor.system).toBe("fireblocks");
+    await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/vault account id/i);
   });
 
   it("exposes Kraken as implemented and needs an account", async () => {
