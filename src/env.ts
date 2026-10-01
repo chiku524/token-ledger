@@ -80,3 +80,25 @@ export function readEvmRpcUrl(
   }
   return url;
 }
+
+/** The free, keyless public Esplora instance. See docs/adr-bitcoin-data-source.md. */
+export const BITCOIN_PUBLIC_ESPLORA_URL = "https://mempool.space/api";
+
+/**
+ * Optional. A self-hosted Esplora instance or Blockstream's public instance.
+ * Unset uses the keyless mempool.space API. Must be https with no credentials.
+ */
+export function readBitcoinEsploraUrl(
+  env: { BITCOIN_ESPLORA_URL?: string } = { BITCOIN_ESPLORA_URL: process.env.BITCOIN_ESPLORA_URL },
+): string {
+  const raw = env.BITCOIN_ESPLORA_URL;
+  if (raw === undefined || raw.trim() === "") return BITCOIN_PUBLIC_ESPLORA_URL;
+  const url = raw.trim();
+  if (!/^https:\/\//i.test(url)) {
+    throw new Error("BITCOIN_ESPLORA_URL must be an https:// URL.");
+  }
+  if (new URL(url).username !== "" || new URL(url).password !== "") {
+    throw new Error("BITCOIN_ESPLORA_URL must not embed credentials in the URL.");
+  }
+  return url.replace(/\/+$/, "");
+}

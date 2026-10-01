@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { authSecretConfigured, readAlchemyApiKey, readDatabaseUrl, readEvmRpcUrl, readSolanaRpcUrl, SOLANA_PUBLIC_RPC_URL } from "./env";
+import {
+  authSecretConfigured,
+  BITCOIN_PUBLIC_ESPLORA_URL,
+  readAlchemyApiKey,
+  readBitcoinEsploraUrl,
+  readDatabaseUrl,
+  readEvmRpcUrl,
+  readSolanaRpcUrl,
+  SOLANA_PUBLIC_RPC_URL,
+} from "./env";
 
 describe("authSecretConfigured", () => {
   it("requires at least 32 characters", () => {
@@ -56,5 +65,18 @@ describe("readEvmRpcUrl", () => {
     expect(readEvmRpcUrl("polygon", { EVM_RPC_URL_POLYGON: "https://polygon.example.com" })).toBe("https://polygon.example.com");
     expect(() => readEvmRpcUrl("ethereum", { EVM_RPC_URL_ETHEREUM: "http://eth.example.com" })).toThrow(/https/i);
     expect(() => readEvmRpcUrl("ethereum", { EVM_RPC_URL_ETHEREUM: "https://u:p@eth.example.com" })).toThrow(/credentials/i);
+  });
+});
+
+describe("readBitcoinEsploraUrl", () => {
+  it("falls back to the keyless public Esplora instance and strips trailing slashes", () => {
+    expect(readBitcoinEsploraUrl({})).toBe(BITCOIN_PUBLIC_ESPLORA_URL);
+    expect(readBitcoinEsploraUrl({ BITCOIN_ESPLORA_URL: "  " })).toBe(BITCOIN_PUBLIC_ESPLORA_URL);
+    expect(readBitcoinEsploraUrl({ BITCOIN_ESPLORA_URL: "https://esplora.example.com/api/" })).toBe("https://esplora.example.com/api");
+  });
+
+  it("requires https and rejects credentials", () => {
+    expect(() => readBitcoinEsploraUrl({ BITCOIN_ESPLORA_URL: "http://esplora.example.com" })).toThrow(/https/i);
+    expect(() => readBitcoinEsploraUrl({ BITCOIN_ESPLORA_URL: "https://u:p@esplora.example.com" })).toThrow(/credentials/i);
   });
 });
