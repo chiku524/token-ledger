@@ -28,7 +28,7 @@ describe("hexToMinorUnits", () => {
   it("decodes wei and token hex amounts exactly", () => {
     expect(hexToMinorUnits("0xde0b6b3a7640000")).toBe(1_000_000_000_000_000_000n);
     expect(hexToMinorUnits("0x0000000000000000000000000000000000000000000000000000000c1889e580")).toBe(
-      51_900_000_000n,
+      51_951_297_920n,
     );
     expect(hexToMinorUnits("0x0")).toBe(0n);
   });
