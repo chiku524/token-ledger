@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // A self-contained server image is only needed for a container host (see
+  // docs/adr-container-deployment.md). Left off unless DEPLOY_TARGET=container,
+  // so the Vercel build is unchanged.
+  output: process.env.DEPLOY_TARGET === "container" ? "standalone" : undefined,
   serverExternalPackages: ["postgres"],
   async headers() {
     return [

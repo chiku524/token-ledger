@@ -117,6 +117,14 @@ On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you at
 
 **Optional: Cloudflare Workers.** Vercel is the supported target; Cloudflare is an optional, low-priority alternative (issue #98). Password hashing and credential sealing are already on Web Crypto so they run on Workerd, and `wrangler.jsonc` holds the Worker config and cron. The one remaining change is the database driver: bind Hyperdrive or use a serverless HTTP driver in `src/db/client.ts`. Cloudflare needs no dependency in the default install — add `@opennextjs/cloudflare` and `wrangler` only when you build for it. See `docs/adr-cloudflare-deployment.md`.
 
+**Optional: containers.** For a crypto-native or neutral host (Akash, Spheron, Flux), a committed `Dockerfile` and `deploy/akash.yaml` build and run the app unchanged — a container is real Linux, so `postgres` and the Node crypto work as-is, with no Workers-style rewrite. The standalone output is enabled only with `DEPLOY_TARGET=container`, so the Vercel build is unaffected. See `docs/adr-container-deployment.md`.
+
+```bash
+DEPLOY_TARGET=container pnpm build
+docker build -t token-ledger .
+docker run -p 3000:3000 -e DATABASE_URL=... -e AUTH_SECRET=... token-ledger
+```
+
 Report pages can download a trial balance, journal, or reconciliation CSV for the selected period. The export route is `/dashboard/reports/export`.
 
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
