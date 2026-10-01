@@ -12,6 +12,7 @@ export interface TokenBalancesResult {
 
 export interface AssetTransfer {
   blockNum: string;
+  uniqueId: string;
   hash: string;
   from: string;
   to: string | null;

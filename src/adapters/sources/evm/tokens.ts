@@ -42,3 +42,11 @@ export const EVM_TOKENS: ReadonlyMap<string, ReadonlyMap<string, EvmToken>> = ne
 export function resolveToken(chain: EvmChain, contractAddress: string): EvmToken | null {
   return EVM_TOKENS.get(chain.key)?.get(contractAddress.toLowerCase()) ?? null;
 }
+
+/** Find a registered token on a chain by its ledger asset code. */
+export function tokenByCode(chain: EvmChain, code: string): EvmToken | null {
+  for (const token of EVM_TOKENS.get(chain.key)?.values() ?? []) {
+    if (token.code === code) return token;
+  }
+  return null;
+}
