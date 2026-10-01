@@ -73,10 +73,35 @@ export function ConnectorForm({
           </select>
         </label>
       ) : null}
+      {mode === "exchange_read" ? (
+        <label className="field md:col-span-2">
+          <span>Exchange</span>
+          <select name="exchangeVenue" defaultValue="kraken">
+            <option value="kraken">Kraken</option>
+          </select>
+        </label>
+      ) : null}
       <label className="field md:col-span-2">
-        <span>{mode === "watch" ? "Address" : mode === "exchange_read" ? "Account ID" : "Vault ID"}</span>
+        <span>{mode === "watch" ? "Address" : mode === "exchange_read" ? "Account label" : "Vault ID"}</span>
         <input name="identifier" required maxLength={200} className="font-mono text-sm" />
       </label>
+      {mode === "exchange_read" ? (
+        <>
+          <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">
+            Create a <strong>read-only</strong> Kraken API key with Query Funds, Query Ledger Entries, and Query
+            Closed Orders &amp; Trades only. Leave Create &amp; Modify Orders and Withdraw Funds <strong>off</strong>.
+            The key is checked, then sealed; it cannot trade or withdraw.
+          </p>
+          <label className="field">
+            <span>API key</span>
+            <input name="apiKey" autoComplete="off" maxLength={200} className="font-mono text-sm" />
+          </label>
+          <label className="field">
+            <span>API secret</span>
+            <input name="apiSecret" type="password" autoComplete="off" maxLength={400} className="font-mono text-sm" />
+          </label>
+        </>
+      ) : null}
       <div className="md:col-span-2">
         <button type="submit" className="btn">
           Add connection

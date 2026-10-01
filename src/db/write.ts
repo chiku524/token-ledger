@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { NormalizedBalance, NormalizedSourceTransaction } from "@/adapters";
+import { sealExchangeCredential, type ExchangeCredentialInput } from "@/adapters/credentials/store";
 import { READ_ONLY_SCOPES, type ConnectionDraft } from "@/data/connections";
 import { ENTITY_CHART } from "@/data/chart-template";
 import type { Books, ConnectionStatus } from "@/data/books";
@@ -10,6 +11,7 @@ import {
   accounts,
   auditEvents,
   balanceSnapshots,
+  connectionCredentials,
   connections,
   entities,
   fxRates,
@@ -56,7 +58,12 @@ export async function insertEntity(
   });
 }
 
-export async function insertConnection(books: Books, draft: ConnectionDraft, actor: string): Promise<void> {
+export async function insertConnection(
+  books: Books,
+  draft: ConnectionDraft,
+  actor: string,
+  credential?: ExchangeCredentialInput,
+): Promise<void> {
   if (!books.entities.some((entity) => entity.id === draft.connection.entityId)) {
     throw new BooksWriteError("Choose a company in this organization.");
   }
@@ -65,6 +72,8 @@ export async function insertConnection(books: Books, draft: ConnectionDraft, act
   }
   const connectionId = newId("conn");
   const sourceId = newId("src");
+  // Seal before opening the transaction; a bad credential must not half-write.
+  const sealed = credential ? sealExchangeCredential(credential) : null;
   const db = getDb();
   await db.transaction(async (tx) => {
     await tx.insert(connections).values({
@@ -86,6 +95,16 @@ export async function insertConnection(books: Books, draft: ConnectionDraft, act
       connectionId,
       ...draft.source,
     });
+    if (sealed) {
+      await tx.insert(connectionCredentials).values({
+        id: newId("cred"),
+        organizationId: books.organization.id,
+        connectionId,
+        keyHint: sealed.keyHint,
+        sealedKey: sealed.sealedKey,
+        sealedSecret: sealed.sealedSecret,
+      });
+    }
     await tx.insert(auditEvents).values(
       auditRow(books, actor, "connection.created", "connection", connectionId, `${draft.connection.name} · read-only`),
     );

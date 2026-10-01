@@ -22,6 +22,7 @@ export const entityFormSchema = z.object({
 });
 
 const watchVenue = z.enum(["ethereum", "solana", "polygon"]);
+const exchangeVenue = z.enum(["kraken", "exchange"]);
 
 export const connectionFormSchema = z
   .object({
@@ -31,6 +32,12 @@ export const connectionFormSchema = z
     chain: optionalText(40),
     role: z.enum(["hot", "cold", "staking", ""]).optional().transform((value) => (value ? value : null)),
     identifier: text(200),
+    exchangeVenue: z
+      .union([exchangeVenue, z.literal("")])
+      .optional()
+      .transform((value) => (value ? value : null)),
+    apiKey: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),
+    apiSecret: z.string().trim().max(400).optional().transform((value) => (value ? value : null)),
   })
   .superRefine((value, context) => {
     if (value.mode === "watch" && !value.role) {
@@ -44,6 +51,16 @@ export const connectionFormSchema = z
     }
     if (value.mode === "custodian_read" && value.chain && !watchVenue.safeParse(value.chain).success) {
       context.addIssue({ code: "custom", path: ["chain"], message: "Choose Ethereum, Solana, or Polygon, or leave the network blank." });
+    }
+    if (value.mode === "exchange_read") {
+      if (!value.exchangeVenue) {
+        context.addIssue({ code: "custom", path: ["exchangeVenue"], message: "Choose an exchange." });
+      }
+      const hasKey = Boolean(value.apiKey);
+      const hasSecret = Boolean(value.apiSecret);
+      if (hasKey !== hasSecret) {
+        context.addIssue({ code: "custom", path: ["apiKey"], message: "Enter both the API key and the API secret, or neither." });
+      }
     }
   });
 

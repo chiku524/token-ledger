@@ -1,6 +1,8 @@
 "use server";
 
-import { AdapterNotImplementedError, ConnectionClosedError, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "@/adapters";
+import { AdapterNotImplementedError, ConnectionClosedError, KrakenExchangeAdapter, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "@/adapters";
+import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
+import { getConnectionCredential, openStoredCredential } from "@/db/credentials";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
@@ -65,14 +67,47 @@ export async function createConnectionAction(formData: FormData) {
     chain: formData.get("chain") ?? "",
     role: formData.get("role") ?? "",
     identifier: formData.get("identifier"),
+    exchangeVenue: formData.get("exchangeVenue") ?? "",
+    apiKey: formData.get("apiKey") ?? "",
+    apiSecret: formData.get("apiSecret") ?? "",
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
   const books = await loadBooks(session.organizationId);
+  const draft = connectionFromForm(parsed.data);
+
+  // An exchange credential is validated by a real read-only call before it is
+  // sealed and stored, so a bad key is rejected up front.
+  let credential: ExchangeCredentialInput | undefined;
+  if (draft.connection.venue === "kraken" && parsed.data.apiKey && parsed.data.apiSecret) {
+    credential = { apiKey: parsed.data.apiKey, apiSecret: parsed.data.apiSecret };
+    await save(path, async () => {
+      await validateKrakenCredential(credential!);
+    });
+  } else if (draft.connection.venue === "kraken") {
+    fail(path, "A Kraken connection needs a read-only API key and secret.");
+  }
+
   await save(path, async () => {
     assertEntity(session, parsed.data.entityId);
-    await insertConnection(books, connectionFromForm(parsed.data), actorName(session));
+    await insertConnection(books, draft, actorName(session), credential);
   });
-  finish(path, "Read-only connection added. It is waiting for a check, and no key was stored.");
+  finish(
+    path,
+    credential
+      ? "Read-only exchange connection added. The key is stored sealed and cannot trade or withdraw."
+      : "Read-only connection added. It is waiting for a check, and no key was stored.",
+  );
+}
+
+/** A successful balance read proves the read-only key works. The credential is discarded. */
+async function validateKrakenCredential(credential: ExchangeCredentialInput): Promise<void> {
+  try {
+    const adapter = new KrakenExchangeAdapter({ credential });
+    await adapter.fetchBalances({ since: "1970-01-01", externalAccountId: "kraken-validation" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Kraken rejected the credential.";
+    throw new BooksWriteError(`Kraken credential check failed: ${message}`);
+  }
 }
 
 export async function refreshConnectionAction(formData: FormData) {
@@ -88,11 +123,18 @@ export async function refreshConnectionAction(formData: FormData) {
   const linked = sourcesForConnection(books.sources, connection);
   if (linked.length === 0) fail(path, "This connection has no account to read.");
   let live = true;
+  // An exchange credential is opened here, in server code, and never logged.
+  let exchangeCredential: ExchangeCredentialInput | undefined;
+  if (connection.venue === "kraken") {
+    const stored = await getConnectionCredential(session.organizationId, connection.id);
+    if (!stored) fail(path, "This exchange connection has no stored key. Re-enter it in Settings.");
+    exchangeCredential = openStoredCredential(stored);
+  }
   await save(path, async () => {
     try {
       const reads = [];
       for (const source of linked) {
-        const pulled = await pullReadOnly(connection, source.identifier, connection.cursor ?? "1970-01-01");
+        const pulled = await pullReadOnly(connection, source.identifier, connection.cursor ?? "1970-01-01", { exchangeCredential });
         reads.push({ sourceId: source.id, balances: pulled.balances, movements: pulled.movements });
       }
       await recordSyncSuccess(books, connection.id, reads, actorName(session));
