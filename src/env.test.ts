@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authSecretConfigured, readDatabaseUrl, readSolanaRpcUrl, SOLANA_PUBLIC_RPC_URL } from "./env";
+import { authSecretConfigured, readAlchemyApiKey, readDatabaseUrl, readEvmRpcUrl, readSolanaRpcUrl, SOLANA_PUBLIC_RPC_URL } from "./env";
 
 describe("authSecretConfigured", () => {
   it("requires at least 32 characters", () => {
@@ -35,5 +35,26 @@ describe("readSolanaRpcUrl", () => {
 
   it("rejects credentials embedded in the URL", () => {
     expect(() => readSolanaRpcUrl({ SOLANA_RPC_URL: "https://user:secret@example.com" })).toThrow(/credentials/i);
+  });
+});
+
+describe("readAlchemyApiKey", () => {
+  it("is null when unset and trimmed when set", () => {
+    expect(readAlchemyApiKey({})).toBeNull();
+    expect(readAlchemyApiKey({ ALCHEMY_API_KEY: "  " })).toBeNull();
+    expect(readAlchemyApiKey({ ALCHEMY_API_KEY: " key " })).toBe("key");
+  });
+});
+
+describe("readEvmRpcUrl", () => {
+  it("is null when unset", () => {
+    expect(readEvmRpcUrl("ethereum", {})).toBeNull();
+  });
+
+  it("reads a per-chain key and requires https without credentials", () => {
+    expect(readEvmRpcUrl("ethereum", { EVM_RPC_URL_ETHEREUM: "https://eth.example.com" })).toBe("https://eth.example.com");
+    expect(readEvmRpcUrl("polygon", { EVM_RPC_URL_POLYGON: "https://polygon.example.com" })).toBe("https://polygon.example.com");
+    expect(() => readEvmRpcUrl("ethereum", { EVM_RPC_URL_ETHEREUM: "http://eth.example.com" })).toThrow(/https/i);
+    expect(() => readEvmRpcUrl("ethereum", { EVM_RPC_URL_ETHEREUM: "https://u:p@eth.example.com" })).toThrow(/credentials/i);
   });
 });
