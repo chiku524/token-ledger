@@ -1,9 +1,8 @@
 /**
- * Chain source adapters. Solana is live and read-only: it calls the public
- * JSON-RPC interface (or a private endpoint via SOLANA_RPC_URL) and never
- * signs. Ethereum and Polygon remain stubs until their epic lands.
+ * Chain source adapters. All three are live and read-only: they call JSON-RPC
+ * over https (or a private endpoint via env) and never sign. Solana uses its
+ * own reader; Ethereum and Polygon share the EVM reader.
  */
-import { AdapterNotImplementedError } from "../errors";
 import type {
   AdapterDescriptor,
   ChainSourceAdapter,
@@ -12,39 +11,72 @@ import type {
   NormalizedBalance,
   NormalizedSourceTransaction,
 } from "../types";
+import { evmChain, type EvmChain } from "./evm/chains";
+import { EvmReader } from "./evm/reader";
+import { EvmRpcClient, type EvmRpcClientOptions } from "./evm/rpc";
 import { SolanaReader } from "./solana/reader";
 import { SolanaRpcClient } from "./solana/rpc";
 
-function chainDescriptor(chain: string, name: string): AdapterDescriptor {
-  return {
-    name,
-    category: "chain",
-    system: chain,
-    implemented: false,
-    summary: `Balances and transfers on ${chain}. Not connected yet.`,
-  };
+export interface EvmChainAdapterOptions {
+  reader?: EvmReader;
+  rpc?: EvmRpcClientOptions;
 }
 
-function reject(name: string, _query: FetchSourceTransactionsQuery): Promise<never> {
-  return Promise.reject(new AdapterNotImplementedError(name));
-}
-
-export class EthereumChainAdapter implements ChainSourceAdapter {
+class EvmChainAdapter implements ChainSourceAdapter {
   readonly kind = "chain" as const;
-  readonly chain = "ethereum";
-  readonly implemented = false as const;
-  readonly descriptor = chainDescriptor("Ethereum", "Ethereum wallets");
+  readonly implemented = true as const;
+  readonly descriptor: AdapterDescriptor;
+  private readonly spec: EvmChain;
+  private readonly reader: EvmReader;
 
-  fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
-    return reject(this.descriptor.name, query);
+  constructor(spec: EvmChain, name: string, options: EvmChainAdapterOptions = {}) {
+    this.spec = spec;
+    this.descriptor = {
+      name,
+      category: "chain",
+      system: spec.name,
+      implemented: true,
+      summary: `Read-only ${spec.nativeCode} and ERC-20 balances and transfers on ${spec.name}. No key is stored.`,
+    };
+    this.reader = options.reader ?? new EvmReader(spec, new EvmRpcClient(spec, options.rpc));
   }
 
-  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
-    return reject(this.descriptor.name, query);
+  get chain(): string {
+    return this.spec.key;
   }
 
-  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
-    return reject(this.descriptor.name, query);
+  async fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
+    return this.reader.fetchTransactions(this.address(query), query.since, query.until);
+  }
+
+  async fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
+    return this.reader.fetchBalances(this.address(query));
+  }
+
+  /** One connection covers one address. The address itself is the listed account. */
+  async listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
+    const address = this.address(query);
+    return [{ externalAccountId: address, name: `${this.spec.name} account`, chain: this.spec.key }];
+  }
+
+  private address(query: FetchSourceTransactionsQuery): string {
+    const address = query.externalAccountId?.trim();
+    if (!address) {
+      throw new Error(`An ${this.spec.name} address is required.`);
+    }
+    return address;
+  }
+}
+
+export class EthereumChainAdapter extends EvmChainAdapter {
+  constructor(options: EvmChainAdapterOptions = {}) {
+    super(evmChain("ethereum")!, "Ethereum wallets", options);
+  }
+}
+
+export class PolygonChainAdapter extends EvmChainAdapter {
+  constructor(options: EvmChainAdapterOptions = {}) {
+    super(evmChain("polygon")!, "Polygon wallets", options);
   }
 }
 
@@ -90,24 +122,5 @@ export class SolanaChainAdapter implements ChainSourceAdapter {
       throw new Error("A Solana address is required.");
     }
     return address;
-  }
-}
-
-export class PolygonChainAdapter implements ChainSourceAdapter {
-  readonly kind = "chain" as const;
-  readonly chain = "polygon";
-  readonly implemented = false as const;
-  readonly descriptor = chainDescriptor("Polygon", "Polygon wallets");
-
-  fetchTransactions(query: FetchSourceTransactionsQuery): Promise<NormalizedSourceTransaction[]> {
-    return reject(this.descriptor.name, query);
-  }
-
-  fetchBalances(query: FetchSourceTransactionsQuery): Promise<NormalizedBalance[]> {
-    return reject(this.descriptor.name, query);
-  }
-
-  listAccounts(query: FetchSourceTransactionsQuery): Promise<ListedAccount[]> {
-    return reject(this.descriptor.name, query);
   }
 }
