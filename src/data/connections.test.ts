@@ -33,6 +33,48 @@ describe("connectionFromForm", () => {
     expect(draft.source).toMatchObject({ kind: "exchange", role: null, chain: null });
   });
 
+  it("keeps the chosen exchange venue", () => {
+    for (const venue of ["kraken", "bybit", "binance", "gate", "backpack"]) {
+      const draft = connectionFromForm({
+        entityId: "ent_1",
+        mode: "exchange_read",
+        name: "Desk",
+        chain: null,
+        role: null,
+        identifier: "acct-1",
+        exchangeVenue: venue,
+      });
+      expect(draft.connection.venue).toBe(venue);
+    }
+  });
+
+  it("keeps the chosen custodian venue", () => {
+    const draft = connectionFromForm({
+      entityId: "ent_1",
+      mode: "custodian_read",
+      name: "Vault",
+      chain: null,
+      role: null,
+      identifier: "0",
+      custodianVenue: "fireblocks",
+    });
+    expect(draft.connection).toMatchObject({ mode: "custodian_read", venue: "fireblocks", scopes: READ_ONLY_SCOPES });
+  });
+
+  it("rejects an unknown exchange venue", () => {
+    expect(() =>
+      connectionFromForm({
+        entityId: "ent_1",
+        mode: "exchange_read",
+        name: "Desk",
+        chain: null,
+        role: null,
+        identifier: "acct-1",
+        exchangeVenue: "coinbase",
+      }),
+    ).toThrow(/choose an exchange/i);
+  });
+
   it("maps a custodian vault and keeps an optional network", () => {
     const draft = connectionFromForm({
       entityId: "ent_1",
