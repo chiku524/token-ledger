@@ -122,7 +122,8 @@ src/auth                Passwords, sessions, roles, demo sign-in, and the owner 
 src/proxy.ts            Sends unsigned visitors from /dashboard to /sign-in
 src/ledger              Double-entry posting, reversals, FX, trial balance, reconciliation, CSV
 src/db                  Drizzle schema, client, seed, read, and write
-src/adapters            Read-only source readers (chains, exchanges, Fireblocks) and accounting ports
+src/adapters            Read-only source readers (chains, exchanges, custodians) and a shared adapter contract
+                        (src/adapters/contract-suite.ts, run for every adapter in contract.test.ts)
 src/data                Example books, validation, and the Postgres-or-example loader
 drizzle                 SQL migrations
 docs                    Decisions, including docs/adr-{solana,evm,bitcoin,sui}-data-source.md
