@@ -102,17 +102,19 @@ Environment variables:
 - `BITCOIN_ESPLORA_URL` — optional. A self-hosted Esplora instance or Blockstream. Unset uses the keyless mempool.space API. `https://` only, no embedded credentials.
 - `SUI_RPC_URL` — optional. A Sui GraphQL endpoint. Unset uses the keyless public endpoint (`https://graphql.mainnet.sui.io/graphql`). Uses GraphQL because Sui Foundation removed JSON-RPC from its public nodes (see `docs/adr-sui-data-source.md`).
 
-Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin|sui] [ADDRESS]`, and a live exchange read with `pnpm exchange:verify [kraken|bybit|binance|gate|backpack]` (needs a read-only key).
+Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin|sui] [ADDRESS]`, a live exchange read with `pnpm exchange:verify [kraken|bybit|binance|gate|backpack]`, and a live custodian read with `pnpm custodian:verify [bitgo|fireblocks]` (needs a read-only token).
 
 CSV import expects a header of `external_id,occurred_on,asset_code,direction,quantity,description`. Quantity is in major units. Import records source facts for reconciliation and does not post a journal.
 
 Chain, custodian, Xero, and QuickBooks credentials are not stored. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. Exchange credentials are the one exception: a read-only API key and secret are entered by the user, sealed with AES-256-GCM under `CONNECTOR_ENCRYPTION_KEY`, and stored in `connection_credentials`. The plaintext never reaches the database and is never returned to the browser. The chain readers are live and read-only: they call JSON-RPC and never sign. Every other adapter in `src/adapters` throws before making a network call. Checking a connection records the outcome. It does not post a journal. Observed balances are separate from booked value.
 
-Exchange connectors are live and read-only for Kraken, Bybit, Binance, Gate.io, and Backpack (see `docs/adr-exchange-connectors.md`). A user authorises one from the frontend: they enter a read-only key, it is checked by a real read-only call, then sealed and stored. The key cannot trade or withdraw. The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or balance changes (EVM, Sui) for a watched address. Sui reads through GraphQL, since JSON-RPC was removed from Sui's public nodes. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, `docs/adr-bitcoin-data-source.md`, and `docs/adr-sui-data-source.md` for the endpoint choices and rate limits.
+Exchange connectors are live and read-only for Kraken, Bybit, Binance, Gate.io, and Backpack (see `docs/adr-exchange-connectors.md`). Custodian connectors are live and read-only for BitGo and Fireblocks (see `docs/adr-custodian-connectors.md`); a view-only token or Viewer API user cannot sign or move funds. A user authorises an exchange or custodian from the frontend: they enter a read-only credential, it is checked by a real read-only call, then sealed and stored. The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or balance changes (EVM, Sui) for a watched address. Sui reads through GraphQL, since JSON-RPC was removed from Sui's public nodes. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, `docs/adr-bitcoin-data-source.md`, and `docs/adr-sui-data-source.md` for the endpoint choices and rate limits.
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
 Report pages can download a trial balance, journal, or reconciliation CSV for the selected period. The export route is `/dashboard/reports/export`.
+
+Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
 
 ## Layout
 
@@ -122,7 +124,8 @@ src/auth                Passwords, sessions, roles, demo sign-in, and the owner 
 src/proxy.ts            Sends unsigned visitors from /dashboard to /sign-in
 src/ledger              Double-entry posting, reversals, FX, trial balance, reconciliation, CSV
 src/db                  Drizzle schema, client, seed, read, and write
-src/adapters            Read-only source readers (Ethereum, Solana, Polygon, Bitcoin, Sui live) and accounting ports
+src/adapters            Source readers (chains, exchanges, custodians), a shared adapter contract
+                        (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
 src/data                Example books, validation, and the Postgres-or-example loader
 drizzle                 SQL migrations
 docs                    Decisions, including docs/adr-{solana,evm,bitcoin,sui}-data-source.md

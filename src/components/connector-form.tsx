@@ -1,6 +1,7 @@
 import { createConnectionAction } from "@/app/dashboard/actions";
 import type { Books, ConnectionMode } from "@/data/books";
 import { listVenues } from "@/adapters";
+import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
 
 export function ConnectorForm({
   books,
@@ -63,17 +64,6 @@ export function ConnectorForm({
           </label>
         </>
       ) : null}
-      {mode === "custodian_read" ? (
-        <label className="field">
-          <span>Network</span>
-          <select name="chain" defaultValue="">
-            <option value="">None</option>
-            <option value="ethereum">Ethereum</option>
-            <option value="solana">Solana</option>
-            <option value="polygon">Polygon</option>
-          </select>
-        </label>
-      ) : null}
       {mode === "exchange_read" ? (
         <label className="field md:col-span-2">
           <span>Exchange</span>
@@ -86,10 +76,39 @@ export function ConnectorForm({
           </select>
         </label>
       ) : null}
+      {mode === "custodian_read" ? (
+        <label className="field md:col-span-2">
+          <span>Custodian</span>
+          <select name="custodianVenue" defaultValue="fireblocks">
+            {Object.values(CUSTODIANS).map((custodian) => (
+              <option key={custodian.key} value={custodian.key}>
+                {custodian.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <label className="field md:col-span-2">
-        <span>{mode === "watch" ? "Address" : mode === "exchange_read" ? "Account label" : "Vault ID"}</span>
+        <span>{mode === "watch" ? "Address" : mode === "exchange_read" ? "Account label" : "Vault account id"}</span>
         <input name="identifier" required maxLength={200} className="font-mono text-sm" />
       </label>
+      {mode === "custodian_read" ? (
+        <>
+          <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">
+            Enter a read-only credential. <strong>BitGo:</strong> a view-only access token in the API key field (leave
+            the secret blank). <strong>Fireblocks:</strong> a Viewer API user id as the key and its RSA private key
+            (PEM) as the secret. Both are checked, then sealed, and cannot sign or move funds.
+          </p>
+          <label className="field">
+            <span>API user id</span>
+            <input name="apiKey" autoComplete="off" maxLength={200} className="font-mono text-sm" />
+          </label>
+          <label className="field">
+            <span>RSA private key (PEM)</span>
+            <textarea name="apiSecret" rows={4} autoComplete="off" maxLength={4000} className="font-mono text-sm" />
+          </label>
+        </>
+      ) : null}
       {mode === "exchange_read" ? (
         <>
           <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">

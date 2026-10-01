@@ -23,6 +23,7 @@ export const entityFormSchema = z.object({
 
 const watchVenue = z.enum(["ethereum", "solana", "polygon"]);
 const exchangeVenue = z.enum(["kraken", "bybit", "binance", "gate", "backpack", "exchange"]);
+const custodianVenue = z.enum(["fireblocks", "custodian"]);
 
 export const connectionFormSchema = z
   .object({
@@ -34,6 +35,10 @@ export const connectionFormSchema = z
     identifier: text(200),
     exchangeVenue: z
       .union([exchangeVenue, z.literal("")])
+      .optional()
+      .transform((value) => (value ? value : null)),
+    custodianVenue: z
+      .union([custodianVenue, z.literal("")])
       .optional()
       .transform((value) => (value ? value : null)),
     apiKey: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),

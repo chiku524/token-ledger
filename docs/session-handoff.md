@@ -7,7 +7,7 @@ State of the connector work, so a later session can resume without re-deriving i
 Everything is committed, pushed, and green.
 
 - Branch: `54-exchange-kraken`, working tree clean.
-- Tests: 214 passing (`pnpm test`), plus typecheck, lint, and build green.
+- Tests: 229 passing (`pnpm test`), plus typecheck, lint, and build green.
 - Five open PRs, stacked in this order (each based on the one below):
 
 | PR | Head | Base | Title |
@@ -17,8 +17,9 @@ Everything is committed, pushed, and green.
 | #92 | `47-bitcoin` | `42-evm-chains` | Bitcoin: live read-only chain connector |
 | #93 | `51-sui` | `47-bitcoin` | Sui: live read-only chain connector |
 | #95 | `54-exchange-kraken` | `51-sui` | Exchange connectors: all five venues |
+| #96 | `56-custodian-fireblocks` | `54-exchange-kraken` | Custodian connectors: Fireblocks |
 
-Merge order is bottom-up: #90 → #91 → #92 → #93 → #95. GitHub retargets each PR's base automatically as the one below merges. No PR uses a closing keyword, so **no issue closes on merge** — closure is a deliberate reviewer step.
+Merge order is bottom-up: #90 → #91 → #92 → #93 → #95 → #96. GitHub retargets each PR's base automatically as the one below merges. No PR uses a closing keyword, so **no issue closes on merge** — closure is a deliberate reviewer step.
 
 ## What is implemented
 
@@ -33,6 +34,9 @@ Merge order is bottom-up: #90 → #91 → #92 → #93 → #95. GitHub retargets 
 - Encrypted credential storage (AES-256-GCM, `CONNECTOR_ENCRYPTION_KEY`) and a frontend authorisation flow.
 - Issues #13, #55, #94, #9, sub-epic #54.
 
+**Custodian connector (live, read-only, credential required).**
+- Fireblocks — Viewer API user (read-only), JWT RS256. Issue #10, sub-epic #56.
+
 **Docs:** `docs/adr-{solana,evm,bitcoin,sui}-data-source.md` and `docs/adr-exchange-connectors.md`.
 
 ## The one outstanding item
@@ -42,6 +46,8 @@ Per-venue **live** exchange verification. The adapters are built and fixture-tes
 1. Create a read-only key for one venue (scopes in `docs/adr-exchange-connectors.md`).
 2. Put it in `.env.local` (gitignored), e.g. `KRAKEN_API_KEY` / `KRAKEN_API_SECRET`.
 3. Run `pnpm exchange:verify kraken` (or `bybit`, `binance`, `gate`, `backpack`).
+
+For the custodian, add `FIREBLOCKS_API_KEY` and `FIREBLOCKS_SECRET_KEY` (a Viewer API user and its RSA key; sandbox URL via `FIREBLOCKS_BASE_URL`), then run `pnpm custodian:verify`.
 
 Then the #9 live checkbox can be marked and sub-epic #54 is complete.
 
@@ -55,12 +61,11 @@ Then the #9 live checkbox can be marked and sub-epic #54 is complete.
 git checkout 54-exchange-kraken
 git pull
 pnpm install
-pnpm test        # expect 214 passing
+pnpm test        # expect 229 passing
 gh pr checks 95  # expect pass
 ```
 
 ## Ideas not yet started
 
-- Custodian connectors (sub-epic #56).
 - The remaining Reconciliation & Controls, Market Data, Automation, and Hardening epics.
 - A live exchange key to close #9.
