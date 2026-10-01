@@ -2,7 +2,7 @@ import { ErpSyncAdapter } from "./accounting/erp";
 import { QuickBooksSyncAdapter } from "./accounting/quickbooks";
 import { XeroSyncAdapter } from "./accounting/xero";
 import { CustodianSourceAdapter } from "./sources/custodian";
-import { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "./sources/chain";
+import { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter, SuiChainAdapter } from "./sources/chain";
 import { ExchangeSourceAdapter } from "./sources/exchange";
 import type { AdapterDescriptor } from "./types";
 
@@ -13,7 +13,7 @@ export { QuickBooksSyncAdapter } from "./accounting/quickbooks";
 export { XeroSyncAdapter } from "./accounting/xero";
 export type { AccountingSyncAdapter, JournalSyncBatch, JournalSyncResult } from "./accounting/types";
 export { CustodianSourceAdapter } from "./sources/custodian";
-export { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "./sources/chain";
+export { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter, SuiChainAdapter } from "./sources/chain";
 export { ExchangeSourceAdapter } from "./sources/exchange";
 export { adapterForConnection, ConnectionClosedError, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE } from "./sync";
 export type { ConnectionMode, ConnectionStatus, ReadOnlyConnection } from "./sync";
@@ -33,6 +33,7 @@ const stubAdapters = [
   new SolanaChainAdapter(),
   new PolygonChainAdapter(),
   new BitcoinChainAdapter(),
+  new SuiChainAdapter(),
   new ExchangeSourceAdapter(),
   new CustodianSourceAdapter(),
   new XeroSyncAdapter(),

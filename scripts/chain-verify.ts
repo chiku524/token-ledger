@@ -14,15 +14,16 @@
  * are used automatically.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter } from "@/adapters/sources/chain";
+import { BitcoinChainAdapter, EthereumChainAdapter, PolygonChainAdapter, SolanaChainAdapter, SuiChainAdapter } from "@/adapters/sources/chain";
 import type { ChainSourceAdapter } from "@/adapters/types";
 import { evmChain } from "@/adapters/sources/evm/chains";
 import { describeEvmHoldings } from "@/adapters/sources/evm/map-balances";
 import { toAssetHoldings } from "@/adapters/sources/solana/assets";
 import { DEFAULT_MINT_REGISTRY } from "@/adapters/sources/solana/mints";
+import { describeSuiHoldings } from "@/adapters/sources/sui/map";
 import { formatMinor } from "@/ledger";
 
-const CHAINS = ["solana", "ethereum", "polygon", "bitcoin"] as const;
+const CHAINS = ["solana", "ethereum", "polygon", "bitcoin", "sui"] as const;
 type ChainName = (typeof CHAINS)[number];
 
 const DEFAULT_ADDRESS: Record<ChainName, string> = {
@@ -30,13 +31,15 @@ const DEFAULT_ADDRESS: Record<ChainName, string> = {
   ethereum: "0x28C6c06298d514Db089934071355E5743bf21d60",
   polygon: "0x0000000000000000000000000000000000001010",
   bitcoin: "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97",
+  sui: "0x0feb54a725aa357ff2f5bc6bb023c05b310285bd861275a30521f339a434ebb3",
 };
 
 function adapterFor(chain: ChainName): ChainSourceAdapter {
   if (chain === "solana") return new SolanaChainAdapter();
   if (chain === "ethereum") return new EthereumChainAdapter();
   if (chain === "polygon") return new PolygonChainAdapter();
-  return new BitcoinChainAdapter();
+  if (chain === "bitcoin") return new BitcoinChainAdapter();
+  return new SuiChainAdapter();
 }
 
 async function main() {
@@ -65,7 +68,9 @@ async function main() {
       ? toAssetHoldings(balances, DEFAULT_MINT_REGISTRY)
       : chain === "bitcoin"
         ? balances.map((row) => ({ assetCode: row.assetCode, name: "Bitcoin", decimals: 8, formatted: formatMinor(row.quantityMinor, 8, { grouping: false }), quantityMinor: row.quantityMinor }))
-        : describeEvmHoldings(evmChain(chain)!, balances);
+        : chain === "sui"
+          ? describeSuiHoldings(balances)
+          : describeEvmHoldings(evmChain(chain)!, balances);
   console.log(`Assets held (${holdings.length}):`);
   for (const holding of holdings) {
     console.log(
