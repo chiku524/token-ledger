@@ -50,3 +50,12 @@ export function tokenByCode(chain: EvmChain, code: string): EvmToken | null {
   }
   return null;
 }
+
+/**
+ * The contract addresses registered on a chain. Passing these explicitly to
+ * `alchemy_getTokenBalances` avoids the provider's default top-N cap, which can
+ * omit the tokens we track.
+ */
+export function tokenContracts(chain: EvmChain): string[] {
+  return [...(EVM_TOKENS.get(chain.key)?.keys() ?? [])];
+}

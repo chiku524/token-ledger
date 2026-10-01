@@ -7,10 +7,11 @@
 import type { NormalizedBalance, NormalizedSourceTransaction } from "../../types";
 import { isValidEvmAddress, normalizeEvmAddress } from "./address";
 import type { EvmChain } from "./chains";
-import type { AssetTransfersResult, TokenBalancesResult } from "./evm-responses";
+import type { AssetTransfer, AssetTransfersResult, TokenBalancesResult } from "./evm-responses";
 import { mapEvmBalances } from "./map-balances";
 import { mapTransfers } from "./map-transfers";
 import type { EvmRpcClient } from "./rpc";
+import { tokenContracts } from "./tokens";
 
 const TRANSFER_CATEGORIES = ["external", "internal", "erc20"] as const;
 
@@ -24,9 +25,14 @@ export class EvmReader {
     const normalized = ensureAddress(address);
     const nativeHex = await this.client.call<string>("eth_getBalance", [normalized, "latest"]);
 
+    // Always pass the registry contracts explicitly: the default address-only
+    // call caps at a top-N list that can omit the tokens we track.
     let tokens: TokenBalancesResult | null = null;
     if (this.client.enhanced) {
-      tokens = await this.client.call<TokenBalancesResult>("alchemy_getTokenBalances", [normalized]);
+      tokens = await this.client.call<TokenBalancesResult>("alchemy_getTokenBalances", [
+        normalized,
+        tokenContracts(this.chain),
+      ]);
     }
 
     return mapEvmBalances(this.chain, nativeHex, tokens, now);
@@ -40,22 +46,40 @@ export class EvmReader {
       );
     }
 
+    // Alchemy treats fromAddress + toAddress as an intersection (self-transfers
+    // only), so query each direction and merge.
+    const [outgoing, incoming] = await Promise.all([
+      this.transfers({ fromAddress: normalized }),
+      this.transfers({ toAddress: normalized }),
+    ]);
+    const transfers = [...outgoing, ...incoming];
+    // A self-transfer appears in both directions; dedupe on the unique id so a
+    // movement is never counted twice.
+    const seen = new Set<string>();
+    const unique = transfers.filter((transfer) => {
+      if (seen.has(transfer.uniqueId)) return false;
+      seen.add(transfer.uniqueId);
+      return true;
+    });
+
+    return mapTransfers(this.chain, unique, normalized)
+      .filter((movement) => movement.occurredOn >= since && (!until || movement.occurredOn <= until))
+      .sort((a, b) => (a.occurredOn < b.occurredOn ? 1 : a.occurredOn > b.occurredOn ? -1 : 0));
+  }
+
+  private async transfers(direction: { fromAddress?: string; toAddress?: string }): Promise<AssetTransfer[]> {
     const result = await this.client.call<AssetTransfersResult>("alchemy_getAssetTransfers", [
       {
         fromBlock: "0x0",
         toBlock: "latest",
-        fromAddress: normalized,
-        toAddress: normalized,
+        ...direction,
         category: [...TRANSFER_CATEGORIES],
         withMetadata: true,
         maxCount: "0x64",
         order: "desc",
       },
     ]);
-
-    return mapTransfers(this.chain, result.transfers, normalized)
-      .filter((movement) => movement.occurredOn >= since && (!until || movement.occurredOn <= until))
-      .sort((a, b) => (a.occurredOn < b.occurredOn ? 1 : a.occurredOn > b.occurredOn ? -1 : 0));
+    return result.transfers;
   }
 }
 
