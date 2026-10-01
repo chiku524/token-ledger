@@ -60,6 +60,21 @@ export function connectionStatusLabel(status: "pending" | "healthy" | "degraded"
   return "Disconnected";
 }
 
+export function syncRunStatusLabel(status: "running" | "ok" | "partial" | "failed" | "not_live"): string {
+  if (status === "ok") return "Read";
+  if (status === "running") return "Running";
+  if (status === "partial") return "Partial";
+  if (status === "not_live") return "Not live";
+  return "Failed";
+}
+
+export function syncRunTriggerLabel(trigger: "manual" | "scheduled" | "webhook" | "cli"): string {
+  if (trigger === "scheduled") return "Scheduled";
+  if (trigger === "webhook") return "Webhook";
+  if (trigger === "cli") return "Command line";
+  return "Manual";
+}
+
 export function venueLabel(venue: string): string {
   if (venue === "ethereum") return "Ethereum";
   if (venue === "solana") return "Solana";
@@ -102,6 +117,7 @@ const ACTION_LABELS: Record<string, string> = {
   "connection.tour_completed": "Connection tour finished",
   "connection.tour_reopened": "Connection tour opened again",
   "source_transactions.imported": "Activity imported",
+  "source_transactions.received": "Event received",
   "fx.recorded": "Rate saved",
   "auth.signed_in": "Signed in",
   "auth.sign_in_failed": "Sign-in failed",

@@ -1,8 +1,7 @@
 "use server";
 
-import { AdapterNotImplementedError, ConnectionClosedError, createVenueConnector, pullReadOnly, statusAfterSyncFailure, SYNC_NOT_LIVE, venueDefinition } from "@/adapters";
+import { createVenueConnector, venueDefinition } from "@/adapters";
 import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
-import { getConnectionCredential, openStoredCredential } from "@/db/credentials";
 import { custodianDefinition } from "@/adapters/sources/custodian/registry";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
@@ -11,6 +10,7 @@ import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { postFormJournal } from "@/data/journal-form";
 import { loadBooks } from "@/data/load-books";
+import { runConnectionSync, type SyncRunOutcome } from "@/data/run-sync";
 import { parseSourceTransactionCsv } from "@/data/source-csv";
 import {
   connectionFormSchema,
@@ -28,8 +28,6 @@ import {
   insertJournal,
   insertReversal,
   insertSourceTransactions,
-  recordSyncFailure,
-  recordSyncSuccess,
   revokeConnection,
 } from "@/db/write";
 import { toMinor } from "@/ledger";
@@ -128,39 +126,11 @@ export async function refreshConnectionAction(formData: FormData) {
   if (connection.status === "revoked") fail(path, "This connection is disconnected.");
   const linked = sourcesForConnection(books.sources, connection);
   if (linked.length === 0) fail(path, "This connection has no account to read.");
-  let live = true;
-  // An exchange credential is opened here, in server code, and never logged.
-  let exchangeCredential: ExchangeCredentialInput | undefined;
-  if (venueDefinition(connection.venue) || custodianDefinition(connection.venue)) {
-    const stored = await getConnectionCredential(session.organizationId, connection.id);
-    if (!stored) fail(path, "This exchange connection has no stored key. Re-enter it in Settings.");
-    exchangeCredential = openStoredCredential(stored);
-  }
+  let outcome: SyncRunOutcome | undefined;
   await save(path, async () => {
-    try {
-      const reads = [];
-      for (const source of linked) {
-        const pulled = await pullReadOnly(connection, source.identifier, connection.cursor ?? "1970-01-01", { exchangeCredential });
-        reads.push({ sourceId: source.id, balances: pulled.balances, movements: pulled.movements });
-      }
-      await recordSyncSuccess(books, connection.id, reads, actorName(session));
-    } catch (error) {
-      if (error instanceof ConnectionClosedError) throw new BooksWriteError(error.message);
-      if (error instanceof AdapterNotImplementedError) {
-        live = false;
-        await recordSyncFailure(
-          books,
-          connection.id,
-          statusAfterSyncFailure(connection.status),
-          SYNC_NOT_LIVE,
-          actorName(session),
-        );
-        return;
-      }
-      throw error;
-    }
+    outcome = await runConnectionSync(books, connection.id, { actor: actorName(session), trigger: "manual" });
   });
-  finish(path, live ? "Balances and movements were read." : SYNC_NOT_LIVE);
+  finish(path, outcome?.message ?? "Sync finished.");
 }
 
 export async function revokeConnectionAction(formData: FormData) {

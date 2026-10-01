@@ -84,6 +84,7 @@ function connection(
     cursor,
     lastSyncedAt: status === "pending" ? null : OBSERVED_AT,
     lastError: null,
+    nextAttemptAt: null,
   };
 }
 

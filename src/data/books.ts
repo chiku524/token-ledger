@@ -43,6 +43,8 @@ export interface BooksConnection {
   cursor: string | null;
   lastSyncedAt: string | null;
   lastError: string | null;
+  /** ISO time a backed-off connection is next due. Null means due now. */
+  nextAttemptAt: string | null;
 }
 
 export interface BooksSource {

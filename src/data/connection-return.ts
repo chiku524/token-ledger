@@ -1,6 +1,7 @@
 const CONNECTION_RETURNS = [
   "/dashboard/settings",
   "/dashboard/sources",
+  "/dashboard/operations",
   "/dashboard/setup",
   "/dashboard/setup?step=wallet",
   "/dashboard/setup?step=exchange",

@@ -12,6 +12,7 @@ const links = [
   { href: "/dashboard/reconciliation", label: "Matching" },
   { href: "/dashboard/reports", label: "Reports" },
   { href: "/dashboard/consolidation", label: "Combined" },
+  { href: "/dashboard/operations", label: "Operations" },
   { href: "/dashboard/audit", label: "History" },
 ];
 

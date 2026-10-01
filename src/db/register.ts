@@ -93,6 +93,7 @@ export async function registerOrganization(input: {
         cursor: null,
         lastSyncedAt: null,
         lastError: null,
+        nextAttemptAt: null,
       });
       await tx.insert(sources).values({
         id: sourceId,

@@ -88,6 +88,7 @@ export async function insertConnection(
       cursor: null,
       lastSyncedAt: null,
       lastError: null,
+      nextAttemptAt: null,
     });
     await tx.insert(sources).values({
       id: sourceId,
@@ -130,6 +131,7 @@ export async function recordSyncFailure(
   status: ConnectionStatus,
   lastError: string,
   actor: string,
+  nextAttemptAt: Date | null = null,
 ): Promise<void> {
   const connection = requireConnection(books, connectionId);
   if (connection.status === "revoked") throw new BooksWriteError("This connection is disconnected.");
@@ -137,7 +139,7 @@ export async function recordSyncFailure(
   await db.transaction(async (tx) => {
     await tx
       .update(connections)
-      .set({ status, lastError })
+      .set({ status, lastError, nextAttemptAt })
       .where(and(eq(connections.id, connection.id), eq(connections.organizationId, books.organization.id)));
     await tx.insert(auditEvents).values(auditRow(books, actor, "connection.sync_failed", "connection", connection.id, lastError));
   });
@@ -211,7 +213,7 @@ export async function recordSyncSuccess(
     }
     await tx
       .update(connections)
-      .set({ status: "healthy", lastError: null, lastSyncedAt: new Date(), cursor })
+      .set({ status: "healthy", lastError: null, lastSyncedAt: new Date(), nextAttemptAt: null, cursor })
       .where(and(eq(connections.id, connection.id), eq(connections.organizationId, books.organization.id)));
     await tx.insert(auditEvents).values(
       auditRow(books, actor, "connection.synced", "connection", connection.id, `Read ${connection.name}.`),
