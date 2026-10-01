@@ -123,7 +123,7 @@ Posted entries can be pushed to an external accounting system: Xero (manual jour
 
 Connections pull on a schedule, not only on a click. Every pull goes through one path (`runConnectionSync`) and leaves a row in `sync_runs` with its outcome, trigger, and counts. Raw adapter payloads are retained as JSONB for the most recent runs and then age out. A failing connection is retried with a growing backoff (5m, 30m, 2h, 6h) and marked degraded after a failure that follows a success.
 
-- Vercel Cron calls `GET /api/cron/sync` every 15 minutes (see `vercel.json`). With `CRON_SECRET` set, the route requires it as a bearer token; Vercel sends it automatically. Without a database the pass is a no-op.
+- Vercel Cron calls `GET /api/cron/sync` on the schedule in `vercel.json` (once daily at 03:00 UTC, which fits the Hobby plan). On Pro, tighten it to `*/15 * * * *` to match the in-code interval. Any scheduler that can send the bearer token can call the route instead. With `CRON_SECRET` set, the route requires it as a bearer token; Vercel sends it automatically. Without a database the pass is a no-op.
 - `pnpm sync:run` runs the same pass locally — all organizations, or one with `pnpm sync:run <ORG_ID> --all` to ignore the interval and backoff.
 - **Operations** in the dashboard shows each connection's last run, counts, error, and health, with failing connections first, and offers a manual re-run.
 

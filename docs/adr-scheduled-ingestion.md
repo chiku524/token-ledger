@@ -29,11 +29,13 @@ Callers differ only in the `trigger` they record.
 - On a failure the connection stores `next_attempt_at`; a success clears it.
   A manual run ignores the backoff.
 
-Vercel Cron calls `GET /api/cron/sync` on the same 15-minute schedule
-(`vercel.json`). The route is guarded by `CRON_SECRET` as a bearer token when
-that variable is set; Vercel sends it automatically. The pass is a no-op without
-`DATABASE_URL`, so a demo deploy stays quiet. `pnpm sync:run` runs the same pass
-locally, for one organization or all of them.
+Vercel Cron calls `GET /api/cron/sync`. The committed `vercel.json` schedules it
+once daily, because the Hobby plan only permits a daily cron; on Pro the schedule
+can be tightened to `*/15 * * * *` to match `DEFAULT_SYNC_INTERVAL_MS`. The route
+is guarded by `CRON_SECRET` as a bearer token when that variable is set; Vercel
+sends it automatically. Any other scheduler can call the same route. The pass is
+a no-op without `DATABASE_URL`, so a demo deploy stays quiet. `pnpm sync:run`
+runs the same pass locally, for one organization or all of them.
 
 Backoff changes the connection's status through the existing
 `statusAfterSyncFailure`: a first failure stays `pending`, a failure after a
