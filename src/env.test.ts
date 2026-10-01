@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authSecretConfigured, readDatabaseUrl } from "./env";
+import { authSecretConfigured, readDatabaseUrl, readSolanaRpcUrl, SOLANA_PUBLIC_RPC_URL } from "./env";
 
 describe("authSecretConfigured", () => {
   it("requires at least 32 characters", () => {
@@ -19,5 +19,21 @@ describe("readDatabaseUrl", () => {
     expect(readDatabaseUrl({ DATABASE_URL: "postgres://localhost/token_ledger" })).toBe("postgres://localhost/token_ledger");
     expect(readDatabaseUrl({ DATABASE_URL: "postgresql://localhost/token_ledger" })).toContain("postgresql://");
     expect(() => readDatabaseUrl({ DATABASE_URL: "mysql://localhost/token_ledger" })).toThrow(/postgres/i);
+  });
+});
+
+describe("readSolanaRpcUrl", () => {
+  it("falls back to the keyless public cluster", () => {
+    expect(readSolanaRpcUrl({})).toBe(SOLANA_PUBLIC_RPC_URL);
+    expect(readSolanaRpcUrl({ SOLANA_RPC_URL: "  " })).toBe(SOLANA_PUBLIC_RPC_URL);
+  });
+
+  it("accepts an https override and requires https", () => {
+    expect(readSolanaRpcUrl({ SOLANA_RPC_URL: "https://solana-mainnet.example.com" })).toBe("https://solana-mainnet.example.com");
+    expect(() => readSolanaRpcUrl({ SOLANA_RPC_URL: "http://solana-mainnet.example.com" })).toThrow(/https/i);
+  });
+
+  it("rejects credentials embedded in the URL", () => {
+    expect(() => readSolanaRpcUrl({ SOLANA_RPC_URL: "https://user:secret@example.com" })).toThrow(/credentials/i);
   });
 });
