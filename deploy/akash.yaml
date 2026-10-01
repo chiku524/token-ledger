@@ -1,0 +1,54 @@
+# Akash SDL v2.0 (issue #100). Optional container host; the supported target is
+# Vercel. This is a starting point — review resources and price before a real
+# deploy, and never commit secrets here.
+#
+# Build and push the image first (see docs/adr-container-deployment.md):
+#   docker build -t ghcr.io/OWNER/token-ledger:latest .
+#   docker push ghcr.io/OWNER/token-ledger:latest
+#
+# Then deploy, supplying the secrets through the provider's secret store rather
+# than inline in this file:
+#   provider-services tx deployment create deploy/akash.yaml --from <key>
+
+version: "2.0"
+
+services:
+  web:
+    image: ghcr.io/OWNER/token-ledger:latest
+    expose:
+      - port: 3000
+        as: 80
+        to:
+          - global: true
+    # Secrets are NOT committed. Supply them at deploy time (Akash provider
+    # secret store or an encrypted env) and keep only non-secret values here.
+    env:
+      - DATABASE_URL=
+      - AUTH_SECRET=
+      - CONNECTOR_ENCRYPTION_KEY=
+      - CRON_SECRET=
+      - WEBHOOK_SIGNING_SECRET=
+      - NODE_ENV=production
+
+profiles:
+  compute:
+    web:
+      resources:
+        cpu:
+          units: 1.0
+        memory:
+          size: 1Gi
+        storage:
+          - size: 2Gi
+  placement:
+    dcloud:
+      pricing:
+        web:
+          denom: uakt
+          amount: 10000
+
+deployment:
+  web:
+    dcloud:
+      profile: web
+      count: 1

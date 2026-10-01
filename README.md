@@ -112,6 +112,14 @@ Exchange connectors are live and read-only for Kraken, Bybit, Binance, Gate.io, 
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 
+**Optional: containers.** For a crypto-native or neutral host (Akash, Spheron, Flux), a committed `Dockerfile` and `deploy/akash.yaml` build and run the app unchanged — a container is real Linux, so `postgres` and the Node crypto work as-is, with no Workers-style rewrite. The standalone output is enabled only with `DEPLOY_TARGET=container`, so the Vercel build is unaffected. See `docs/adr-container-deployment.md`.
+
+```bash
+DEPLOY_TARGET=container pnpm build
+docker build -t token-ledger .
+docker run -p 3000:3000 -e DATABASE_URL=... -e AUTH_SECRET=... token-ledger
+```
+
 Report pages can download a trial balance, journal, or reconciliation CSV for the selected period. The export route is `/dashboard/reports/export`.
 
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
