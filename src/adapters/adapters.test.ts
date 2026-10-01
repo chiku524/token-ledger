@@ -26,23 +26,18 @@ const batch = {
 describe("adapters", () => {
   it("lists the still-unimplemented connectors", () => {
     const systems = listStubAdapters().map((adapter) => adapter.system);
-    expect(systems).toEqual(["Ethereum", "Polygon", "exchange", "custodian", "xero", "quickbooks", "erp"]);
+    expect(systems).toEqual(["exchange", "custodian", "xero", "quickbooks", "erp"]);
     expect(listStubAdapters().every((adapter) => adapter.implemented === false)).toBe(true);
   });
 
-  it("lists Solana as a live connector", () => {
-    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Solana"]);
+  it("lists the live chain connectors", () => {
+    expect(listLiveAdapters().map((adapter) => adapter.system)).toEqual(["Ethereum", "Solana", "Polygon"]);
     expect(listLiveAdapters().every((adapter) => adapter.implemented === true)).toBe(true);
   });
 
-  it("does not call fetch or read credentials", async () => {
+  it("does not call fetch or read credentials for stubs", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network should not be used"));
-    const adapters = [
-      new EthereumChainAdapter(),
-      new PolygonChainAdapter(),
-      new ExchangeSourceAdapter(),
-      new CustodianSourceAdapter(),
-    ];
+    const adapters = [new ExchangeSourceAdapter(), new CustodianSourceAdapter()];
 
     for (const adapter of adapters) {
       await expect(adapter.fetchTransactions(query)).rejects.toBeInstanceOf(AdapterNotImplementedError);
@@ -66,13 +61,21 @@ describe("adapters", () => {
     await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
   });
 
-  it("pulls through the stub and does not call the network", async () => {
+  it("exposes Ethereum and Polygon as implemented and validates the address", async () => {
+    for (const adapter of [new EthereumChainAdapter(), new PolygonChainAdapter()]) {
+      expect(adapter.implemented).toBe(true);
+      expect(adapter.descriptor.implemented).toBe(true);
+      await expect(adapter.fetchBalances({ since: "2026-04-01" })).rejects.toThrow(/address is required/i);
+    }
+  });
+
+  it("pulls through a stub and does not call the network", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network should not be used"));
     await expect(
-      pullReadOnly({ mode: "watch", venue: "ethereum", status: "pending" }, "0xabc", "2026-04-01"),
+      pullReadOnly({ mode: "exchange_read", venue: "exchange", status: "pending" }, "acct", "2026-04-01"),
     ).rejects.toBeInstanceOf(AdapterNotImplementedError);
     await expect(
-      pullReadOnly({ mode: "watch", venue: "ethereum", status: "revoked" }, "0xabc", "2026-04-01"),
+      pullReadOnly({ mode: "exchange_read", venue: "exchange", status: "revoked" }, "acct", "2026-04-01"),
     ).rejects.toBeInstanceOf(ConnectionClosedError);
     expect(statusAfterSyncFailure("healthy")).toBe("degraded");
     expect(statusAfterSyncFailure("pending")).toBe("pending");

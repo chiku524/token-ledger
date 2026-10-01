@@ -46,3 +46,37 @@ export function readSolanaRpcUrl(
   }
   return url;
 }
+
+/**
+ * Optional. An Alchemy API key unlocks EVM token balances and transfers. Unset
+ * falls back to a keyless public RPC for native balances only. Read-only; no
+ * signing key is involved. See docs/adr-evm-data-source.md.
+ */
+export function readAlchemyApiKey(
+  env: { ALCHEMY_API_KEY?: string } = { ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY },
+): string | null {
+  const raw = env.ALCHEMY_API_KEY;
+  if (raw === undefined || raw.trim() === "") return null;
+  return raw.trim();
+}
+
+/**
+ * Optional per-chain override. `chain` is a chain key such as `ethereum`, read
+ * from `EVM_RPC_URL_ETHEREUM`. Must be https and must not embed credentials.
+ */
+export function readEvmRpcUrl(
+  chain: string,
+  env: { [key: string]: string | undefined } = process.env,
+): string | null {
+  const key = `EVM_RPC_URL_${chain.toUpperCase()}`;
+  const raw = env[key];
+  if (raw === undefined || raw.trim() === "") return null;
+  const url = raw.trim();
+  if (!/^https:\/\//i.test(url)) {
+    throw new Error(`${key} must be an https:// URL.`);
+  }
+  if (new URL(url).username !== "" || new URL(url).password !== "") {
+    throw new Error(`${key} must not embed credentials in the URL.`);
+  }
+  return url;
+}
