@@ -19,7 +19,7 @@ import { BitcoinReader } from "./bitcoin/reader";
 import { SolanaReader } from "./solana/reader";
 import { SolanaRpcClient } from "./solana/rpc";
 import { SuiReader } from "./sui/reader";
-import { SuiRpcClient, type SuiRpcClientOptions } from "./sui/rpc";
+import { SuiGraphqlClient, type SuiGraphqlClientOptions } from "./sui/rpc";
 
 export interface EvmChainAdapterOptions {
   reader?: EvmReader;
@@ -175,7 +175,7 @@ export class BitcoinChainAdapter implements ChainSourceAdapter {
 
 export interface SuiChainAdapterOptions {
   reader?: SuiReader;
-  rpc?: SuiRpcClientOptions;
+  graphql?: SuiGraphqlClientOptions;
 }
 
 export class SuiChainAdapter implements ChainSourceAdapter {
@@ -199,7 +199,7 @@ export class SuiChainAdapter implements ChainSourceAdapter {
   /** Built lazily so listing adapters never requires a configured endpoint. */
   private get reader(): SuiReader {
     if (!this.cachedReader) {
-      this.cachedReader = this.options.reader ?? new SuiReader(new SuiRpcClient(this.options.rpc));
+      this.cachedReader = this.options.reader ?? new SuiReader(new SuiGraphqlClient(this.options.graphql));
     }
     return this.cachedReader;
   }

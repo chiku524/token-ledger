@@ -107,15 +107,15 @@ export function readBitcoinEsploraUrl(
 export const SUI_PUBLIC_GRAPHQL_URL = "https://graphql.mainnet.sui.io/graphql";
 
 /**
- * Optional. A Sui JSON-RPC endpoint (Alchemy by default when ALCHEMY_API_KEY is
- * set) or the public GraphQL endpoint. Overrides the default transport URL.
+ * Optional. A Sui GraphQL endpoint. Unset uses the keyless public endpoint
+ * (`https://graphql.mainnet.sui.io/graphql`) or a provider via this variable.
  * Must be https with no embedded credentials.
  */
-export function readSuiRpcUrl(
+export function readSuiGraphqlUrl(
   env: { SUI_RPC_URL?: string } = { SUI_RPC_URL: process.env.SUI_RPC_URL },
-): string | null {
+): string {
   const raw = env.SUI_RPC_URL;
-  if (raw === undefined || raw.trim() === "") return null;
+  if (raw === undefined || raw.trim() === "") return SUI_PUBLIC_GRAPHQL_URL;
   const url = raw.trim();
   if (!/^https:\/\//i.test(url)) {
     throw new Error("SUI_RPC_URL must be an https:// URL.");

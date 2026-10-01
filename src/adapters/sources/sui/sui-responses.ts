@@ -1,26 +1,43 @@
-/** Shapes of the Sui JSON-RPC responses the reader consumes. */
+/** Shapes of the Sui GraphQL responses the reader consumes. */
 
-export interface SuiCoinBalance {
-  coinType: string;
-  coinObjectCount: number;
-  totalBalance: string;
-  lockedBalance?: Record<string, string>;
+export interface SuiGraphqlCoinType {
+  repr: string;
 }
 
-export interface SuiBalanceChange {
-  owner: { AddressOwner?: string; ObjectOwner?: string; Shared?: unknown; Immutable?: unknown };
-  coinType: string;
+export interface SuiGraphqlBalanceNode {
+  coinType: SuiGraphqlCoinType;
+  totalBalance: string;
+}
+
+export interface SuiGraphqlBalancesResult {
+  address: {
+    balances: {
+      nodes: SuiGraphqlBalanceNode[];
+    };
+  } | null;
+}
+
+export interface SuiGraphqlBalanceChangeNode {
+  owner: { address: string } | null;
+  coinType: SuiGraphqlCoinType;
   amount: string;
 }
 
-export interface SuiTransactionBlock {
+export interface SuiGraphqlTransactionNode {
   digest: string;
-  timestampMs: string | null;
-  balanceChanges: SuiBalanceChange[] | null;
+  effects: {
+    timestamp: string | null;
+    balanceChanges: {
+      nodes: SuiGraphqlBalanceChangeNode[];
+    } | null;
+  } | null;
 }
 
-export interface SuiQueryResult {
-  data: SuiTransactionBlock[];
-  nextCursor: string | null;
-  hasNextPage: boolean;
+export interface SuiGraphqlTransactionsResult {
+  address: {
+    transactions: {
+      pageInfo: { hasPreviousPage: boolean; startCursor: string | null };
+      nodes: SuiGraphqlTransactionNode[];
+    };
+  } | null;
 }

@@ -98,7 +98,7 @@ Environment variables:
 - `ALCHEMY_API_KEY` — optional. Unlocks EVM ERC-20 balances and transfers for Ethereum and Polygon. Unset falls back to a keyless public RPC for native balances only.
 - `EVM_RPC_URL_ETHEREUM`, `EVM_RPC_URL_POLYGON` — optional per-chain EVM RPC overrides. `https://` only, no embedded credentials.
 - `BITCOIN_ESPLORA_URL` — optional. A self-hosted Esplora instance or Blockstream. Unset uses the keyless mempool.space API. `https://` only, no embedded credentials.
-- `SUI_RPC_URL` — optional. A Sui endpoint. Unset uses Alchemy (when `ALCHEMY_API_KEY` is set). Note: Sui JSON-RPC is deprecated on Sui Foundation nodes; a GraphQL migration is a known follow-up (see `docs/adr-sui-data-source.md`).
+- `SUI_RPC_URL` — optional. A Sui GraphQL endpoint. Unset uses the keyless public endpoint (`https://graphql.mainnet.sui.io/graphql`). Uses GraphQL because Sui Foundation removed JSON-RPC from its public nodes (see `docs/adr-sui-data-source.md`).
 
 Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin|sui] [ADDRESS]`.
 
@@ -106,7 +106,7 @@ CSV import expects a header of `external_id,occurred_on,asset_code,direction,qua
 
 Do not add chain, exchange, custodian, Xero, or QuickBooks credentials. A connection stores an address or account id, the scopes `balances,movements`, a status, and a sync cursor. It does not store an API key. The chain readers are live and read-only: they call JSON-RPC and never sign. Every other adapter in `src/adapters` throws before making a network call. Checking a connection records the outcome. It does not post a journal. Observed balances are separate from booked value.
 
-The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or balance changes (EVM, Sui) for a watched address. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, `docs/adr-bitcoin-data-source.md`, and `docs/adr-sui-data-source.md` for the endpoint choices and rate limits.
+The chain readers return native and registered token balances as observed balances, and derive movements from the net change (Solana, Bitcoin) or balance changes (EVM, Sui) for a watched address. Sui reads through GraphQL, since JSON-RPC was removed from Sui's public nodes. Bitcoin has no token layer, so only BTC is modelled, and a transaction's change is cancelled by the net calculation. Unknown tokens are skipped rather than guessed; registries (`src/adapters/sources/solana/mints.ts`, `src/adapters/sources/evm/tokens.ts`) map well-known tokens to an asset code. See `docs/adr-solana-data-source.md`, `docs/adr-evm-data-source.md`, `docs/adr-bitcoin-data-source.md`, and `docs/adr-sui-data-source.md` for the endpoint choices and rate limits.
 
 On Vercel, import this repo as a Next.js project. Set `DATABASE_URL` when you attach Postgres (Neon via the Vercel Marketplace is a straightforward fit). The example UI still renders if that variable is unset.
 

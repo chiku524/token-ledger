@@ -1,68 +1,50 @@
 /**
- * Minimal read-only Sui JSON-RPC client. It only ever POSTs read methods.
- * There is no signing and no executeTransactionBlock path. Sui Foundation has
- * deprecated JSON-RPC on its public nodes; a managed provider serves it, and
- * SUI_RPC_URL can point elsewhere. See docs/adr-sui-data-source.md.
+ * Minimal read-only Sui GraphQL client.
+ *
+ * Sui Foundation disabled JSON-RPC on its public nodes (week of July 27, 2026;
+ * full removal mid-October 2026). This client uses the public, keyless GraphQL
+ * endpoint instead, which is the documented migration target. It only ever
+ * issues read queries; there is no mutation or signing path.
+ *
+ * See docs/adr-sui-data-source.md.
  */
-import { readAlchemyApiKey, readSuiRpcUrl } from "@/env";
+import { readSuiGraphqlUrl } from "@/env";
 
-export class SuiRpcError extends Error {
-  readonly code: number | null;
+export class SuiGraphqlError extends Error {
   readonly httpStatus: number | null;
 
-  constructor(message: string, options: { code?: number | null; httpStatus?: number | null } = {}) {
+  constructor(message: string, options: { httpStatus?: number | null } = {}) {
     super(message);
-    this.name = "SuiRpcError";
-    this.code = options.code ?? null;
+    this.name = "SuiGraphqlError";
     this.httpStatus = options.httpStatus ?? null;
   }
 }
 
-export interface SuiRpcClientOptions {
+export interface SuiGraphqlClientOptions {
   url?: string;
-  apiKey?: string | null;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 20_000;
 
-export function resolveSuiEndpoint(options: { url?: string; apiKey?: string | null } = {}): string | null {
-  if (options.url) return options.url;
-  const override = readSuiRpcUrl();
-  if (override) return override;
-  const apiKey = options.apiKey === undefined ? readAlchemyApiKey() : options.apiKey;
-  if (apiKey) return `https://sui-mainnet.g.alchemy.com/v2/${apiKey}`;
-  return null;
+interface GraphqlResponse<T> {
+  data?: T | null;
+  errors?: Array<{ message: string }>;
 }
 
-interface JsonRpcResponse<T> {
-  jsonrpc: "2.0";
-  id: number;
-  result?: T;
-  error?: { code: number; message: string };
-}
-
-export class SuiRpcClient {
-  private readonly url: string;
+export class SuiGraphqlClient {
+  readonly url: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
-  private nextId = 1;
 
-  constructor(options: SuiRpcClientOptions = {}) {
-    const endpoint = resolveSuiEndpoint(options);
-    if (!endpoint) {
-      throw new SuiRpcError(
-        "No Sui endpoint. Set ALCHEMY_API_KEY (Sui is served by Alchemy) or SUI_RPC_URL.",
-      );
-    }
-    this.url = endpoint;
+  constructor(options: SuiGraphqlClientOptions = {}) {
+    this.url = options.url ?? readSuiGraphqlUrl();
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  async call<T>(method: string, params: unknown[] = []): Promise<T> {
-    const id = this.nextId++;
+  async query<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -71,12 +53,12 @@ export class SuiRpcClient {
       response = await this.fetchImpl(this.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+        body: JSON.stringify({ query, variables }),
         signal: controller.signal,
       });
     } catch (error) {
       const reason = error instanceof Error && error.name === "AbortError" ? "timed out" : "failed";
-      throw new SuiRpcError(`Sui RPC request for ${method} ${reason}.`);
+      throw new SuiGraphqlError(`Sui GraphQL request ${reason}.`);
     } finally {
       clearTimeout(timer);
     }
@@ -84,18 +66,18 @@ export class SuiRpcClient {
     if (!response.ok) {
       const retryAfter = response.headers.get("retry-after");
       const suffix = response.status === 429 && retryAfter ? ` Retry after ${retryAfter}s.` : "";
-      throw new SuiRpcError(`Sui RPC returned HTTP ${response.status} for ${method}.${suffix}`, {
+      throw new SuiGraphqlError(`Sui GraphQL returned HTTP ${response.status}.${suffix}`, {
         httpStatus: response.status,
       });
     }
 
-    const body = (await response.json()) as JsonRpcResponse<T>;
-    if (body.error) {
-      throw new SuiRpcError(`Sui RPC error for ${method}: ${body.error.message}`, { code: body.error.code });
+    const body = (await response.json()) as GraphqlResponse<T>;
+    if (body.errors && body.errors.length > 0) {
+      throw new SuiGraphqlError(`Sui GraphQL error: ${body.errors.map((error) => error.message).join("; ")}`);
     }
-    if (body.result === undefined) {
-      throw new SuiRpcError(`Sui RPC returned no result for ${method}.`);
+    if (body.data === undefined || body.data === null) {
+      throw new SuiGraphqlError("Sui GraphQL returned no data.");
     }
-    return body.result;
+    return body.data;
   }
 }

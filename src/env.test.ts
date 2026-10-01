@@ -7,7 +7,9 @@ import {
   readDatabaseUrl,
   readEvmRpcUrl,
   readSolanaRpcUrl,
+  readSuiGraphqlUrl,
   SOLANA_PUBLIC_RPC_URL,
+  SUI_PUBLIC_GRAPHQL_URL,
 } from "./env";
 
 describe("authSecretConfigured", () => {
@@ -78,5 +80,18 @@ describe("readBitcoinEsploraUrl", () => {
   it("requires https and rejects credentials", () => {
     expect(() => readBitcoinEsploraUrl({ BITCOIN_ESPLORA_URL: "http://esplora.example.com" })).toThrow(/https/i);
     expect(() => readBitcoinEsploraUrl({ BITCOIN_ESPLORA_URL: "https://u:p@esplora.example.com" })).toThrow(/credentials/i);
+  });
+});
+
+describe("readSuiGraphqlUrl", () => {
+  it("falls back to the keyless public GraphQL endpoint", () => {
+    expect(readSuiGraphqlUrl({})).toBe(SUI_PUBLIC_GRAPHQL_URL);
+    expect(readSuiGraphqlUrl({ SUI_RPC_URL: "  " })).toBe(SUI_PUBLIC_GRAPHQL_URL);
+  });
+
+  it("accepts an https override and rejects http or credentials", () => {
+    expect(readSuiGraphqlUrl({ SUI_RPC_URL: "https://sui.example.com/graphql" })).toBe("https://sui.example.com/graphql");
+    expect(() => readSuiGraphqlUrl({ SUI_RPC_URL: "http://sui.example.com" })).toThrow(/https/i);
+    expect(() => readSuiGraphqlUrl({ SUI_RPC_URL: "https://u:p@sui.example.com" })).toThrow(/credentials/i);
   });
 });

@@ -1,13 +1,14 @@
 /**
- * Map Sui JSON-RPC responses onto the ledger's normalized adapter types.
- * Known coin types are mapped; unknown ones are skipped. A zero native balance
- * is a real observation.
+ * Map Sui GraphQL responses onto the ledger's normalized adapter types.
+ * Known coin types are resolved through the registry (package ids are
+ * canonicalized, so a zero-padded id matches a short one). Unknown coins are
+ * skipped. A zero native balance is a real observation.
  */
 import { formatMinor } from "@/ledger";
 import type { NormalizedBalance, NormalizedSourceTransaction } from "../../types";
-import { signedDecimalToMinorUnits, decimalStringToMinorUnits } from "./amounts";
+import { decimalStringToMinorUnits, signedDecimalToMinorUnits } from "./amounts";
 import { normalizeCoinType, resolveSuiCoin, SUI_COIN_TYPE, suiCoinByCode } from "./coins";
-import type { SuiCoinBalance, SuiTransactionBlock } from "./sui-responses";
+import type { SuiGraphqlBalanceNode, SuiGraphqlTransactionNode } from "./sui-responses";
 
 export interface SuiHolding {
   assetCode: string;
@@ -18,20 +19,17 @@ export interface SuiHolding {
 }
 
 export function mapSuiBalances(
-  balances: readonly SuiCoinBalance[],
+  nodes: readonly SuiGraphqlBalanceNode[],
   now: Date = new Date(),
 ): NormalizedBalance[] {
   const asOf = now.toISOString();
   const byCode = new Map<string, bigint>();
 
-  for (const balance of balances) {
-    const coin = resolveSuiCoin(balance.coinType);
+  for (const node of nodes) {
+    const coin = resolveSuiCoin(node.coinType.repr);
     if (!coin) continue;
-    const amount = decimalStringToMinorUnits(balance.totalBalance);
-    if (amount === 0n) {
-      // Keep a real zero only for native SUI; skip zero-value spam coins.
-      if (normalizeCoinType(balance.coinType) !== SUI_COIN_TYPE) continue;
-    }
+    const amount = decimalStringToMinorUnits(node.totalBalance);
+    if (amount === 0n && normalizeCoinType(node.coinType.repr) !== SUI_COIN_TYPE) continue;
     byCode.set(coin.code, (byCode.get(coin.code) ?? 0n) + amount);
   }
 
@@ -60,29 +58,31 @@ export function describeSuiHoldings(balances: readonly NormalizedBalance[]): Sui
  * watched address. A self-transfer nets to zero and is skipped.
  */
 export function mapSuiTransactions(
-  blocks: readonly SuiTransactionBlock[],
+  nodes: readonly SuiGraphqlTransactionNode[],
   watchedAddress: string,
 ): NormalizedSourceTransaction[] {
   const watched = watchedAddress.toLowerCase();
   const movements: NormalizedSourceTransaction[] = [];
 
-  for (const block of blocks) {
-    if (!block.timestampMs) continue;
+  for (const node of nodes) {
+    const effects = node.effects;
+    if (!effects || !effects.timestamp) continue;
+
     const byCode = new Map<string, bigint>();
-    for (const change of block.balanceChanges ?? []) {
-      const owner = change.owner?.AddressOwner?.toLowerCase();
-      if (owner !== watched) continue;
-      const coin = resolveSuiCoin(change.coinType);
+    for (const change of effects.balanceChanges?.nodes ?? []) {
+      // Balance changes cover every owner in the transaction; keep only ours.
+      if (change.owner?.address?.toLowerCase() !== watched) continue;
+      const coin = resolveSuiCoin(change.coinType.repr);
       if (!coin) continue;
       const amount = signedDecimalToMinorUnits(change.amount);
       byCode.set(coin.code, (byCode.get(coin.code) ?? 0n) + amount);
     }
 
-    const occurredOn = new Date(Number(block.timestampMs)).toISOString().slice(0, 10);
+    const occurredOn = new Date(effects.timestamp).toISOString().slice(0, 10);
     for (const [assetCode, delta] of byCode) {
       if (delta === 0n) continue;
       movements.push({
-        externalId: `${block.digest}:${assetCode}`,
+        externalId: `${node.digest}:${assetCode}`,
         occurredOn,
         assetCode,
         direction: delta > 0n ? "in" : "out",
