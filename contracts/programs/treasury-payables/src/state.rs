@@ -115,6 +115,18 @@ pub enum GovernanceKind {
     EmergencyExit,
 }
 
+impl GovernanceKind {
+    /// A stable seed byte so an unpause, a policy change and an exit can each
+    /// exist at the same policy version without colliding on the same PDA.
+    pub fn seed_byte(self) -> u8 {
+        match self {
+            GovernanceKind::PolicyChange => 0,
+            GovernanceKind::Unpause => 1,
+            GovernanceKind::EmergencyExit => 2,
+        }
+    }
+}
+
 /// A per-day spending counter. `day` is the fixed UTC day index; a new day
 /// resets the counter.
 #[account]

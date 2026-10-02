@@ -639,6 +639,7 @@ pub struct PauseExecution<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(kind: GovernanceKind)]
 pub struct ProposeGovernance<'info> {
     #[account(mut)]
     pub actor: Signer<'info>,
@@ -647,7 +648,7 @@ pub struct ProposeGovernance<'info> {
         init,
         payer = actor,
         space = 8 + GovernanceProposal::INIT_SPACE,
-        seeds = [seeds::GOVERNANCE_PROPOSAL, treasury.key().as_ref(), treasury.policy_version.to_le_bytes().as_ref()],
+        seeds = [seeds::GOVERNANCE_PROPOSAL, treasury.key().as_ref(), treasury.policy_version.to_le_bytes().as_ref(), &[kind.seed_byte()]],
         bump
     )]
     pub governance: Box<Account<'info, GovernanceProposal>>,
