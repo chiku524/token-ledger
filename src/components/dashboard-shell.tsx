@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { signOutAction } from "@/app/sign-in/actions";
 import type { SessionUser } from "@/auth/current";
@@ -56,9 +57,9 @@ export function DashboardShell({
           {scopeLabel ? <p className="mt-1 text-xs text-ink-soft">{scopeLabel}</p> : null}
           <form action={signOutAction} className="mt-3">
             <input type="hidden" name="csrf" value={csrf} />
-            <button type="submit" className="btn-secondary">
+            <SubmitButton variant="secondary">
               Sign out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </aside>

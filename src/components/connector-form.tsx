@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { createConnectionAction } from "@/app/dashboard/actions";
 import type { Books, ConnectionMode } from "@/data/books";
 import { listVenues } from "@/adapters";
@@ -134,9 +135,9 @@ export function ConnectorForm({
         </>
       ) : null}
       <div className="md:col-span-2">
-        <button type="submit" className="btn">
+        <SubmitButton>
           Add connection
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

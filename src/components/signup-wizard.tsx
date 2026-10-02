@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signUpAction } from "@/app/sign-up/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { WATCH_VENUES } from "@/data/connections";
 
 const STEPS = ["Account", "Company", "Connections", "Review"] as const;
@@ -230,9 +231,9 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
             {step === 2 ? "Review" : "Continue"}
           </button>
         ) : (
-          <button type="submit" className="btn">
+          <SubmitButton pendingLabel="Creating account…">
             Create account
-          </button>
+          </SubmitButton>
         )}
       </div>
     </form>

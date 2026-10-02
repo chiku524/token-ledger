@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { can } from "@/auth/roles";
 import { PageHeader } from "@/components/page-header";
@@ -66,9 +67,9 @@ export default async function AuditPage({
           <input name="to" type="date" defaultValue={filter.to} />
         </label>
         <div className="flex flex-wrap items-center gap-3 md:col-span-5">
-          <button type="submit" className="btn">
+          <SubmitButton>
             Filter
-          </button>
+          </SubmitButton>
           <Link href="/dashboard/audit" className="text-sm underline">
             Clear
           </Link>
