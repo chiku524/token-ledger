@@ -285,21 +285,26 @@ pub fn revoke_mandate(ctx: Context<ControllerOnVault>) -> Result<()> {
     Ok(())
 }
 
-/// Replace the mandate with a new signed term set. Increments the vault
-/// generation; preserves paid-through so overlapping coverage is never
-/// charged twice.
+/// Replace the mandate with a new signed term set, in place. Preserves the
+/// PDA and paid-through time so overlapping coverage is never charged twice,
+/// and increments the mandate generation. The cumulative debit carries over, so
+/// the lifetime cap is not reset by a replacement (a cap increase requires a
+/// fresh signature with a higher cap).
 pub fn replace_mandate(
     ctx: Context<ReplaceMandate>,
     max_total_debit: u64,
     authorization_expiry: i64,
 ) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
-    let plan = &ctx.accounts.plan;
-    let old = &ctx.accounts.old_mandate;
-    require!(old.vault == ctx.accounts.vault.key(), BillingError::WrongMerchant);
+    let plan_merchant = ctx.accounts.plan.merchant;
+    let vault_key = ctx.accounts.vault.key();
+    let old = &ctx.accounts.mandate;
+    require!(old.vault == vault_key, BillingError::WrongMerchant);
     require!(!old.revoked, BillingError::MandateRevoked);
-    require!(plan.merchant == ctx.accounts.vault.merchant, BillingError::WrongMerchant);
-    require!(max_total_debit >= plan.price, BillingError::CapExceeded);
+    require!(plan_merchant == ctx.accounts.vault.merchant, BillingError::WrongMerchant);
+    // The new cap must cover what was already debited plus at least one period.
+    let floor = old.total_debited.checked_add(ctx.accounts.plan.price).ok_or(BillingError::MathOverflow)?;
+    require!(max_total_debit >= floor, BillingError::CapExceeded);
     require!(authorization_expiry > now, BillingError::MandateExpired);
     require!(old.paid_through > now, BillingError::NotYetDue);
     require!(
@@ -315,19 +320,26 @@ pub fn replace_mandate(
         .ok_or(BillingError::MathOverflow)?;
     ctx.accounts.vault.generation = generation;
 
-    let mandate = &mut ctx.accounts.new_mandate;
-    mandate.bump = ctx.bumps.new_mandate;
-    mandate.vault = ctx.accounts.vault.key();
-    mandate.plan = plan.key();
-    mandate.merchant = plan.merchant;
-    mandate.price = plan.price;
-    mandate.period_seconds = plan.period_seconds;
+    let old = &ctx.accounts.mandate;
+    let old_start = old.start_time;
+    let old_next_cycle = old.next_cycle;
+    let old_paid_through = old.paid_through;
+    let old_bump = old.bump;
+    let old_total_debited = old.total_debited;
+
+    let mandate = &mut ctx.accounts.mandate;
+    mandate.bump = old_bump;
+    mandate.vault = vault_key;
+    mandate.plan = ctx.accounts.plan.key();
+    mandate.merchant = plan_merchant;
+    mandate.price = ctx.accounts.plan.price;
+    mandate.period_seconds = ctx.accounts.plan.period_seconds;
     mandate.max_total_debit = max_total_debit;
-    mandate.start_time = old.start_time;
+    mandate.start_time = old_start;
     mandate.authorization_expiry = authorization_expiry;
-    mandate.total_debited = 0;
-    mandate.next_cycle = old.next_cycle;
-    mandate.paid_through = old.paid_through;
+    mandate.total_debited = old_total_debited;
+    mandate.next_cycle = old_next_cycle;
+    mandate.paid_through = old_paid_through;
     mandate.revoked = false;
     mandate.generation = generation;
     emit!(MandateReplaced {
@@ -557,7 +569,7 @@ pub struct ActivateMandate<'info> {
         init,
         payer = controller,
         space = 8 + Mandate::INIT_SPACE,
-        seeds = [seeds::MANDATE, vault.key().as_ref(), vault.generation.to_le_bytes().as_ref()],
+        seeds = [seeds::MANDATE, vault.key().as_ref()],
         bump
     )]
     pub mandate: Account<'info, Mandate>,
@@ -622,7 +634,6 @@ pub struct ControllerOnVault<'info> {
 
 #[derive(Accounts)]
 pub struct ReplaceMandate<'info> {
-    #[account(mut)]
     pub controller: Signer<'info>,
     #[account(
         mut,
@@ -630,14 +641,12 @@ pub struct ReplaceMandate<'info> {
     )]
     pub vault: Account<'info, BillingVault>,
     pub plan: Account<'info, PlanVersion>,
-    pub old_mandate: Account<'info, Mandate>,
+    /// The current mandate, replaced in place. A replacement never creates a
+    /// second mandate, so overlapping coverage cannot be charged twice.
     #[account(
-        init,
-        payer = controller,
-        space = 8 + Mandate::INIT_SPACE,
-        seeds = [seeds::MANDATE, vault.key().as_ref(), vault.generation.to_le_bytes().as_ref()],
-        bump
+        mut,
+        seeds = [seeds::MANDATE, vault.key().as_ref()],
+        bump = mandate.bump,
     )]
-    pub new_mandate: Account<'info, Mandate>,
-    pub system_program: Program<'info, System>,
+    pub mandate: Account<'info, Mandate>,
 }

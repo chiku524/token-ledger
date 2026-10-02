@@ -55,11 +55,6 @@
               {
                 "kind": "account",
                 "path": "vault"
-              },
-              {
-                "kind": "account",
-                "path": "vault.generation",
-                "account": "BillingVault"
               }
             ]
           }
@@ -605,7 +600,6 @@
       "accounts": [
         {
           "name": "controller",
-          "writable": true,
           "signer": true,
           "relations": [
             "vault"
@@ -619,10 +613,11 @@
           "name": "plan"
         },
         {
-          "name": "old_mandate"
-        },
-        {
-          "name": "new_mandate",
+          "name": "mandate",
+          "docs": [
+            "The current mandate, replaced in place. A replacement never creates a",
+            "second mandate, so overlapping coverage cannot be charged twice."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -641,18 +636,9 @@
               {
                 "kind": "account",
                 "path": "vault"
-              },
-              {
-                "kind": "account",
-                "path": "vault.generation",
-                "account": "BillingVault"
               }
             ]
           }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [

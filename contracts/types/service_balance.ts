@@ -61,11 +61,6 @@ export type ServiceBalance = {
               {
                 "kind": "account",
                 "path": "vault"
-              },
-              {
-                "kind": "account",
-                "path": "vault.generation",
-                "account": "billingVault"
               }
             ]
           }
@@ -611,7 +606,6 @@ export type ServiceBalance = {
       "accounts": [
         {
           "name": "controller",
-          "writable": true,
           "signer": true,
           "relations": [
             "vault"
@@ -625,10 +619,11 @@ export type ServiceBalance = {
           "name": "plan"
         },
         {
-          "name": "oldMandate"
-        },
-        {
-          "name": "newMandate",
+          "name": "mandate",
+          "docs": [
+            "The current mandate, replaced in place. A replacement never creates a",
+            "second mandate, so overlapping coverage cannot be charged twice."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -647,18 +642,9 @@ export type ServiceBalance = {
               {
                 "kind": "account",
                 "path": "vault"
-              },
-              {
-                "kind": "account",
-                "path": "vault.generation",
-                "account": "billingVault"
               }
             ]
           }
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
