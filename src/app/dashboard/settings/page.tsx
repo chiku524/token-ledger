@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can, roleLabel } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { SectionHeader } from "@/components/app/section-header";
+import { connectionStatusTone, StatusBadge } from "@/components/app/status-badge";
+import { TableCard } from "@/components/app/table-card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectorForm } from "@/components/connector-form";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
@@ -33,41 +39,42 @@ export default async function SettingsPage({
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
-      <section className="panel p-4">
-        <h2 className="text-lg font-semibold tracking-tight">Account</h2>
-        <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-          <div>
-            <dt className="text-ink-soft">Name</dt>
-            <dd className="mt-1">{session.name}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-soft">Email</dt>
-            <dd className="mt-1">{session.email}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-soft">Role</dt>
-            <dd className="mt-1">{roleLabel(session.role)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-soft">Organization</dt>
-            <dd className="mt-1">{books.organization.name}</dd>
-          </div>
-        </dl>
-      </section>
+      <Card>
+        <CardContent className="grid gap-4">
+          <h2 className="text-lg font-semibold tracking-tight">Account</h2>
+          <dl className="grid gap-3 text-sm md:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Name</dt>
+              <dd className="mt-1">{session.name}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Email</dt>
+              <dd className="mt-1">{session.email}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Role</dt>
+              <dd className="mt-1">{roleLabel(session.role)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Organization</dt>
+              <dd className="mt-1">{books.organization.name}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
       <section id="connections" className="mt-10 scroll-mt-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">Connections</h2>
-          {canSource ? (
-            <Link href="/dashboard/setup" className="text-sm underline">
-              Open the connection steps
-            </Link>
-          ) : null}
-        </div>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          Add a wallet, an exchange, or a custodian here. One connection can cover several accounts. Scopes stay at
-          balances and movements. No API key is stored.
-        </p>
+        <SectionHeader
+          title="Connections"
+          description="Add a wallet, an exchange, or a custodian here. One connection can cover several accounts. Scopes stay at balances and movements. No API key is stored."
+          action={
+            canSource ? (
+              <Link href="/dashboard/setup" className="text-sm text-link underline">
+                Open the connection steps
+              </Link>
+            ) : undefined
+          }
+        />
         {!writable && canSource ? <div className="mt-4"><ReadOnlyNote demo={session.demo} /></div> : null}
         {!canSource ? (
           <div className="mt-4">
@@ -75,57 +82,57 @@ export default async function SettingsPage({
           </div>
         ) : null}
         {books.connections.length === 0 ? (
-          <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No connections yet.</p>
+          <EmptyState className="mt-4">No connections yet.</EmptyState>
         ) : (
-          <div className="mt-4 overflow-x-auto panel">
-            <table className="ledger-table">
+          <TableCard>
+            <Table>
               <caption className="sr-only">Read-only connections</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Company</th>
-                  <th scope="col">Connection</th>
-                  <th scope="col">Access</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Last checked</th>
-                  {canSource && writable ? <th scope="col">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Connection</TableHead>
+                  <TableHead>Access</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last checked</TableHead>
+                  {canSource && writable ? <TableHead>Actions</TableHead> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {books.connections.map((connection) => {
                   const accounts = books.sources.filter((source) => source.connectionId === connection.id);
                   return (
-                    <tr key={connection.id}>
-                      <td>{entityName(connection.entityId, books.entities)}</td>
-                      <td>
+                    <TableRow key={connection.id}>
+                      <TableCell>{entityName(connection.entityId, books.entities)}</TableCell>
+                      <TableCell>
                         <span className="block">{connection.name}</span>
-                        <span className="mt-1 block text-xs text-ink-soft">
+                        <span className="mt-1 block text-xs text-muted-foreground">
                           {accounts.length === 0 ? "No account yet" : accounts.map((source) => source.name).join(", ")}
                         </span>
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <span className="block">{connectionModeLabel(connection.mode)}</span>
-                        <span className="mt-1 block text-xs text-ink-soft">
+                        <span className="mt-1 block text-xs text-muted-foreground">
                           {venueLabel(connection.venue)} · {scopeLabel(connection.scopes)}
                         </span>
-                      </td>
-                      <td>
-                        <span className={connection.status === "healthy" ? "text-pine" : connection.status === "degraded" ? "text-seal" : "text-ink-soft"}>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge tone={connectionStatusTone(connection.status)}>
                           {connectionStatusLabel(connection.status)}
-                        </span>
-                        {connection.lastError ? <span className="mt-1 block text-xs text-seal">{connection.lastError}</span> : null}
-                      </td>
-                      <td>{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</td>
+                        </StatusBadge>
+                        {connection.lastError ? <span className="mt-1 block text-xs text-danger">{connection.lastError}</span> : null}
+                      </TableCell>
+                      <TableCell>{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</TableCell>
                       {canSource && writable ? (
-                        <td>
+                        <TableCell>
                           <ConnectionControls connectionId={connection.id} csrf={csrf} revoked={connection.status === "revoked"} />
-                        </td>
+                        </TableCell>
                       ) : null}
-                    </tr>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </TableCard>
         )}
       </section>
 
@@ -161,7 +168,7 @@ export default async function SettingsPage({
         </div>
       ) : null}
       {canSource && books.entities.length === 0 ? (
-        <p className="mt-8 text-sm text-ink-soft">Add a company before connecting a wallet, exchange, or custodian.</p>
+        <p className="mt-8 text-sm text-muted-foreground">Add a company before connecting a wallet, exchange, or custodian.</p>
       ) : null}
     </>
   );

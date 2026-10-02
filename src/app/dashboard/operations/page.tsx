@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { StatusBadge, type StatusTone } from "@/components/app/status-badge";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { ConnectionControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadOperations } from "@/data/load-operations";
@@ -10,11 +16,11 @@ import { one } from "@/data/query";
 
 export const metadata = { title: "Operations" };
 
-const LEVEL_CLASS: Record<string, string> = {
-  attention: "text-seal",
-  waiting: "text-ink-soft",
-  ok: "text-pine",
-  disconnected: "text-ink-soft",
+const LEVEL_TONE: Record<string, StatusTone> = {
+  attention: "danger",
+  waiting: "neutral",
+  ok: "success",
+  disconnected: "neutral",
 };
 
 export default async function OperationsPage({
@@ -36,86 +42,88 @@ export default async function OperationsPage({
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
-      <section className="panel p-4">
-        <h2 className="text-lg font-semibold tracking-tight">How scheduled sync works</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          A scheduler pulls every due connection on an interval and records each run here. A run that fails is retried with
-          a growing backoff, and a connection that keeps failing is marked degraded. Every pull is read-only and never posts
-          a journal. Each run keeps its counts; raw payloads are retained for the most recent runs and then age out.
-        </p>
-        <p className="mt-2 text-sm text-ink-soft">
-          {queuedEvents === 0
-            ? "No signed events are waiting to be matched."
-            : `${queuedEvents} signed ${queuedEvents === 1 ? "event is" : "events are"} waiting to be matched.`}
-        </p>
-      </section>
+      <Card>
+        <CardContent className="grid gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">How scheduled sync works</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            A scheduler pulls every due connection on an interval and records each run here. A run that fails is retried with
+            a growing backoff, and a connection that keeps failing is marked degraded. Every pull is read-only and never posts
+            a journal. Each run keeps its counts; raw payloads are retained for the most recent runs and then age out.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {queuedEvents === 0
+              ? "No signed events are waiting to be matched."
+              : `${queuedEvents} signed ${queuedEvents === 1 ? "event is" : "events are"} waiting to be matched.`}
+          </p>
+        </CardContent>
+      </Card>
 
       {rows.length === 0 ? (
-        <p className="mt-8 panel px-4 py-6 text-sm text-ink-soft">
+        <EmptyState className="mt-8">
           No connections yet. Add one in{" "}
-          <Link href="/dashboard/settings" className="underline">
+          <Link href="/dashboard/settings" className="text-link underline">
             Settings
           </Link>
           .
-        </p>
+        </EmptyState>
       ) : (
-        <div className="mt-8 overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard className="mt-8">
+          <Table>
             <caption className="sr-only">Connector health</caption>
-            <thead>
-              <tr>
-                <th scope="col">Company</th>
-                <th scope="col">Connection</th>
-                <th scope="col">Health</th>
-                <th scope="col">Last run</th>
-                <th scope="col" className="num">Balances</th>
-                <th scope="col" className="num">Movements</th>
-                <th scope="col">When</th>
-                {writable && canSource ? <th scope="col">Actions</th> : null}
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company</TableHead>
+                <TableHead>Connection</TableHead>
+                <TableHead>Health</TableHead>
+                <TableHead>Last run</TableHead>
+                <NumberHead>Balances</NumberHead>
+                <NumberHead>Movements</NumberHead>
+                <TableHead>When</TableHead>
+                {writable && canSource ? <TableHead>Actions</TableHead> : null}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map(({ connection, health, lastRun }) => (
-                <tr key={connection.id}>
-                  <td>{entityName(connection.entityId, entities)}</td>
-                  <td>
+                <TableRow key={connection.id}>
+                  <TableCell>{entityName(connection.entityId, entities)}</TableCell>
+                  <TableCell>
                     <span className="block">{connection.name}</span>
-                    <span className="mt-1 block text-xs text-ink-soft">
+                    <span className="mt-1 block text-xs text-muted-foreground">
                       {venueLabel(connection.venue)} · {syncRunStatusLabel(lastRun?.status ?? "running")}
                     </span>
-                  </td>
-                  <td>
-                    <span className={LEVEL_CLASS[health.level]}>{health.label}</span>
-                    {connection.lastError ? <span className="mt-1 block text-xs text-seal">{connection.lastError}</span> : null}
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge tone={LEVEL_TONE[health.level] ?? "neutral"}>{health.label}</StatusBadge>
+                    {connection.lastError ? <span className="mt-1 block text-xs text-danger">{connection.lastError}</span> : null}
+                  </TableCell>
+                  <TableCell>
                     {lastRun ? (
                       <span className="block">
                         {syncRunTriggerLabel(lastRun.trigger)} · {syncRunStatusLabel(lastRun.status)}
                       </span>
                     ) : (
-                      <span className="text-ink-soft">Never</span>
+                      <span className="text-muted-foreground">Never</span>
                     )}
-                    {lastRun?.error ? <span className="mt-1 block text-xs text-seal">{lastRun.error}</span> : null}
-                  </td>
-                  <td className="num">{lastRun?.balancesRead ?? "—"}</td>
-                  <td className="num">{lastRun?.movementsRead ?? "—"}</td>
-                  <td>{lastRun ? lastRun.startedAt.toISOString().slice(0, 16).replace("T", " ") : "—"}</td>
+                    {lastRun?.error ? <span className="mt-1 block text-xs text-danger">{lastRun.error}</span> : null}
+                  </TableCell>
+                  <NumberCell>{lastRun?.balancesRead ?? "—"}</NumberCell>
+                  <NumberCell>{lastRun?.movementsRead ?? "—"}</NumberCell>
+                  <NumberCell align="left">{lastRun ? lastRun.startedAt.toISOString().slice(0, 16).replace("T", " ") : "—"}</NumberCell>
                   {writable && canSource ? (
-                    <td>
+                    <TableCell>
                       <ConnectionControls
                         connectionId={connection.id}
                         csrf={csrf}
                         revoked={connection.status === "revoked"}
                         next="/dashboard/operations"
                       />
-                    </td>
+                    </TableCell>
                   ) : null}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       {!writable ? <div className="mt-4"><ReadOnlyNote /></div> : null}

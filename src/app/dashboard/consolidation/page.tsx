@@ -1,4 +1,13 @@
-import Link from "next/link";
+import { EmptyState } from "@/components/app/empty-state";
+import { SectionHeader } from "@/components/app/section-header";
+import { SegmentedLinks } from "@/components/app/segmented-links";
+import { StatusBadge } from "@/components/app/status-badge";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
+import { Flash } from "@/components/flash";
+import { Alert } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
 import { ensureCsrf } from "@/auth/current";
@@ -57,61 +66,52 @@ export default async function ConsolidationPage({
         title="Combined"
         description="Each company keeps its own currency until this page. Amounts are converted with the saved rate on or before the end date. Sample rates are not a market price."
       />
-      {!parsed.ok ? (
-        <p role="alert" className="mb-6 text-sm text-seal">
-          {parsed.message}
-        </p>
-      ) : null}
-      <nav aria-label="Currency" className="mb-6 flex flex-wrap gap-2">
-        {currencies.map((currency) => {
-          const current = currency === presentation;
-          return (
-            <Link
-              key={currency}
-              href={`/dashboard/consolidation?currency=${currency}&from=${range.from}&to=${range.to}`}
-              aria-current={current ? "page" : undefined}
-              className={`rounded-lg border px-3 py-2 text-sm ${current ? "border-transparent bg-lime text-on-lime" : "border-line bg-paper-raised"}`}
-            >
-              Show in {currency}
-            </Link>
-          );
-        })}
-      </nav>
+      <Flash error={parsed.ok ? undefined : parsed.message} />
+      <SegmentedLinks
+        label="Currency"
+        className="mb-6"
+        items={currencies.map((currency) => ({
+          key: currency,
+          href: `/dashboard/consolidation?currency=${currency}&from=${range.from}&to=${range.to}`,
+          label: `Show in ${currency}`,
+          current: currency === presentation,
+        }))}
+      />
       <PeriodForm path="/dashboard/consolidation" range={range} hidden={{ currency: presentation }} />
 
       <section>
-        <h2 className="text-lg font-semibold tracking-tight">Rates</h2>
+        <SectionHeader title="Rates" />
         {books.fxRates.length === 0 ? (
-          <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">
+          <EmptyState className="mt-4">
             No exchange rates are saved, so only companies already in {presentation} can be included.
-          </p>
+          </EmptyState>
         ) : (
-          <div className="mt-4 overflow-x-auto panel">
-            <table className="ledger-table">
+          <TableCard>
+            <Table>
               <caption className="sr-only">Saved exchange rates</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Rate</th>
-                  <th scope="col">As of</th>
-                  <th scope="col">Origin</th>
-                  <th scope="col">Note</th>
-                </tr>
-              </thead>
-              <tbody>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>As of</TableHead>
+                  <TableHead>Origin</TableHead>
+                  <TableHead>Note</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {books.fxRates.map((rate) => (
-                  <tr key={rate.id}>
-                    <td>
+                  <TableRow key={rate.id}>
+                    <TableCell>
                       {formatFxRate(rate)}
-                      <span className="mt-1 block text-xs text-ink-soft">{formatInverseRate(rate)} · exact inverse</span>
-                    </td>
-                    <td className="num text-left">{rate.asOf}</td>
-                    <td className="capitalize">{rate.origin}</td>
-                    <td>{rate.note}</td>
-                  </tr>
+                      <span className="mt-1 block text-xs text-muted-foreground">{formatInverseRate(rate)} · exact inverse</span>
+                    </TableCell>
+                    <NumberCell align="left">{rate.asOf}</NumberCell>
+                    <TableCell className="capitalize">{rate.origin}</TableCell>
+                    <TableCell>{rate.note}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </TableCard>
         )}
         {canFx ? (
           <>
@@ -122,110 +122,117 @@ export default async function ConsolidationPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="text-lg font-semibold tracking-tight">Companies in this view</h2>
+        <SectionHeader title="Companies in this view" />
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
           {group.entities.map((entity) => (
-            <li key={entity.entityId} className="panel p-4">
-              <p className="font-medium">{entity.entityName}</p>
-              <p className={`mt-1 text-sm ${entity.included ? "text-pine" : "text-seal"}`}>
-                {entity.included ? "Included" : "Left out"} · {entity.functionalCurrency}
-              </p>
-              <p className="mt-2 text-sm text-ink-soft">{entity.rateLabel}</p>
+            <li key={entity.entityId}>
+              <Card>
+                <CardContent>
+                  <p className="font-medium">{entity.entityName}</p>
+                  <p className="mt-2">
+                    <StatusBadge tone={entity.included ? "success" : "danger"}>
+                      {entity.included ? "Included" : "Left out"} · {entity.functionalCurrency}
+                    </StatusBadge>
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">{entity.rateLabel}</p>
+                </CardContent>
+              </Card>
             </li>
           ))}
         </ul>
       </section>
 
       <section className="mt-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Combined balances · {presentation}</h2>
-          <p className="text-sm text-pine">
-            Debits equal credits
-            {group.rows.length > 0 ? ` · ${formatMoney(group.debitTotal, presentation)}` : ""}
-          </p>
-        </div>
-        <div className="mt-4 overflow-x-auto panel">
-          <table className="ledger-table">
+        <SectionHeader
+          title={`Combined balances · ${presentation}`}
+          action={
+            <StatusBadge tone="success">
+              Debits equal credits
+              {group.rows.length > 0 ? ` · ${formatMoney(group.debitTotal, presentation)}` : ""}
+            </StatusBadge>
+          }
+        />
+        <TableCard>
+          <Table>
             <caption className="sr-only">Combined balances in {presentation}</caption>
-            <thead>
-              <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Account</th>
-                <th scope="col" className="num">Debit</th>
-                <th scope="col" className="num">Credit</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Account</TableHead>
+                <NumberHead>Debit</NumberHead>
+                <NumberHead>Credit</NumberHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {group.rows.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>Nothing to combine for these dates.</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={4}>Nothing to combine for these dates.</TableCell>
+                </TableRow>
               ) : (
                 group.rows.map((row) => (
-                  <tr key={row.code}>
-                    <td className="num text-left">{row.code}</td>
-                    <td>{row.name}</td>
-                    <td className="num">{row.debitMinor > 0n ? formatMoney(row.debitMinor, presentation) : ""}</td>
-                    <td className="num">{row.creditMinor > 0n ? formatMoney(row.creditMinor, presentation) : ""}</td>
-                  </tr>
+                  <TableRow key={row.code}>
+                    <NumberCell align="left">{row.code}</NumberCell>
+                    <TableCell>{row.name}</TableCell>
+                    <NumberCell>{row.debitMinor > 0n ? formatMoney(row.debitMinor, presentation) : ""}</NumberCell>
+                    <NumberCell>{row.creditMinor > 0n ? formatMoney(row.creditMinor, presentation) : ""}</NumberCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold tracking-tight">IAS 21 translation · {presentation}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          Assets and liabilities at the closing rate ({range.to}), income and expense at the average rate ({range.from}),
-          with the difference booked to a translation reserve. The reserve is derived here, not stored.
-        </p>
+        <SectionHeader
+          title={`IAS 21 translation · ${presentation}`}
+          description={`Assets and liabilities at the closing rate (${range.to}), income and expense at the average rate (${range.from}), with the difference booked to a translation reserve. The reserve is derived here, not stored.`}
+        />
         {ias21.entities.some((entity) => !entity.included) ? (
-          <p role="alert" className="mt-3 max-w-2xl rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal">
+          <Alert variant="destructive" className="mt-3 max-w-2xl">
             {ias21.entities.filter((entity) => !entity.included).map((entity) => `${entity.entityName}: ${entity.detail}`).join(" ")}
-          </p>
+          </Alert>
         ) : null}
-        <div className="mt-4 overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard>
+          <Table>
             <caption className="sr-only">IAS 21 translated balances in {presentation}</caption>
-            <thead>
-              <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Account</th>
-                <th scope="col" className="num">Debit</th>
-                <th scope="col" className="num">Credit</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Account</TableHead>
+                <NumberHead>Debit</NumberHead>
+                <NumberHead>Credit</NumberHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {ias21.rows.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>Nothing to translate, or a rate is missing.</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={4}>Nothing to translate, or a rate is missing.</TableCell>
+                </TableRow>
               ) : (
                 ias21.rows.map((row) => (
-                  <tr key={`ias21_${row.code}`}>
-                    <td className="num text-left">{row.code}</td>
-                    <td>{row.name}</td>
-                    <td className="num">{row.debitMinor > 0n ? formatMoney(row.debitMinor, presentation) : ""}</td>
-                    <td className="num">{row.creditMinor > 0n ? formatMoney(row.creditMinor, presentation) : ""}</td>
-                  </tr>
+                  <TableRow key={`ias21_${row.code}`}>
+                    <NumberCell align="left">{row.code}</NumberCell>
+                    <TableCell>{row.name}</TableCell>
+                    <NumberCell>{row.debitMinor > 0n ? formatMoney(row.debitMinor, presentation) : ""}</NumberCell>
+                    <NumberCell>{row.creditMinor > 0n ? formatMoney(row.creditMinor, presentation) : ""}</NumberCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
+            </TableBody>
             {ias21.rows.length > 0 ? (
-              <tfoot>
-                <tr>
-                  <th scope="row" colSpan={2}>
+              <TableFooter>
+                <TableRow>
+                  <TableHead colSpan={2}>
                     Debits equal credits
-                  </th>
-                  <td className="num">{formatMoney(ias21.debitTotal, presentation)}</td>
-                  <td className="num">{formatMoney(ias21.creditTotal, presentation)}</td>
-                </tr>
-              </tfoot>
+                  </TableHead>
+                  <NumberCell>{formatMoney(ias21.debitTotal, presentation)}</NumberCell>
+                  <NumberCell>{formatMoney(ias21.creditTotal, presentation)}</NumberCell>
+                </TableRow>
+              </TableFooter>
             ) : null}
-          </table>
-        </div>
+          </Table>
+        </TableCard>
       </section>
     </>
   );
