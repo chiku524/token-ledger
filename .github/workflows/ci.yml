@@ -2,7 +2,13 @@ name: CI
 
 on:
   push:
+    # The Solana contracts workspace is a separate project with its own
+    # toolchain; a change that only touches it must not run or deploy the app CI.
+    paths-ignore:
+      - "contracts/**"
   pull_request:
+    paths-ignore:
+      - "contracts/**"
 
 jobs:
   check:
