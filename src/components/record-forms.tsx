@@ -1,5 +1,6 @@
 import {
   approveDraftAction,
+  closePeriodAction,
   createEntityAction,
   createFxRateAction,
   importCsvAction,
@@ -106,6 +107,51 @@ export function ConnectionControls({
         </button>
       </form>
     </div>
+  );
+}
+
+export function PeriodCloseForm({
+  entities,
+  csrf,
+  defaultDate,
+}: {
+  entities: readonly { id: string; name: string }[];
+  csrf: string;
+  defaultDate: string;
+}) {
+  if (entities.length === 0) return null;
+  return (
+    <form action={closePeriodAction} className="mt-4 grid gap-3 panel p-4 md:grid-cols-4">
+      <input type="hidden" name="csrf" value={csrf} />
+      <h3 className="text-sm font-semibold tracking-tight md:col-span-4">Close a period</h3>
+      <label className="field">
+        <span>Company</span>
+        <select name="entityId" required defaultValue={entities[0]?.id}>
+          {entities.map((entity) => (
+            <option key={entity.id} value={entity.id}>
+              {entity.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>From</span>
+        <input name="periodStart" type="date" required defaultValue={defaultDate} />
+      </label>
+      <label className="field">
+        <span>To</span>
+        <input name="periodEnd" type="date" required defaultValue={defaultDate} />
+      </label>
+      <label className="field">
+        <span>Note</span>
+        <input name="note" required maxLength={200} placeholder="Why this is closed" />
+      </label>
+      <div className="md:col-span-4">
+        <button type="submit" className="btn">
+          Close period
+        </button>
+      </div>
+    </form>
   );
 }
 

@@ -1,6 +1,7 @@
 import { StatusBars, StatusDonut } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
-import { MatchControls, ReadOnlyNote, RoleNote, UnmatchControls } from "@/components/record-forms";
+import { MatchControls, PeriodCloseForm, ReadOnlyNote, RoleNote, UnmatchControls } from "@/components/record-forms";
+import { reopenPeriodAction } from "@/app/dashboard/actions";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { PageHeader } from "@/components/page-header";
@@ -13,7 +14,7 @@ import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { ledgerQuantityMovements } from "@/ledger";
-import { formatQuantity, movementLabel, sourceName } from "@/data/present";
+import { entityName, formatQuantity, movementLabel, sourceName } from "@/data/present";
 
 export const metadata = { title: "Matching" };
 
@@ -40,6 +41,12 @@ export default async function ReconciliationPage({
   const movements = ledgerQuantityMovements(books.journalEntries);
   const referenceOf = (entryId: string) => books.journalEntries.find((entry) => entry.id === entryId)?.reference ?? entryId;
   const transactionById = new Map(books.sourceTransactions.map((transaction) => [transaction.id, transaction]));
+  const canClose = can(session.role, "period.close");
+  let locks: Array<{ id: string; entityId: string; periodStart: string; periodEnd: string; note: string }> = [];
+  if (writable && canMatch) {
+    const { listPeriodLocks } = await import("@/db/period-locks");
+    locks = await listPeriodLocks(session.organizationId);
+  }
 
   return (
     <>
@@ -136,6 +143,56 @@ export default async function ReconciliationPage({
           </div>
         </>
       )}
+
+      {writable && canMatch ? (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold tracking-tight">Period close</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+            A closed period cannot be posted to, reversed, or re-matched until it is reopened. Closing is for an owner or
+            admin.
+          </p>
+          {locks.length > 0 ? (
+            <div className="mt-4 overflow-x-auto panel">
+              <table className="ledger-table">
+                <caption className="sr-only">Closed periods</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Company</th>
+                    <th scope="col">From</th>
+                    <th scope="col">To</th>
+                    <th scope="col">Note</th>
+                    {canClose ? <th scope="col">Action</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {locks.map((lock) => (
+                    <tr key={lock.id}>
+                      <td>{entityName(lock.entityId, books.entities)}</td>
+                      <td>{lock.periodStart}</td>
+                      <td>{lock.periodEnd}</td>
+                      <td>{lock.note}</td>
+                      {canClose ? (
+                        <td>
+                          <form action={reopenPeriodAction}>
+                            <input type="hidden" name="csrf" value={csrf} />
+                            <input type="hidden" name="lockId" value={lock.id} />
+                            <button type="submit" className="btn-secondary">
+                              Reopen
+                            </button>
+                          </form>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No periods are closed.</p>
+          )}
+          {canClose ? <PeriodCloseForm entities={books.entities} csrf={csrf} defaultDate={range.to} /> : null}
+        </section>
+      ) : null}
     </>
   );
 }

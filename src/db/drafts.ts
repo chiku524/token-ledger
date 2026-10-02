@@ -7,6 +7,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { blocksSelfApproval } from "@/auth/roles";
 import { getDb } from "./client";
+import { assertPeriodOpen } from "./period-locks";
 import {
   accounts,
   assets,
@@ -176,6 +177,7 @@ export async function approveDraft(input: {
     if (!draft) throw new DraftError("That draft does not exist.");
     if (draft.status !== "pending") throw new DraftError("Only a pending draft can be approved.");
     if (draft.postedEntryId) throw new DraftError("That draft is already posted.");
+    await assertPeriodOpen(input.organizationId, draft.entityId, draft.entryDate);
     const selfApproval = blocksSelfApproval(draft.preparedBy, input.approverActor, input.overrideNote ?? null);
     if (selfApproval) throw new DraftError("The preparer cannot approve their own entry without an owner's override note.");
     if (input.overrideNote && input.approverRole !== "owner") {

@@ -85,6 +85,20 @@
       "when": 1790903470929,
       "tag": "0011_clear_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790904706097,
+      "tag": "0012_clear_ozymandias",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790904821698,
+      "tag": "0013_steep_gabe_jones",
+      "breakpoints": true
     }
   ]
 }

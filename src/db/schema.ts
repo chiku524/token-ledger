@@ -455,6 +455,32 @@ export const reconciliationOverrides = pgTable(
 );
 
 /**
+ * A closed date range per entity. Posting, reversing, and reconciliation changes
+ * dated inside a closed period are refused until an owner or admin reopens it.
+ */
+export const periodLocks = pgTable(
+  "period_locks",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    periodStart: date("period_start").notNull(),
+    periodEnd: date("period_end").notNull(),
+    note: text("note").notNull(),
+    actor: text("actor").notNull(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("period_locks_entity_idx").on(table.entityId, table.periodStart, table.periodEnd),
+    check("period_locks_range", sql`${table.periodStart} <= ${table.periodEnd}`),
+  ],
+);
+
+/**
  * One major unit of baseCurrency equals numerator / 10^scale major units of quoteCurrency.
  * Example rows are labelled origin = example and are not a market price.
  */

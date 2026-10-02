@@ -11,6 +11,7 @@ import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { draftFromForm, postFormJournal } from "@/data/journal-form";
 import { approveDraft, createDraft, submitDraft } from "@/db/drafts";
 import { matchReconciliation, unmatchReconciliation } from "@/db/reconciliation";
+import { assertPeriodOpen, closePeriod, reopenPeriod } from "@/db/period-locks";
 import { loadBooks } from "@/data/load-books";
 import { refreshAssetPrices, refreshFxRates } from "@/data/market-data";
 import { revaluationForEntity } from "@/data/valuation";
@@ -250,6 +251,35 @@ export async function postJournalAction(formData: FormData) {
   finish(path, "Entry posted. Posted entries are not edited. Post a correction if one is wrong.");
 }
 
+/** Close a period for a company. Owner or admin only. */
+export async function closePeriodAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "period.close", formData);
+  requireWritable(path, session);
+  const entityId = String(formData.get("entityId") ?? "");
+  const periodStart = String(formData.get("periodStart") ?? "");
+  const periodEnd = String(formData.get("periodEnd") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const books = await loadBooks(session.organizationId);
+  const entity = books.entities.find((item) => item.id === entityId);
+  if (!entity) fail(path, "Choose a company in this organization.");
+  assertEntityOrFail(path, session, entityId);
+  await save(path, () =>
+    closePeriod({ organizationId: session.organizationId, entityId, periodStart, periodEnd, note, actor: actorName(session) }),
+  );
+  finish(path, "Period closed. Posting, reversing, and matching in these dates are refused until it is reopened.");
+}
+
+/** Reopen a closed period by id. Owner or admin only. */
+export async function reopenPeriodAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "period.close", formData);
+  requireWritable(path, session);
+  const lockId = String(formData.get("lockId") ?? "");
+  await save(path, () => reopenPeriod(session.organizationId, lockId, actorName(session)));
+  finish(path, "Period reopened.");
+}
+
 /** Pair a source transaction with a journal line, clearing an exception. */
 export async function matchReconciliationAction(formData: FormData) {
   const path = "/dashboard/reconciliation";
@@ -266,6 +296,7 @@ export async function matchReconciliationAction(formData: FormData) {
   const lineNumber = Number(lineNumberText);
   const entry = books.journalEntries.find((item) => item.id === entryId);
   if (!entry || !Number.isInteger(lineNumber)) fail(path, "Choose a journal line to match.");
+  await save(path, () => assertPeriodOpen(session.organizationId, transaction.entityId, transaction.occurredOn));
   await save(path, () =>
     matchReconciliation({
       organizationId: session.organizationId,
@@ -291,6 +322,7 @@ export async function unmatchReconciliationAction(formData: FormData) {
   const transaction = books.sourceTransactions.find((item) => item.id === sourceTransactionId);
   if (!transaction) fail(path, "That activity is not in this organization.");
   assertEntityOrFail(path, session, transaction.entityId);
+  await save(path, () => assertPeriodOpen(session.organizationId, transaction.entityId, transaction.occurredOn));
   await save(path, () =>
     unmatchReconciliation({
       organizationId: session.organizationId,
