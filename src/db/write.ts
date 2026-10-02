@@ -8,6 +8,7 @@ import type { ParsedSourceTransaction } from "@/data/source-csv";
 import { splitKnownAssets } from "@/data/sync-assets";
 import { LedgerError, reverseJournalEntry, type PostedJournalEntry } from "@/ledger";
 import { getDb } from "./client";
+import { assertPeriodOpen } from "./period-locks";
 import {
   accounts,
   assetPrices,
@@ -253,6 +254,7 @@ export async function insertJournal(books: Books, entry: PostedJournalEntry, act
   if (books.journalEntries.some((existing) => existing.entityId === entry.entityId && existing.reference === entry.reference)) {
     throw new BooksWriteError(`Reference ${entry.reference} is already used for this company.`);
   }
+  await assertPeriodOpen(books.organization.id, entry.entityId, entry.entryDate);
   await persistEntry(books, entry, actor, "journal.posted", null);
 }
 
@@ -263,6 +265,7 @@ export async function insertReversal(books: Books, entryId: string, input: { ref
     throw new LedgerError("DUPLICATE_ID", `${original.reference} already has a correction.`);
   }
   const reversal = reverseJournalEntry(original, { id: newId("je"), ...input });
+  await assertPeriodOpen(books.organization.id, original.entityId, input.entryDate);
   await persistEntry(books, reversal, actor, "journal.reversed", original.id);
 }
 

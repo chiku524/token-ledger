@@ -6,7 +6,7 @@ export type {
   ReconciliationCounts,
   SourceCarryMeta,
 } from "./charts";
-export { journalCsv, reconciliationCsv, toCsv, trialBalanceCsv } from "./csv";
+export { auditCsv, journalCsv, reconciliationCsv, toCsv, trialBalanceCsv } from "./csv";
 export {
   appliedRateLabel,
   consolidateTrialBalances,

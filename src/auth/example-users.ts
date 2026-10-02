@@ -33,6 +33,13 @@ export const EXAMPLE_USERS: readonly {
     password: "Harbourline-accountant-1",
   },
   {
+    email: "approver@harbourline.example",
+    name: "Farid Ismail",
+    role: "approver",
+    entityScope: [],
+    password: "Harbourline-approver-1",
+  },
+  {
     email: "viewer@harbourline.example",
     name: "David Ong",
     role: "viewer",

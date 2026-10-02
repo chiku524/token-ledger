@@ -1,13 +1,19 @@
 import {
+  approveDraftAction,
+  closePeriodAction,
   createEntityAction,
   createFxRateAction,
   importCsvAction,
   postJournalAction,
   postRevaluationAction,
+  prepareJournalAction,
   refreshConnectionAction,
   refreshMarketDataAction,
+  matchReconciliationAction,
   reverseJournalAction,
   revokeConnectionAction,
+  submitDraftAction,
+  unmatchReconciliationAction,
 } from "@/app/dashboard/actions";
 import type { Books } from "@/data/books";
 
@@ -98,6 +104,127 @@ export function ConnectionControls({
         <input type="hidden" name="connectionId" value={connectionId} />
         <button type="submit" className="btn-secondary">
           Disconnect
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export function PeriodCloseForm({
+  entities,
+  csrf,
+  defaultDate,
+}: {
+  entities: readonly { id: string; name: string }[];
+  csrf: string;
+  defaultDate: string;
+}) {
+  if (entities.length === 0) return null;
+  return (
+    <form action={closePeriodAction} className="mt-4 grid gap-3 panel p-4 md:grid-cols-4">
+      <input type="hidden" name="csrf" value={csrf} />
+      <h3 className="text-sm font-semibold tracking-tight md:col-span-4">Close a period</h3>
+      <label className="field">
+        <span>Company</span>
+        <select name="entityId" required defaultValue={entities[0]?.id}>
+          {entities.map((entity) => (
+            <option key={entity.id} value={entity.id}>
+              {entity.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>From</span>
+        <input name="periodStart" type="date" required defaultValue={defaultDate} />
+      </label>
+      <label className="field">
+        <span>To</span>
+        <input name="periodEnd" type="date" required defaultValue={defaultDate} />
+      </label>
+      <label className="field">
+        <span>Note</span>
+        <input name="note" required maxLength={200} placeholder="Why this is closed" />
+      </label>
+      <div className="md:col-span-4">
+        <button type="submit" className="btn">
+          Close period
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function MatchControls({
+  sourceTransactionId,
+  candidates,
+  csrf,
+}: {
+  sourceTransactionId: string;
+  candidates: Array<{ id: string; label: string }>;
+  csrf: string;
+}) {
+  return (
+    <form action={matchReconciliationAction} className="grid gap-2">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
+      <select name="journalLine" required className="text-sm">
+        <option value="">Choose a journal line…</option>
+        {candidates.map((candidate) => (
+          <option key={candidate.id} value={candidate.id}>
+            {candidate.label}
+          </option>
+        ))}
+      </select>
+      <input name="note" required maxLength={200} placeholder="Why this match" className="text-sm" />
+      <button type="submit" className="btn-secondary">
+        Match
+      </button>
+    </form>
+  );
+}
+
+export function UnmatchControls({ sourceTransactionId, csrf }: { sourceTransactionId: string; csrf: string }) {
+  return (
+    <form action={unmatchReconciliationAction} className="grid gap-2">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
+      <input name="note" required maxLength={200} placeholder="Why this is not a match" className="text-sm" />
+      <button type="submit" className="btn-secondary">
+        Unmatch
+      </button>
+    </form>
+  );
+}
+
+export function DraftSubmitControls({ draftId, csrf }: { draftId: string; csrf: string }) {
+  return (
+    <form action={submitDraftAction}>
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="draftId" value={draftId} />
+      <button type="submit" className="btn-secondary">
+        Submit for approval
+      </button>
+    </form>
+  );
+}
+
+export function DraftApprovalControls({ draftId, csrf, isOwner }: { draftId: string; csrf: string; isOwner: boolean }) {
+  return (
+    <div className="grid gap-2">
+      <form action={approveDraftAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="csrf" value={csrf} />
+        <input type="hidden" name="draftId" value={draftId} />
+        {isOwner ? (
+          <input
+            name="overrideNote"
+            placeholder="Owner override note (only if you prepared it)"
+            maxLength={200}
+            className="text-sm"
+          />
+        ) : null}
+        <button type="submit" className="btn">
+          Approve and post
         </button>
       </form>
     </div>
@@ -306,10 +433,14 @@ export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
           </tbody>
         </table>
       </div>
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className="btn">
           Post entry
         </button>
+        <button type="submit" formAction={prepareJournalAction} className="btn-secondary">
+          Save as draft
+        </button>
+        <span className="text-sm text-ink-soft">A draft is not in the books until an approver posts it.</span>
       </div>
     </form>
   );

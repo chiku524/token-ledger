@@ -14,6 +14,23 @@ export interface CsvAmount {
   format(amountMinor: bigint, currency: string): string;
 }
 
+/** The append-only audit log as CSV. One row per event, newest first. */
+export function auditCsv(
+  rows: readonly {
+    occurredAt: string;
+    actor: string;
+    action: string;
+    subjectType: string;
+    subjectId: string;
+    detail: string;
+  }[],
+): string {
+  return toCsv(
+    ["occurred_at", "actor", "action", "subject_type", "subject_id", "detail"],
+    rows.map((row) => [row.occurredAt, row.actor, row.action, row.subjectType, row.subjectId, row.detail]),
+  );
+}
+
 export function trialBalanceCsv(input: {
   entityName: string;
   currency: string | null;

@@ -52,7 +52,10 @@ export const normalBalance = pgEnum("normal_balance", ["debit", "credit"]);
 export const journalSide = pgEnum("journal_side", ["debit", "credit"]);
 export const quantityDirection = pgEnum("quantity_direction", ["in", "out"]);
 export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", "exception"]);
-export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "viewer"]);
+export const journalDraftStatus = pgEnum("journal_draft_status", ["draft", "pending", "posted"]);
+/** "match" pairs a transaction with a line; "unmatch" rejects an automatic match. */
+export const reconciliationOverrideKind = pgEnum("reconciliation_override_kind", ["match", "unmatch"]);
+export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer"]);
 export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
 export const syncRunStatus = pgEnum("sync_run_status", ["running", "ok", "partial", "failed", "not_live"]);
 export const syncRunTrigger = pgEnum("sync_run_trigger", ["manual", "scheduled", "webhook", "cli"]);
@@ -260,6 +263,75 @@ export const journalLines = pgTable(
   ],
 );
 
+/**
+ * A journal before it is posted. `draft` is editable and invisible to reports;
+ * `pending` awaits approval; `posted` is a link to the immutable journal entry it
+ * became (or the reference of a reversal). Approval inserts into the immutable
+ * `journal_entries`/`journal_lines` and marks the draft posted, so posted books
+ * stay immutable and a draft is never a posted row.
+ */
+export const journalDrafts = pgTable(
+  "journal_drafts",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    reference: text("reference").notNull(),
+    entryDate: date("entry_date").notNull(),
+    memo: text("memo").notNull(),
+    currency: text("currency").notNull(),
+    debitMinor: bigint("debit_minor", { mode: "bigint" }).notNull(),
+    creditMinor: bigint("credit_minor", { mode: "bigint" }).notNull(),
+    status: journalDraftStatus("status").notNull(),
+    /** Who prepared it. An approver of the same identity is blocked without an override. */
+    preparedBy: text("prepared_by").notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    /** The posted entry this draft became, once approved. */
+    postedEntryId: text("posted_entry_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("journal_drafts_org_status_idx").on(table.organizationId, table.status),
+    index("journal_drafts_entity_idx").on(table.entityId),
+    check("journal_drafts_balanced", sql`${table.debitMinor} = ${table.creditMinor}`),
+    check("journal_drafts_positive", sql`${table.debitMinor} > 0`),
+  ],
+);
+
+/** A line of a draft journal. Free to change or delete while the draft is editable. */
+export const journalDraftLines = pgTable(
+  "journal_draft_lines",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    draftId: text("draft_id")
+      .notNull()
+      .references(() => journalDrafts.id),
+    lineNumber: integer("line_number").notNull(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    side: journalSide("side").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    currency: text("currency").notNull(),
+    quantityMinor: quantity("quantity_minor"),
+    quantityDirection: quantityDirection("quantity_direction"),
+    assetId: text("asset_id").references(() => assets.id),
+    sourceId: text("source_id").references(() => sources.id),
+    memo: text("memo"),
+  },
+  (table) => [
+    uniqueIndex("journal_draft_lines_draft_line_unique").on(table.draftId, table.lineNumber),
+    check("journal_draft_lines_amount_positive", sql`${table.amountMinor} > 0`),
+  ],
+);
+
 export const sourceTransactions = pgTable(
   "source_transactions",
   {
@@ -345,6 +417,66 @@ export const reconciliationRecords = pgTable(
   (table) => [
     index("reconciliation_records_entity_period_idx").on(table.entityId, table.periodStart, table.periodEnd),
     check("reconciliation_records_quantity_positive", sql`${table.quantityMinor} > 0`),
+  ],
+);
+
+/**
+ * A manual reconciliation decision that survives a reload. Automatic matching
+ * runs on load and produces exceptions; an accountant pairs a source transaction
+ * with a journal line here. The builder overlays these on top of the automatic
+ * result, so the automatic pass stays pure and a human decision is explicit and
+ * auditable. `kind` distinguishes an acceptance ("match") from a rejection
+ * ("unmatch") of an automatic match.
+ */
+export const reconciliationOverrides = pgTable(
+  "reconciliation_overrides",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    sourceTransactionId: text("source_transaction_id")
+      .notNull()
+      .references(() => sourceTransactions.id),
+    journalEntryId: text("journal_entry_id"),
+    journalLineNumber: integer("journal_line_number"),
+    kind: reconciliationOverrideKind("kind").notNull(),
+    note: text("note").notNull(),
+    actor: text("actor").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("reconciliation_overrides_source_unique").on(table.sourceTransactionId),
+    index("reconciliation_overrides_org_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * A closed date range per entity. Posting, reversing, and reconciliation changes
+ * dated inside a closed period are refused until an owner or admin reopens it.
+ */
+export const periodLocks = pgTable(
+  "period_locks",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    periodStart: date("period_start").notNull(),
+    periodEnd: date("period_end").notNull(),
+    note: text("note").notNull(),
+    actor: text("actor").notNull(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("period_locks_entity_idx").on(table.entityId, table.periodStart, table.periodEnd),
+    check("period_locks_range", sql`${table.periodStart} <= ${table.periodEnd}`),
   ],
 );
 

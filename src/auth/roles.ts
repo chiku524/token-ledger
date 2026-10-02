@@ -1,4 +1,4 @@
-export const ROLES = ["owner", "admin", "accountant", "viewer"] as const;
+export const ROLES = ["owner", "admin", "accountant", "approver", "viewer"] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -11,6 +11,10 @@ export const PERMISSIONS = [
   "fx.write",
   "journal.post",
   "journal.reverse",
+  "journal.prepare",
+  "journal.approve",
+  "reconciliation.match",
+  "period.close",
   "source.import",
   "users.manage",
   "users.manageOwners",
@@ -18,10 +22,25 @@ export const PERMISSIONS = [
 
 export type Permission = (typeof PERMISSIONS)[number];
 
+/**
+ * An approver may read and approve a prepared entry, but cannot post directly or
+ * reverse: approval is the only way it changes the books. A preparer (accountant)
+ * prepares and posts drafts but cannot approve them.
+ */
 const MATRIX: Record<Role, readonly Permission[]> = {
   owner: PERMISSIONS,
   admin: PERMISSIONS.filter((permission) => permission !== "users.manageOwners"),
-  accountant: ["books.read", "books.export", "audit.read", "journal.post", "journal.reverse", "source.import"],
+  accountant: [
+    "books.read",
+    "books.export",
+    "audit.read",
+    "journal.post",
+    "journal.reverse",
+    "journal.prepare",
+    "reconciliation.match",
+    "source.import",
+  ],
+  approver: ["books.read", "books.export", "audit.read", "journal.prepare", "journal.approve"],
   viewer: ["books.read", "books.export", "audit.read"],
 };
 
@@ -70,5 +89,15 @@ export function roleLabel(role: Role): string {
   if (role === "owner") return "Owner";
   if (role === "admin") return "Admin";
   if (role === "accountant") return "Accountant";
+  if (role === "approver") return "Approver";
   return "Viewer";
+}
+
+/**
+ * A person should not approve the entry they prepared, unless an owner overrides
+ * with an explicit note. Returns true when the approval must be refused.
+ */
+export function blocksSelfApproval(preparerActor: string, approverActor: string, overrideNote: string | null): boolean {
+  if (preparerActor !== approverActor) return false;
+  return !overrideNote || overrideNote.trim().length === 0;
 }

@@ -8,7 +8,10 @@ import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
 import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
-import { postFormJournal } from "@/data/journal-form";
+import { draftFromForm, postFormJournal } from "@/data/journal-form";
+import { approveDraft, createDraft, submitDraft } from "@/db/drafts";
+import { matchReconciliation, unmatchReconciliation } from "@/db/reconciliation";
+import { assertPeriodOpen, closePeriod, reopenPeriod } from "@/db/period-locks";
 import { loadBooks } from "@/data/load-books";
 import { refreshAssetPrices, refreshFxRates } from "@/data/market-data";
 import { revaluationForEntity } from "@/data/valuation";
@@ -246,6 +249,151 @@ export async function postJournalAction(formData: FormData) {
     await insertJournal(books, entry, actorName(session));
   });
   finish(path, "Entry posted. Posted entries are not edited. Post a correction if one is wrong.");
+}
+
+/** Close a period for a company. Owner or admin only. */
+export async function closePeriodAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "period.close", formData);
+  requireWritable(path, session);
+  const entityId = String(formData.get("entityId") ?? "");
+  const periodStart = String(formData.get("periodStart") ?? "");
+  const periodEnd = String(formData.get("periodEnd") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const books = await loadBooks(session.organizationId);
+  const entity = books.entities.find((item) => item.id === entityId);
+  if (!entity) fail(path, "Choose a company in this organization.");
+  assertEntityOrFail(path, session, entityId);
+  await save(path, () =>
+    closePeriod({ organizationId: session.organizationId, entityId, periodStart, periodEnd, note, actor: actorName(session) }),
+  );
+  finish(path, "Period closed. Posting, reversing, and matching in these dates are refused until it is reopened.");
+}
+
+/** Reopen a closed period by id. Owner or admin only. */
+export async function reopenPeriodAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "period.close", formData);
+  requireWritable(path, session);
+  const lockId = String(formData.get("lockId") ?? "");
+  await save(path, () => reopenPeriod(session.organizationId, lockId, actorName(session)));
+  finish(path, "Period reopened.");
+}
+
+/** Pair a source transaction with a journal line, clearing an exception. */
+export async function matchReconciliationAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "reconciliation.match", formData);
+  requireWritable(path, session);
+  const sourceTransactionId = String(formData.get("sourceTransactionId") ?? "");
+  const journalLine = String(formData.get("journalLine") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const books = await loadBooks(session.organizationId);
+  const transaction = books.sourceTransactions.find((item) => item.id === sourceTransactionId);
+  if (!transaction) fail(path, "That activity is not in this organization.");
+  assertEntityOrFail(path, session, transaction.entityId);
+  const [entryId, lineNumberText] = journalLine.split(":");
+  const lineNumber = Number(lineNumberText);
+  const entry = books.journalEntries.find((item) => item.id === entryId);
+  if (!entry || !Number.isInteger(lineNumber)) fail(path, "Choose a journal line to match.");
+  await save(path, () => assertPeriodOpen(session.organizationId, transaction.entityId, transaction.occurredOn));
+  await save(path, () =>
+    matchReconciliation({
+      organizationId: session.organizationId,
+      entityId: transaction.entityId,
+      sourceTransactionId: transaction.id,
+      journalEntryId: entry.id,
+      journalLineNumber: lineNumber,
+      note,
+      actor: actorName(session),
+    }),
+  );
+  finish(path, "Matched. The decision is saved and survives a reload.");
+}
+
+/** Reject an automatic match, leaving the pair as an exception. */
+export async function unmatchReconciliationAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "reconciliation.match", formData);
+  requireWritable(path, session);
+  const sourceTransactionId = String(formData.get("sourceTransactionId") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const books = await loadBooks(session.organizationId);
+  const transaction = books.sourceTransactions.find((item) => item.id === sourceTransactionId);
+  if (!transaction) fail(path, "That activity is not in this organization.");
+  assertEntityOrFail(path, session, transaction.entityId);
+  await save(path, () => assertPeriodOpen(session.organizationId, transaction.entityId, transaction.occurredOn));
+  await save(path, () =>
+    unmatchReconciliation({
+      organizationId: session.organizationId,
+      entityId: transaction.entityId,
+      sourceTransactionId: transaction.id,
+      note,
+      actor: actorName(session),
+    }),
+  );
+  finish(path, "Match rejected. The row is an exception again.");
+}
+
+/** Save a journal as a draft, invisible to reports until approved. */
+export async function prepareJournalAction(formData: FormData) {
+  const path = "/dashboard/ledger";
+  const session = await guard(path, "journal.prepare", formData);
+  requireWritable(path, session);
+  const parsed = journalFormSchema.safeParse({
+    entityId: formData.get("entityId"),
+    reference: formData.get("reference"),
+    entryDate: formData.get("entryDate"),
+    memo: formData.get("memo"),
+    lines: linesFromForm(formData),
+  });
+  if (!parsed.success) fail(path, firstIssue(parsed.error));
+  const books = await loadBooks(session.organizationId);
+  await save(path, async () => {
+    assertEntity(session, parsed.data.entityId);
+    const draft = draftFromForm(parsed.data, books);
+    await createDraft(session.organizationId, {
+      entityId: draft.entityId,
+      reference: parsed.data.reference,
+      entryDate: parsed.data.entryDate,
+      memo: parsed.data.memo,
+      currency: draft.currency,
+      lines: draft.lines,
+      preparedBy: actorName(session),
+      actor: actorName(session),
+    });
+  });
+  finish(path, "Draft saved. It is not in the books until an approver posts it.");
+}
+
+/** Submit a draft to the approval queue. */
+export async function submitDraftAction(formData: FormData) {
+  const path = "/dashboard/approvals";
+  const session = await guard(path, "journal.prepare", formData);
+  requireWritable(path, session);
+  const draftId = String(formData.get("draftId") ?? "");
+  await save(path, () => submitDraft(session.organizationId, draftId, actorName(session)));
+  finish(path, "Draft submitted for approval.");
+}
+
+/** Approve a pending draft; this is what posts it to the immutable books. */
+export async function approveDraftAction(formData: FormData) {
+  const path = "/dashboard/approvals";
+  const session = await guard(path, "journal.approve", formData);
+  requireWritable(path, session);
+  const draftId = String(formData.get("draftId") ?? "");
+  const isOwner = session.role === "owner";
+  const overrideNote = isOwner ? String(formData.get("overrideNote") ?? "").trim() || null : null;
+  await save(path, () =>
+    approveDraft({
+      organizationId: session.organizationId,
+      draftId,
+      approverActor: actorName(session),
+      approverRole: session.role,
+      overrideNote,
+    }),
+  );
+  finish(path, "Entry approved and posted.");
 }
 
 export async function reverseJournalAction(formData: FormData) {

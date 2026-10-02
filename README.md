@@ -64,12 +64,13 @@ pnpm auth:bootstrap
 
 `pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite link is shown once in the page and is not emailed. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`. An owner or admin is then asked, step by step, to connect a wallet, an exchange, and a custodian. Each step can be skipped.
 
-| Role | Books | Export and audit | Journals, reversals, CSV import | Entities, sources, FX | Users |
-| --- | --- | --- | --- | --- | --- |
-| Owner | Read | Yes | Yes | Yes | Everyone, including owners |
-| Admin | Read | Yes | Yes | Yes | Everyone except owners |
-| Accountant | Read | Yes | Yes | No | No |
-| Viewer | Read | Yes | No | No | No |
+| Role | Books | Export and audit | Prepare journals | Approve | Post, reverse, match, CSV import | Entities, sources, FX, close | Users |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Owner | Read | Yes | Yes | Yes | Yes | Yes | Everyone, including owners |
+| Admin | Read | Yes | Yes | Yes | Yes | Yes | Everyone except owners |
+| Accountant | Read | Yes | Yes | No | Yes | No | No |
+| Approver | Read | Yes | Yes | Yes | No | No | No |
+| Viewer | Read | Yes | No | No | No | No | No |
 
 An empty entity scope means every entity. A comma-separated scope limits accountants and viewers to those entities. Owners and admins are not narrowed by scope. The audit log stays organization-wide. The last active owner cannot be demoted or deactivated. Nobody can deactivate themselves or change their own role.
 
@@ -82,12 +83,24 @@ Demo sign-in is only for the example books: it is allowed when `DATABASE_URL` is
 | owner@harbourline.example | Owner | Harbourline-owner-1 | All entities |
 | admin@harbourline.example | Admin | Harbourline-admin-1 | All entities |
 | accountant@harbourline.example | Accountant | Harbourline-accountant-1 | All entities |
+| approver@harbourline.example | Approver | Harbourline-approver-1 | All entities |
 | viewer@harbourline.example | Viewer | Harbourline-viewer-1 | All entities |
 | viewer.sg@harbourline.example | Viewer | Harbourline-viewer-sg-1 | Singapore entity only |
 
 Harbourline stores one example rate, 1 MYR = 0.3000 SGD. SGD amounts use the exact inverse (10/3), which is not a second stored rate.
 
-An approver role that must approve a journal before it posts is not in this build. Reconciliation still has no separate match or unmatch action; importing source facts and posting journals is what feeds it. There is no email delivery and no live FX feed.
+There is no email delivery. FX and prices are live (see below).
+
+## Reconciliation and accounting controls
+
+- **Approval workflow.** A journal can be saved as a draft, submitted, then approved. Only an approver (or owner/admin) approves, and approval is what inserts the immutable posted entry; a draft is never a posted row. An approver cannot approve their own entry unless an owner overrides with a note, and the override is audited. Posted entries stay immutable.
+- **Manual matching.** Reconciliation is derived on load; a manual match or unmatch is stored as an override and overlaid on the automatic result, with a required note and an audit event.
+- **Period close.** Owner or admin can close a date range per company; posting, reversing, and re-matching inside it are refused until it is reopened. Each close and reopen is audited.
+- **Audit log.** The History page filters by name, action, subject, and dates, and downloads the filtered log as CSV. The log is organization-wide and append-only.
+
+Roles: owner, admin, accountant, **approver**, viewer. An approver reads and approves but cannot post directly.
+
+## Market data and valuation
 
 Environment variables:
 
