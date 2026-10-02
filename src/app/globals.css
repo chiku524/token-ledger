@@ -224,6 +224,58 @@ html.dark {
   .section-title {
     @apply text-3xl font-semibold leading-[1.12] tracking-[-0.045em] sm:text-4xl lg:text-[46px];
   }
+  .rise-in,
+  .stagger > * {
+    animation: rise-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > :nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .stagger > :nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .stagger > :nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .stagger > :nth-child(5) {
+    animation-delay: 160ms;
+  }
+  .stagger > :nth-child(6) {
+    animation-delay: 200ms;
+  }
+  .stagger > :nth-child(7) {
+    animation-delay: 240ms;
+  }
+  .stagger > :nth-child(n + 8) {
+    animation-delay: 280ms;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-y, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise-in-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .stagger > * {
+    animation-name: rise-in-fade;
+  }
 }
 
 @media print {
@@ -255,6 +307,10 @@ html.dark {
   form,
   button {
     display: none !important;
+  }
+
+  [data-print="shell"] {
+    display: block !important;
   }
 
   table {

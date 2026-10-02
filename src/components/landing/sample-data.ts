@@ -1,7 +1,7 @@
 export const sources = [
   { name: "Wallets", amount: 684650, color: "bg-brand", accounts: 6 },
   { name: "Exchanges", amount: 450000, color: "bg-primary", accounts: 4 },
-  { name: "Custodians", amount: 150000, color: "bg-cloud", accounts: 2 },
+  { name: "Custodians", amount: 150000, color: "bg-chart-3", accounts: 2 },
 ];
 
 export const totalAssets = sources.reduce((sum, source) => sum + source.amount, 0);

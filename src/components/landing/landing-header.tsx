@@ -41,7 +41,7 @@ export function LandingHeader() {
               <Menu aria-hidden />
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-72 gap-0">
+          <SheetContent side="right" className="w-72 gap-0" onCloseAutoFocus={(event) => event.preventDefault()}>
             <SheetHeader>
               <SheetTitle>Token Ledger</SheetTitle>
               <SheetDescription className="sr-only">Site navigation</SheetDescription>

@@ -60,7 +60,9 @@ favicon file cannot read CSS variables) and already matches the brand mark.
 ## Motion (`src/components/motion/`)
 
 `MotionProvider` (live in the root layout), `FadeIn`, `PageTransition`, `Stagger` /
-`StaggerItem`, `NumberTicker`, `Presence`. Rules in `motion.md`.
+`StaggerItem`, `NumberTicker`, `Presence`. Rules in `motion.md`. `FadeIn`,
+`PageTransition` and `Stagger` are CSS-driven server components; only
+`NumberTicker` and `Presence` are `"use client"` motion leaves.
 
 ## Tokens added for the system
 

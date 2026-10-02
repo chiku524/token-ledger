@@ -223,7 +223,7 @@ export default async function ConsolidationPage({
             {ias21.rows.length > 0 ? (
               <TableFooter>
                 <TableRow>
-                  <TableHead colSpan={2}>
+                  <TableHead scope="row" colSpan={2}>
                     Debits equal credits
                   </TableHead>
                   <NumberCell>{formatMoney(ias21.debitTotal, presentation)}</NumberCell>

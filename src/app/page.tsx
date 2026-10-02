@@ -19,7 +19,8 @@ export default function HomePage() {
     <>
       <a
         href="#main"
-        className="sr-only fixed top-3 left-3 z-50 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only"
+        data-print="hide"
+        className="fixed top-3 left-3 z-50 -translate-y-24 rounded-md bg-primary px-4 py-3 text-primary-foreground transition-transform focus:translate-y-0"
       >
         Skip to content
       </a>

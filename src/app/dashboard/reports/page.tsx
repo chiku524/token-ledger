@@ -279,7 +279,7 @@ export default async function ReportsPage({
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableHead>Net {revaluation.netMinor >= 0n ? "gain" : "loss"}</TableHead>
+                      <TableHead scope="row">Net {revaluation.netMinor >= 0n ? "gain" : "loss"}</TableHead>
                       <TableCell colSpan={2} />
                       <NumberCell>{formatMoney(revaluation.netMinor < 0n ? -revaluation.netMinor : revaluation.netMinor, entity.functionalCurrency)}</NumberCell>
                     </TableRow>

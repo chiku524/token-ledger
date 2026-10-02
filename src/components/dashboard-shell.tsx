@@ -34,14 +34,21 @@ export function DashboardShell({
   const userMenu = <UserMenu session={session} csrf={csrf} scopeLabel={scopeLabel} />;
 
   return (
-    <div className="min-h-full bg-background md:grid md:grid-cols-[16.75rem_minmax(0,1fr)]">
-      <a href="#content" className="sr-only fixed top-3 left-3 z-50 rounded-lg bg-primary px-3 py-1.5 text-primary-foreground focus:not-sr-only">
+    <div data-print="shell" className="min-h-full bg-background md:grid md:grid-cols-[16.75rem_minmax(0,1fr)]">
+      <a
+        href="#content"
+        data-print="hide"
+        className="fixed top-3 left-3 z-50 -translate-y-20 rounded-lg bg-primary px-3 py-1.5 text-primary-foreground transition-transform focus:translate-y-0"
+      >
         Skip to content
       </a>
       <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:hidden">
-        <Link href="/">
-          <Logo />
-        </Link>
+        <div className="min-w-0">
+          <Link href="/">
+            <Logo />
+          </Link>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+        </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <MobileNav showUsers={showUsers} footer={userMenu} />

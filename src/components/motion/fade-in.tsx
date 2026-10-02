@@ -1,10 +1,8 @@
-"use client";
-
-import { m } from "motion/react";
+import { cn } from "@/lib/utils";
 
 export const easeOut = [0.22, 1, 0.36, 1] as const;
 
-/** Fade and rise on mount. Reduced-motion users get the fade only (see MotionProvider). */
+/** Fade and rise on mount. Reduced-motion users get the fade only. See docs/design-system/motion.md. */
 export function FadeIn({
   children,
   delay = 0,
@@ -17,14 +15,12 @@ export function FadeIn({
   className?: string;
 }) {
   return (
-    <m.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: easeOut, delay }}
+    <div
+      className={cn("rise-in", className)}
+      style={{ "--rise-y": `${y}px`, animationDelay: delay ? `${delay}s` : undefined } as React.CSSProperties}
     >
       {children}
-    </m.div>
+    </div>
   );
 }
 
