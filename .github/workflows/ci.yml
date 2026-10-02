@@ -67,6 +67,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Apply committed migrations to the production database before the code
+      # ships, so a deploy never runs code that expects a column the database
+      # does not have yet. Migrations are additive and idempotent; an already
+      # applied one is skipped.
+      - name: Migrate the production database
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Build and deploy to Cloudflare Workers
         run: pnpm cf:deploy
         env:
