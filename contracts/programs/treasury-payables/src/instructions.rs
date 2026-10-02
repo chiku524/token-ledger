@@ -30,7 +30,7 @@ pub struct TreasuryFunded {
 pub struct PaymentProposed {
     pub treasury: Pubkey,
     pub proposal: Pubkey,
-    pub invoice_key: InvoiceKey,
+    pub invoice_key: [u8; 32],
     pub revision: u32,
     pub amount: u64,
 }
@@ -58,7 +58,7 @@ pub struct PaymentCancelled {
 pub struct PaymentExecuted {
     pub treasury: Pubkey,
     pub proposal: Pubkey,
-    pub invoice_key: InvoiceKey,
+    pub invoice_key: [u8; 32],
     pub recipient: Pubkey,
     pub amount: u64,
 }
@@ -167,7 +167,7 @@ pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
 #[allow(clippy::too_many_arguments)]
 pub fn propose_payment(
     ctx: Context<ProposePayment>,
-    invoice_key: InvoiceKey,
+    invoice_key: [u8; 32],
     revision: u32,
     recipient_owner: Pubkey,
     gross_amount: u64,
@@ -183,7 +183,7 @@ pub fn propose_payment(
     if settlement.treasury == Pubkey::default() {
         settlement.bump = ctx.bumps.settlement;
         settlement.treasury = treasury.key();
-        settlement.invoice_key = invoice_key;
+        settlement.invoice_key = InvoiceKey(invoice_key);
         settlement.active_revision = revision;
         settlement.paid = false;
     } else {
@@ -196,7 +196,7 @@ pub fn propose_payment(
     let proposal = &mut ctx.accounts.proposal;
     proposal.bump = ctx.bumps.proposal;
     proposal.treasury = treasury.key();
-    proposal.invoice_key = invoice_key;
+    proposal.invoice_key = InvoiceKey(invoice_key);
     proposal.revision = revision;
     proposal.policy_version = treasury.policy_version;
     proposal.recipient_owner = recipient_owner;
@@ -337,7 +337,7 @@ pub fn execute_payment(ctx: Context<ExecutePayment>) -> Result<()> {
     emit!(PaymentExecuted {
         treasury: treasury.key(),
         proposal: proposal.key(),
-        invoice_key: proposal.invoice_key,
+        invoice_key: proposal.invoice_key.0,
         recipient: proposal.recipient_owner,
         amount,
     });
@@ -553,7 +553,7 @@ pub struct Deposit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(invoice_key: InvoiceKey, revision: u32)]
+#[instruction(invoice_key: [u8; 32], revision: u32)]
 pub struct ProposePayment<'info> {
     #[account(mut)]
     pub proposer: Signer<'info>,

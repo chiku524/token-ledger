@@ -830,9 +830,10 @@
         {
           "name": "invoice_key",
           "type": {
-            "defined": {
-              "name": "InvoiceKey"
-            }
+            "array": [
+              "u8",
+              32
+            ]
           }
         },
         {
@@ -1461,9 +1462,10 @@
           {
             "name": "invoice_key",
             "type": {
-              "defined": {
-                "name": "InvoiceKey"
-              }
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {
@@ -1567,9 +1569,10 @@
           {
             "name": "invoice_key",
             "type": {
-              "defined": {
-                "name": "InvoiceKey"
-              }
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {

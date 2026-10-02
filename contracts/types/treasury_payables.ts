@@ -836,9 +836,10 @@ export type TreasuryPayables = {
         {
           "name": "invoiceKey",
           "type": {
-            "defined": {
-              "name": "invoiceKey"
-            }
+            "array": [
+              "u8",
+              32
+            ]
           }
         },
         {
@@ -1467,9 +1468,10 @@ export type TreasuryPayables = {
           {
             "name": "invoiceKey",
             "type": {
-              "defined": {
-                "name": "invoiceKey"
-              }
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {
@@ -1573,9 +1575,10 @@ export type TreasuryPayables = {
           {
             "name": "invoiceKey",
             "type": {
-              "defined": {
-                "name": "invoiceKey"
-              }
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {

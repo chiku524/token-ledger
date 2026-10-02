@@ -55,7 +55,7 @@ pub mod treasury_payables {
 
     pub fn propose_payment(
         ctx: Context<ProposePayment>,
-        invoice_key: InvoiceKey,
+        invoice_key: [u8; 32],
         revision: u32,
         recipient_owner: Pubkey,
         gross_amount: u64,
