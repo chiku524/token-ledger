@@ -46,6 +46,8 @@ pnpm db:seed
 
 `DATABASE_URL` is optional. If it is set, it must be a Postgres URL. `AUTH_SECRET` is required for password sessions and must be at least 32 characters. `db:generate` writes a new SQL migration from `src/db/schema.ts` and does not need a running database. `db:seed` reloads the Harbourline example organization, including its example FX rate, audit events, and fictional users, and replaces that organization's previous rows. It does not delete other organizations. Reloading the example is the one path that deletes posted journals, and it sets a transaction-local flag the immutability trigger recognizes.
 
+CI applies the migrations and the seed to a real Postgres on every push, and fails when `pnpm db:generate` would produce a migration that is not committed.
+
 Posted journals and the audit log reject updates. A wrong journal is corrected by posting a reversal. The actor on a new posting is the signed-in user.
 
 ## Authentication and roles
