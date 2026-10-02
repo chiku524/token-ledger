@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/wordmark";
@@ -51,9 +52,9 @@ export default async function ResetPasswordPage({
               <span>Confirm password</span>
               <input name="confirm" type="password" required minLength={12} autoComplete="new-password" />
             </label>
-            <button type="submit" className="btn">
+            <SubmitButton>
               Set password
-            </button>
+            </SubmitButton>
             <p className="text-sm text-ink-soft">Setting a new password signs out any other sessions.</p>
           </form>
         ) : (
@@ -63,9 +64,9 @@ export default async function ResetPasswordPage({
               <span>Email</span>
               <input name="email" type="email" required autoComplete="username" />
             </label>
-            <button type="submit" className="btn">
+            <SubmitButton>
               Send reset link
-            </button>
+            </SubmitButton>
           </form>
         )}
         <p className="mt-4 text-sm text-ink-soft">

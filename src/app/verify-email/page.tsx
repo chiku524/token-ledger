@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/wordmark";
@@ -37,9 +38,9 @@ export default async function VerifyEmailPage({
           <form action={verifyEmailAction} className="mt-6 grid gap-3 panel p-4">
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="token" value={token} />
-            <button type="submit" className="btn">
+            <SubmitButton>
               Confirm email
-            </button>
+            </SubmitButton>
           </form>
         ) : (
           <p className="mt-6 text-sm text-ink-soft">Open the confirmation link from your email to confirm your address.</p>

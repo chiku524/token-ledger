@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { acceptInviteAction, demoSignInAction, signInAction } from "@/app/sign-in/actions";
@@ -63,9 +64,9 @@ export default async function SignInPage({
                 <span>Confirm password</span>
                 <input name="confirm" type="password" required minLength={12} autoComplete="new-password" />
               </label>
-              <button type="submit" className="btn">
+              <SubmitButton>
                 Activate account
-              </button>
+              </SubmitButton>
             </form>
           ) : (
             <form action={signInAction} className="mt-6 grid gap-3 panel p-4">
@@ -80,9 +81,9 @@ export default async function SignInPage({
                 <span>Password</span>
                 <input name="password" type="password" required autoComplete="current-password" />
               </label>
-              <button type="submit" className="btn">
+              <SubmitButton>
                 Sign in
-              </button>
+              </SubmitButton>
               <p className="text-sm text-ink-soft">
                 New organization?{" "}
                 <Link href="/sign-up" className="underline">
@@ -117,12 +118,14 @@ export default async function SignInPage({
                     <input type="hidden" name="csrf" value={csrf} />
                     <input type="hidden" name="next" value={next} />
                     <input type="hidden" name="preview" value={preview.id} />
-                    <button type="submit" className="btn-secondary w-full text-left">
-                      {preview.label}
-                      <span className="mt-1 block text-xs font-normal text-ink-soft">
-                        {preview.name} · {preview.email}
+                    <SubmitButton variant="secondary" className="w-full justify-start text-left h-auto py-2">
+                      <span className="block">
+                        {preview.label}
+                        <span className="mt-1 block text-xs font-normal text-ink-soft">
+                          {preview.name} · {preview.email}
+                        </span>
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               ))}

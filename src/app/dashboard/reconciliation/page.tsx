@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { StatusBars, StatusDonut } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
 import { MatchControls, PeriodCloseForm, ReadOnlyNote, RoleNote, UnmatchControls } from "@/components/record-forms";
@@ -176,9 +177,9 @@ export default async function ReconciliationPage({
                           <form action={reopenPeriodAction}>
                             <input type="hidden" name="csrf" value={csrf} />
                             <input type="hidden" name="lockId" value={lock.id} />
-                            <button type="submit" className="btn-secondary">
+                            <SubmitButton variant="secondary">
                               Reopen
-                            </button>
+                            </SubmitButton>
                           </form>
                         </td>
                       ) : null}

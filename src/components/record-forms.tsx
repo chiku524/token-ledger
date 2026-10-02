@@ -15,6 +15,7 @@ import {
   submitDraftAction,
   unmatchReconciliationAction,
 } from "@/app/dashboard/actions";
+import { SubmitButton } from "@/components/submit-button";
 import type { Books } from "@/data/books";
 
 export function ReadOnlyNote({ demo = false }: { demo?: boolean }) {
@@ -68,9 +69,9 @@ export function EntityForm({ books, csrf }: { books: Books; csrf: string }) {
         </select>
       </label>
       <div className="md:col-span-2">
-        <button type="submit" className="btn">
+        <SubmitButton>
           Add company
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
@@ -94,17 +95,17 @@ export function ConnectionControls({
         <input type="hidden" name="csrf" value={csrf} />
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="connectionId" value={connectionId} />
-        <button type="submit" className="btn-secondary">
+        <SubmitButton variant="secondary">
           Check
-        </button>
+        </SubmitButton>
       </form>
       <form action={revokeConnectionAction}>
         <input type="hidden" name="csrf" value={csrf} />
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="connectionId" value={connectionId} />
-        <button type="submit" className="btn-secondary">
+        <SubmitButton variant="secondary">
           Disconnect
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );
@@ -147,9 +148,9 @@ export function PeriodCloseForm({
         <input name="note" required maxLength={200} placeholder="Why this is closed" />
       </label>
       <div className="md:col-span-4">
-        <button type="submit" className="btn">
+        <SubmitButton>
           Close period
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
@@ -177,9 +178,9 @@ export function MatchControls({
         ))}
       </select>
       <input name="note" required maxLength={200} placeholder="Why this match" className="text-sm" />
-      <button type="submit" className="btn-secondary">
+      <SubmitButton variant="secondary">
         Match
-      </button>
+      </SubmitButton>
     </form>
   );
 }
@@ -190,9 +191,9 @@ export function UnmatchControls({ sourceTransactionId, csrf }: { sourceTransacti
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
       <input name="note" required maxLength={200} placeholder="Why this is not a match" className="text-sm" />
-      <button type="submit" className="btn-secondary">
+      <SubmitButton variant="secondary">
         Unmatch
-      </button>
+      </SubmitButton>
     </form>
   );
 }
@@ -202,9 +203,9 @@ export function DraftSubmitControls({ draftId, csrf }: { draftId: string; csrf: 
     <form action={submitDraftAction}>
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="draftId" value={draftId} />
-      <button type="submit" className="btn-secondary">
+      <SubmitButton variant="secondary">
         Submit for approval
-      </button>
+      </SubmitButton>
     </form>
   );
 }
@@ -223,9 +224,9 @@ export function DraftApprovalControls({ draftId, csrf, isOwner }: { draftId: str
             className="text-sm"
           />
         ) : null}
-        <button type="submit" className="btn">
+        <SubmitButton>
           Approve and post
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );
@@ -241,9 +242,9 @@ export function RevaluationForm({ entityId, asOf, csrf }: { entityId: string; as
         <span>Reference</span>
         <input name="reference" required maxLength={40} placeholder="REVAL-2026-06" />
       </label>
-      <button type="submit" className="btn">
+      <SubmitButton>
         Post revaluation entry
-      </button>
+      </SubmitButton>
       <span className="text-sm text-ink-soft">Posts one balanced entry for the net difference. Reverse it if the price was wrong.</span>
     </form>
   );
@@ -254,9 +255,9 @@ export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf
     <form action={refreshMarketDataAction} className="flex flex-wrap items-center gap-3">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="next" value={next} />
-      <button type="submit" className="btn-secondary">
+      <SubmitButton variant="secondary">
         Refresh prices and rates
-      </button>
+      </SubmitButton>
       <span className="text-sm text-ink-soft">
         Fetches live prices and FX rates, stored with their source and date. Never posts a journal.
       </span>
@@ -293,9 +294,9 @@ export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
         <textarea name="csv" rows={4} spellCheck={false} className="font-mono text-xs" />
       </label>
       <div>
-        <button type="submit" className="btn">
+        <SubmitButton>
           Import activity
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
@@ -434,12 +435,12 @@ export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
         </table>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" className="btn">
+        <SubmitButton>
           Post entry
-        </button>
-        <button type="submit" formAction={prepareJournalAction} className="btn-secondary">
+        </SubmitButton>
+        <SubmitButton variant="secondary" formAction={prepareJournalAction}>
           Save as draft
-        </button>
+        </SubmitButton>
         <span className="text-sm text-ink-soft">A draft is not in the books until an approver posts it.</span>
       </div>
     </form>
@@ -470,9 +471,9 @@ export function ReverseJournalForm({
         <input name="memo" required maxLength={500} defaultValue={`Correct ${entry.reference}.`} />
       </label>
       <div className="md:col-span-3">
-        <button type="submit" className="btn-secondary">
+        <SubmitButton variant="secondary">
           Post correction
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
@@ -507,9 +508,9 @@ export function FxRateForm({ csrf, defaultDate }: { csrf: string; defaultDate: s
         <input name="note" required maxLength={300} />
       </label>
       <div className="md:col-span-2">
-        <button type="submit" className="btn">
+        <SubmitButton>
           Save rate
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

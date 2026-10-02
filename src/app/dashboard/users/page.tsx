@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { headers } from "next/headers";
 import { changeAccessAction, deactivateUserAction, inviteUserAction } from "@/app/dashboard/user-actions";
 import { ensureCsrf } from "@/auth/current";
@@ -120,9 +121,9 @@ export default async function UsersPage({
           Leave this blank for every company. A comma-separated list limits an accountant or viewer to those companies. Owners and admins always see every company.
         </p>
         <div className="md:col-span-2">
-          <button type="submit" className="btn">
+          <SubmitButton>
             Create invite link
-          </button>
+          </SubmitButton>
         </div>
       </form>
       <div className="overflow-x-auto panel">
@@ -170,17 +171,17 @@ export default async function UsersPage({
                             Companies for {person.name}
                           </label>
                           <input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
-                          <button type="submit" className="btn-secondary">
+                          <SubmitButton variant="secondary">
                             Save access
-                          </button>
+                          </SubmitButton>
                         </form>
                         {canDeactivate(session, person) && !lastOwner ? (
                           <form action={deactivateUserAction}>
                             <input type="hidden" name="csrf" value={csrf} />
                             <input type="hidden" name="userId" value={person.id} />
-                            <button type="submit" className="btn-secondary">
+                            <SubmitButton variant="secondary">
                               Deactivate
-                            </button>
+                            </SubmitButton>
                           </form>
                         ) : null}
                       </div>

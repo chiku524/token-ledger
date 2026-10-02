@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import type { DateRange } from "@/data/period";
 
 export function PeriodForm({
@@ -22,9 +23,9 @@ export function PeriodForm({
         <span>To</span>
         <input type="date" name="to" defaultValue={range.to} required />
       </label>
-      <button type="submit" className="btn">
+      <SubmitButton>
         Update dates
-      </button>
+      </SubmitButton>
     </form>
   );
 }

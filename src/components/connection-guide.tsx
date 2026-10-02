@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { reopenConnectionTourAction } from "@/app/dashboard/tour-actions";
 
 const MODES = [
@@ -180,9 +181,9 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         {canRestartTour ? (
           <form action={reopenConnectionTourAction} className="mt-4">
             <input type="hidden" name="csrf" value={csrf} />
-            <button type="submit" className="btn">
+            <SubmitButton>
               Take the tour
-            </button>
+            </SubmitButton>
           </form>
         ) : (
           <p className="mt-4 text-sm text-ink-soft">A new admin is offered the tour the first time they sign in.</p>
