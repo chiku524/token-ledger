@@ -61,6 +61,27 @@ export function connectionStatusLabel(status: "pending" | "healthy" | "degraded"
   return "Disconnected";
 }
 
+/** A value's freshness, for a badge next to a price or rate. */
+export function freshnessLabel(age: "fresh" | "stale" | "missing"): string {
+  if (age === "fresh") return "Fresh";
+  if (age === "stale") return "Stale";
+  return "No price";
+}
+
+export function originLabel(origin: "example" | "live"): string {
+  return origin === "live" ? "Live" : "Example";
+}
+
+/** Whole-day age of a timestamp relative to a reference, for "2 days old". */
+export function ageLabel(asOf: string, reference: string): string {
+  const observed = Date.parse(asOf);
+  const at = Date.parse(reference);
+  if (Number.isNaN(observed) || Number.isNaN(at)) return "unknown age";
+  const days = Math.max(0, Math.floor((at - observed) / (24 * 60 * 60 * 1000)));
+  if (days === 0) return "today";
+  return days === 1 ? "1 day old" : `${days} days old`;
+}
+
 export function syncRunStatusLabel(status: "running" | "ok" | "partial" | "failed" | "not_live"): string {
   if (status === "ok") return "Read";
   if (status === "running") return "Running";

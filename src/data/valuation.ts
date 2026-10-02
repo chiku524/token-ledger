@@ -1,0 +1,85 @@
+/**
+ * Turn the books into a valued view of holdings, with provenance and staleness.
+ * Pure, so it is testable without a database. The latest observed snapshot per
+ * source and asset is the holding; `valueHoldings` prices it.
+ */
+import { assetCarryingSchedule, proposeRevaluation, valueHoldings, type AssetPrice, type RevaluationProposal, type ValuationSummary } from "@/ledger";
+import type { PostedJournalEntry } from "@/ledger";
+import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice } from "./books";
+
+/** The most recent observed quantity per source+asset. Zero is a real observation. */
+export function holdingsFromSnapshots(
+  snapshots: readonly BooksBalanceSnapshot[],
+): Array<{ assetCode: string; quantityMinor: bigint }> {
+  const latest = new Map<string, BooksBalanceSnapshot>();
+  for (const snapshot of snapshots) {
+    const key = `${snapshot.sourceId}|${snapshot.assetCode}`;
+    const current = latest.get(key);
+    if (!current || snapshot.asOf > current.asOf) latest.set(key, snapshot);
+  }
+  const byAsset = new Map<string, bigint>();
+  for (const snapshot of latest.values()) {
+    byAsset.set(snapshot.assetCode, (byAsset.get(snapshot.assetCode) ?? 0n) + snapshot.quantityMinor);
+  }
+  return [...byAsset.entries()].map(([assetCode, quantityMinor]) => ({ assetCode, quantityMinor }));
+}
+
+export function valueBooksHoldings(input: {
+  snapshots: readonly BooksBalanceSnapshot[];
+  prices: readonly StoredAssetPrice[];
+  assets: readonly { code: string; decimals: number }[];
+  quoteCurrency: string;
+  asOf: string;
+  stalenessMs?: number;
+}): ValuationSummary {
+  const decimals = new Map(input.assets.map((asset) => [asset.code, asset.decimals]));
+  const holdings = holdingsFromSnapshots(input.snapshots).map((holding) => ({
+    ...holding,
+    quantityScale: decimals.get(holding.assetCode) ?? 0,
+  }));
+  return valueHoldings({
+    prices: input.prices as readonly AssetPrice[],
+    holdings,
+    quoteCurrency: input.quoteCurrency,
+    asOf: input.asOf,
+    stalenessMs: input.stalenessMs,
+  });
+}
+
+/**
+ * Build a revaluation proposal for one entity: carrying value per asset from the
+ * journal, valued at the latest saved price. Returns a *proposal* — balanced
+ * journal lines the accountant reviews and posts, never an automatic post.
+ */
+export function revaluationForEntity(input: {
+  entries: readonly PostedJournalEntry[];
+  accounts: readonly BooksAccount[];
+  assets: readonly BooksAsset[];
+  prices: readonly StoredAssetPrice[];
+  entityId: string;
+  quoteCurrency: string;
+  assetAccountCode: string;
+  gainAccountCode: string;
+  lossAccountCode: string;
+  asOf: string;
+}): RevaluationProposal {
+  const carrying = assetCarryingSchedule(input.entries, input.accounts, input.entityId);
+  const decimals = new Map(input.assets.map((asset) => [asset.code, asset.decimals]));
+  const holdings = carrying
+    .filter((row) => row.currency === input.quoteCurrency && row.quantityMinor > 0n)
+    .map((row) => ({
+      assetCode: row.assetCode,
+      quantityMinor: row.quantityMinor,
+      quantityScale: decimals.get(row.assetCode) ?? 0,
+      carryingMinor: row.carryingMinor,
+    }));
+  return proposeRevaluation({
+    prices: input.prices as readonly AssetPrice[],
+    holdings,
+    quoteCurrency: input.quoteCurrency,
+    assetAccountCode: input.assetAccountCode,
+    gainAccountCode: input.gainAccountCode,
+    lossAccountCode: input.lossAccountCode,
+    asOf: input.asOf,
+  });
+}

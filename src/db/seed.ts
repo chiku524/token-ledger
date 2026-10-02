@@ -10,6 +10,7 @@ import { exampleBooks } from "../data/example-books";
 import { closeDb, getDb } from "./client";
 import {
   accounts,
+  assetPrices,
   assets,
   auditEvents,
   balanceSnapshots,
@@ -52,6 +53,7 @@ async function main() {
     await tx.delete(journalEntries).where(eq(journalEntries.organizationId, organizationId));
     await tx.delete(auditEvents).where(eq(auditEvents.organizationId, organizationId));
     await tx.delete(fxRates).where(eq(fxRates.organizationId, organizationId));
+    await tx.delete(assetPrices).where(eq(assetPrices.organizationId, organizationId));
     await tx.delete(accounts).where(eq(accounts.organizationId, organizationId));
     await tx.delete(sources).where(eq(sources.organizationId, organizationId));
     await tx.delete(connections).where(eq(connections.organizationId, organizationId));
@@ -180,6 +182,9 @@ async function main() {
     );
 
     await tx.insert(fxRates).values([...books.fxRates]);
+    await tx.insert(assetPrices).values(
+      books.assetPrices.map((price) => ({ ...price, asOf: new Date(price.asOf) })),
+    );
     await tx.insert(users).values(
       EXAMPLE_USERS.map((user, index) => ({
         id: `user_example_${user.role}${user.entityScope.length ? "_sg" : ""}`,

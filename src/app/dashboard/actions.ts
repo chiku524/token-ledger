@@ -10,6 +10,8 @@ import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { postFormJournal } from "@/data/journal-form";
 import { loadBooks } from "@/data/load-books";
+import { refreshAssetPrices, refreshFxRates } from "@/data/market-data";
+import { revaluationForEntity } from "@/data/valuation";
 import { runConnectionSync, type SyncRunOutcome } from "@/data/run-sync";
 import { parseSourceTransactionCsv } from "@/data/source-csv";
 import {
@@ -30,7 +32,7 @@ import {
   insertSourceTransactions,
   revokeConnection,
 } from "@/db/write";
-import { toMinor } from "@/ledger";
+import { postJournalEntry, toMinor } from "@/ledger";
 import { fail, finish, save } from "./form-state";
 
 const READ_ONLY = "Connect a database to save changes. This demo and the sample on screen are read-only.";
@@ -112,6 +114,64 @@ async function validateExchangeCredential(venueKey: string, credential: Exchange
     const message = error instanceof Error ? error.message : "The exchange rejected the credential.";
     throw new BooksWriteError(`Credential check failed: ${message}`);
   }
+}
+
+/**
+ * Post a period-end revaluation as one balanced entry, computed from the latest
+ * saved prices. The accountant triggers this deliberately; it is never
+ * automatic. The entry records a reference and memo so the price basis is
+ * visible, and is corrected by a reversal like any other entry.
+ */
+export async function postRevaluationAction(formData: FormData) {
+  const path = "/dashboard/reports";
+  const session = await guard(path, "journal.post", formData);
+  requireWritable(path, session);
+  const entityId = String(formData.get("entityId") ?? "");
+  const asOf = String(formData.get("asOf") ?? "");
+  const reference = String(formData.get("reference") ?? "").trim();
+  if (!reference) fail(path, "Give the revaluation a reference.");
+  const books = await loadBooks(session.organizationId);
+  const entity = books.entities.find((item) => item.id === entityId);
+  if (!entity) fail(path, "Choose a company in this organization.");
+  assertEntityOrFail(path, session, entityId);
+
+  const proposal = revaluationForEntity({
+    entries: books.journalEntries,
+    accounts: books.accounts,
+    assets: books.assets,
+    prices: books.assetPrices,
+    entityId,
+    quoteCurrency: entity.functionalCurrency,
+    assetAccountCode: "1310",
+    gainAccountCode: "4200",
+    lossAccountCode: "5200",
+    asOf,
+  });
+  if (proposal.journalLines.length === 0) fail(path, "Nothing to revalue: market value matches carrying value.");
+  const entry = postJournalEntry({
+    entityId,
+    reference,
+    entryDate: asOf.slice(0, 10),
+    memo: `Revaluation as of ${asOf.slice(0, 10)}`,
+    lines: proposal.journalLines,
+  });
+  await save(path, () => insertJournal(books, entry, actorName(session)));
+  finish(path, `Revaluation posted. Net ${proposal.netMinor > 0n ? "gain" : "loss"} recorded; reverse it if the price was wrong.`);
+}
+
+/** Fetch and store live asset prices and FX rates for this organization. */
+export async function refreshMarketDataAction(formData: FormData) {
+  const path = connectionReturnPath(formData.get("next"));
+  const session = await guard(path, "source.write", formData);
+  requireWritable(path, session);
+  let message = "";
+  await save(path, async () => {
+    const prices = await refreshAssetPrices(session.organizationId);
+    const fx = await refreshFxRates(session.organizationId);
+    message = `${prices.message} ${fx.message}`.trim();
+    if (prices.skipped && fx.skipped) throw new BooksWriteError(prices.message);
+  });
+  finish(path, message || "Market data refreshed.");
 }
 
 export async function refreshConnectionAction(formData: FormData) {

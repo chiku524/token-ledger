@@ -3,7 +3,9 @@ import {
   createFxRateAction,
   importCsvAction,
   postJournalAction,
+  postRevaluationAction,
   refreshConnectionAction,
+  refreshMarketDataAction,
   reverseJournalAction,
   revokeConnectionAction,
 } from "@/app/dashboard/actions";
@@ -99,6 +101,39 @@ export function ConnectionControls({
         </button>
       </form>
     </div>
+  );
+}
+
+export function RevaluationForm({ entityId, asOf, csrf }: { entityId: string; asOf: string; csrf: string }) {
+  return (
+    <form action={postRevaluationAction} className="mt-4 flex flex-wrap items-end gap-3 panel p-4">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="entityId" value={entityId} />
+      <input type="hidden" name="asOf" value={asOf} />
+      <label className="field">
+        <span>Reference</span>
+        <input name="reference" required maxLength={40} placeholder="REVAL-2026-06" />
+      </label>
+      <button type="submit" className="btn">
+        Post revaluation entry
+      </button>
+      <span className="text-sm text-ink-soft">Posts one balanced entry for the net difference. Reverse it if the price was wrong.</span>
+    </form>
+  );
+}
+
+export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf: string; next?: string }) {
+  return (
+    <form action={refreshMarketDataAction} className="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="next" value={next} />
+      <button type="submit" className="btn-secondary">
+        Refresh prices and rates
+      </button>
+      <span className="text-sm text-ink-soft">
+        Fetches live prices and FX rates, stored with their source and date. Never posts a journal.
+      </span>
+    </form>
   );
 }
 

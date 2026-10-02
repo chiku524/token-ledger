@@ -20,6 +20,26 @@ export function toMinor(amount: string, scale: number): bigint {
   return negative ? -minor : minor;
 }
 
+/**
+ * Parse a decimal amount and round it to `scale` minor units, half-up away from
+ * zero. Used for provider values (prices, rates) that carry more decimals than
+ * the target scale, so they never pass through a binary float.
+ */
+export function toMinorRounded(amount: string, scale: number): bigint {
+  assertScale(scale);
+  const negative = amount.startsWith("-");
+  const raw = negative ? amount.slice(1) : amount;
+  if (!/^\d+(\.\d+)?$/.test(raw)) {
+    throw new Error(`Invalid decimal amount "${amount}".`);
+  }
+  const [whole, fraction = ""] = raw.split(".");
+  const kept = fraction.slice(0, scale).padEnd(scale, "0");
+  const nextDigit = fraction.charCodeAt(scale) - 48;
+  let minor = BigInt(whole) * 10n ** BigInt(scale) + BigInt(kept === "" ? "0" : kept);
+  if (nextDigit >= 5) minor += 1n;
+  return negative ? -minor : minor;
+}
+
 export function formatMinor(
   amountMinor: bigint,
   scale: number,

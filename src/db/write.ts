@@ -10,6 +10,7 @@ import { LedgerError, reverseJournalEntry, type PostedJournalEntry } from "@/led
 import { getDb } from "./client";
 import {
   accounts,
+  assetPrices,
   auditEvents,
   balanceSnapshots,
   connectionCredentials,
@@ -274,6 +275,9 @@ export async function insertFxRate(
     scale: number;
     asOf: string;
     note: string;
+    /** Defaults to the organization's origin for a manually entered rate; a
+     * fetched rate passes "live" so provenance is accurate. */
+    origin?: "example" | "live";
   },
   actor: string,
 ): Promise<void> {
@@ -289,7 +293,7 @@ export async function insertFxRate(
       numerator: input.numerator,
       scale: input.scale,
       asOf: input.asOf,
-      origin: books.organization.origin,
+      origin: input.origin ?? books.organization.origin,
       note: input.note,
     });
     await tx.insert(auditEvents).values(
@@ -303,6 +307,59 @@ export async function insertFxRate(
       ),
     );
   });
+}
+
+/**
+ * Store fetched market prices. Each row is dated and carries its source and
+ * origin, so a report can always show where a value came from. A price never
+ * posts to the journal.
+ */
+export async function insertAssetPrices(
+  books: Books,
+  prices: readonly {
+    assetCode: string;
+    quoteCurrency: string;
+    priceMinor: bigint;
+    quoteScale: number;
+    asOf: string;
+    origin: "example" | "live";
+    source: string;
+  }[],
+  actor: string,
+): Promise<number> {
+  const known = new Set(books.assets.map((asset) => asset.code));
+  for (const price of prices) {
+    if (!known.has(price.assetCode)) throw new BooksWriteError(`Unknown asset ${price.assetCode}.`);
+    if (price.priceMinor <= 0n) throw new BooksWriteError(`Price for ${price.assetCode} must be positive.`);
+  }
+  if (prices.length === 0) return 0;
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx.insert(assetPrices).values(
+      prices.map((price) => ({
+        id: newId("price"),
+        organizationId: books.organization.id,
+        assetCode: price.assetCode,
+        quoteCurrency: price.quoteCurrency,
+        priceMinor: price.priceMinor,
+        quoteScale: price.quoteScale,
+        asOf: new Date(price.asOf),
+        origin: price.origin,
+        source: price.source,
+      })),
+    );
+    await tx.insert(auditEvents).values(
+      auditRow(
+        books,
+        actor,
+        "asset_prices.recorded",
+        "organization",
+        books.organization.id,
+        `Recorded ${prices.length} price${prices.length === 1 ? "" : "s"} (${[...new Set(prices.map((p) => p.source))].join(", ")}).`,
+      ),
+    );
+  });
+  return prices.length;
 }
 
 export async function insertSourceTransactions(

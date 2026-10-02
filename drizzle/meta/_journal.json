@@ -71,6 +71,13 @@
       "when": 1790882509508,
       "tag": "0009_mean_maddog",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790899577166,
+      "tag": "0010_past_nighthawk",
+      "breakpoints": true
     }
   ]
 }

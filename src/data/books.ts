@@ -1,4 +1,5 @@
 import type { FxRate } from "@/ledger/fx";
+import type { AssetPrice } from "@/ledger/pricing";
 import type { AccountType, PostedJournalEntry, QuantityDirection, Side } from "@/ledger";
 
 export interface StoredJournalEntry extends PostedJournalEntry {
@@ -116,6 +117,9 @@ export interface StoredFxRate extends FxRate {
   organizationId: string;
 }
 
+/** A stored market price. Same shape as the pure `AssetPrice`. */
+export type StoredAssetPrice = AssetPrice;
+
 export interface AuditEvent {
   id: string;
   organizationId: string;
@@ -141,5 +145,6 @@ export interface Books {
   sourceTransactions: readonly BooksSourceTransaction[];
   reconciliations: readonly BooksReconciliation[];
   fxRates: readonly StoredFxRate[];
+  assetPrices: readonly StoredAssetPrice[];
   auditEvents: readonly AuditEvent[];
 }
