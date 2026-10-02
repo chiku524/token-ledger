@@ -20,7 +20,7 @@ light before it is committed.
 - [x] **4b. Overview pages** — dashboard, sources, entities, setup, guide, charts
 - [x] **4c. Ledger pages** — ledger, approvals, reconciliation
 - [x] **4d. Reporting and admin pages** — reports, consolidation, operations, audit, users, settings, error boundaries
-- [ ] **5. Public pages** (landing done) — `feat: restyle public pages`
+- [x] **5. Public pages** — `feat: restyle public pages`
   - Landing, sign-in, sign-up wizard, reset-password, verify-email
 - [ ] **6. Print, cleanup, a11y** — `chore: print styles, remove legacy classes, docs`
   - `@media print` light styles, delete legacy classes, contrast and reduced-motion pass
