@@ -17,7 +17,7 @@ light before it is committed.
 - [x] **3. App shell** — `feat: restyle dashboard shell`
   - Sidebar, mobile Sheet nav, theme toggle, user menu, skeleton loading
 - [x] **4a. Forms and shared components** — `record-forms`, `connector-form`, `period-form`, `example-banner`, `connection-tour` as Dialog
-- [ ] **4b. Overview pages** — dashboard, sources, entities, setup, guide, charts
+- [x] **4b. Overview pages** — dashboard, sources, entities, setup, guide, charts
 - [ ] **4c. Ledger pages** — ledger, approvals, reconciliation
 - [ ] **4d. Reporting and admin pages** — reports, consolidation, operations, audit, users, settings, error boundaries
 - [ ] **5. Public pages** — `feat: restyle public pages`

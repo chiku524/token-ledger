@@ -29,6 +29,8 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 | `TableCard` | `mt-4 overflow-x-auto panel` |
 | `Amount` | `.num` (add `text-right` on the cell for column alignment) |
 | `Field` | `.field` |
+| `StatCard` | Overview stat tiles; numbers count up (`NumberTicker`) and stagger in. Place inside a `Stagger`. |
+| `NumberHead`, `NumberCell` | `.num` table columns. `NumberCell align="left"` for dates and addresses (pair it with a plain `TableHead`). |
 | `FormCard` | `grid gap-3 panel p-4` form with a title and description (headings `h2` or `h3`) |
 | `SegmentedLinks` | Company switcher in Reports and Combined |
 
@@ -68,6 +70,11 @@ Use `danger` / `success` for text; the legacy `seal` / `pine` are too dim on Nig
 
 ## Known follow-ups
 
+- Legacy classes in `globals.css` (`.num`, `.kicker`, `.panel`, and so on) are unlayered, so
+  they beat Tailwind utilities. Do not combine them with colour or alignment utilities
+  (`kicker text-success`, `num text-left`); use the new components instead.
+- In a background browser tab, motion animations are throttled, so screenshots can catch pages
+  mid-fade. Wait a few seconds or focus the tab.
 - The global lime focus outline in `globals.css` is unlayered, so it shows on top of
   shadcn's own focus ring on migrated controls. Resolve in Phase 6.
 - Existing `Button` default size grew from 32px to 36px to match the old `.btn`.

@@ -1,4 +1,6 @@
+import { TableCard } from "@/components/app/table-card";
 import { SubmitButton } from "@/components/submit-button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { reopenConnectionTourAction } from "@/app/dashboard/tour-actions";
 
 const MODES = [
@@ -36,7 +38,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         <h2 id="shape-heading" className="text-lg font-semibold tracking-tight">
           Where a connection sits
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           The connection is consent for a company. Accounts hang off it. What was read stays separate from what was posted.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -47,31 +49,31 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
               ["Account", "One address, exchange account, or vault."],
               ["Observation", "A balance at a moment, plus the movements since the last cursor."],
             ].map(([title, detail], index) => (
-              <li key={title} className="panel px-4 py-3" style={{ marginLeft: `${index * 0.75}rem` }}>
-                <p className="text-xs tracking-[0.14em] text-ink-soft uppercase">{index + 1}</p>
+              <li key={title} className="rounded-xl border border-border bg-card px-4 py-3" style={{ marginLeft: `${index * 0.75}rem` }}>
+                <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{index + 1}</p>
                 <p className="mt-1 font-medium">{title}</p>
-                <p className="mt-1 text-sm text-ink-soft">{detail}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
               </li>
             ))}
           </ol>
-          <div className="panel p-4">
-            <p className="text-xs tracking-[0.14em] text-ink-soft uppercase">Beside the read, not inside it</p>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">Beside the read, not inside it</p>
             <ul className="mt-3 grid gap-3 text-sm">
               <li>
                 <span className="font-medium">Observed balance</span>
-                <span className="mt-1 block text-ink-soft">What the venue reported. This can include activity that has no journal entry yet.</span>
+                <span className="mt-1 block text-muted-foreground">What the venue reported. This can include activity that has no journal entry yet.</span>
               </li>
               <li>
                 <span className="font-medium">Movement</span>
-                <span className="mt-1 block text-ink-soft">A deposit, withdrawal, trade, or transfer, stored as a source fact.</span>
+                <span className="mt-1 block text-muted-foreground">A deposit, withdrawal, trade, or transfer, stored as a source fact.</span>
               </li>
               <li>
                 <span className="font-medium">Journal</span>
-                <span className="mt-1 block text-ink-soft">What an accountant posted. A check never posts one.</span>
+                <span className="mt-1 block text-muted-foreground">What an accountant posted. A check never posts one.</span>
               </li>
               <li>
                 <span className="font-medium">Matching</span>
-                <span className="mt-1 block text-ink-soft">Compares movements with journal lines and keeps the exceptions visible.</span>
+                <span className="mt-1 block text-muted-foreground">Compares movements with journal lines and keeps the exceptions visible.</span>
               </li>
             </ul>
           </div>
@@ -84,19 +86,19 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         </h2>
         <ul className="mt-4 grid gap-3 md:grid-cols-3">
           {MODES.map((mode) => (
-            <li key={mode.title} className="panel p-4">
+            <li key={mode.title} className="rounded-xl border border-border bg-card p-4">
               <h3 className="font-medium">{mode.title}</h3>
               <dl className="mt-3 grid gap-3 text-sm">
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-ink-soft uppercase">Stored</dt>
+                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Stored</dt>
                   <dd className="mt-1">{mode.stores}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-ink-soft uppercase">Read</dt>
+                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Read</dt>
                   <dd className="mt-1">{mode.reads}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-ink-soft uppercase">Secret</dt>
+                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Secret</dt>
                   <dd className="mt-1">{mode.secret}</dd>
                 </div>
               </dl>
@@ -111,73 +113,73 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         </h2>
         <ol className="mt-4 grid gap-3 md:grid-cols-4" aria-label="Connection lifecycle">
           {LIFE.map((step, index) => (
-            <li key={step.title} className="panel p-4">
-              <p className="text-xs tracking-[0.14em] text-pine uppercase">{index + 1}</p>
+            <li key={step.title} className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs tracking-[0.14em] text-success uppercase">{index + 1}</p>
               <h3 className="mt-2 font-medium">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.detail}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
             </li>
           ))}
         </ol>
-        <div className="mt-4 overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard>
+          <Table>
             <caption className="sr-only">What each status means</caption>
-            <thead>
-              <tr>
-                <th scope="col">Status</th>
-                <th scope="col">Meaning</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Waiting</td>
-                <td>Added, and not successfully checked yet. A failed first check stays here.</td>
-              </tr>
-              <tr>
-                <td>Up to date</td>
-                <td>The last check returned balances and movements.</td>
-              </tr>
-              <tr>
-                <td>Needs attention</td>
-                <td>A check failed after an earlier success.</td>
-              </tr>
-              <tr>
-                <td>Disconnected</td>
-                <td>An admin stopped future reads. History remains.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Status</TableHead>
+                <TableHead scope="col">Meaning</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>Waiting</TableCell>
+                <TableCell>Added, and not successfully checked yet. A failed first check stays here.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Up to date</TableCell>
+                <TableCell>The last check returned balances and movements.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Needs attention</TableCell>
+                <TableCell>A check failed after an earlier success.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Disconnected</TableCell>
+                <TableCell>An admin stopped future reads. History remains.</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableCard>
       </section>
 
       <section aria-labelledby="roles-heading">
         <h2 id="roles-heading" className="text-lg font-semibold tracking-tight">
           Who does what
         </h2>
-        <div className="mt-4 overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard>
+          <Table>
             <caption className="sr-only">Roles for connections</caption>
-            <thead>
-              <tr>
-                <th scope="col">Role</th>
-                <th scope="col">Connections</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Owner and admin</td>
-                <td>Add a connection from Settings, check it, and disconnect it. Signup asks for this once. A new admin is also shown the tour once.</td>
-              </tr>
-              <tr>
-                <td>Accountant</td>
-                <td>Import a CSV of activity and post the journal. Cannot add a connection.</td>
-              </tr>
-              <tr>
-                <td>Viewer</td>
-                <td>Read the guide, the observations, and the books.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Role</TableHead>
+                <TableHead scope="col">Connections</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>Owner and admin</TableCell>
+                <TableCell>Add a connection from Settings, check it, and disconnect it. Signup asks for this once. A new admin is also shown the tour once.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Accountant</TableCell>
+                <TableCell>Import a CSV of activity and post the journal. Cannot add a connection.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Viewer</TableCell>
+                <TableCell>Read the guide, the observations, and the books.</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableCard>
         {canRestartTour ? (
           <form action={reopenConnectionTourAction} className="mt-4">
             <input type="hidden" name="csrf" value={csrf} />
@@ -186,7 +188,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
             </SubmitButton>
           </form>
         ) : (
-          <p className="mt-4 text-sm text-ink-soft">A new admin is offered the tour the first time they sign in.</p>
+          <p className="mt-4 text-sm text-muted-foreground">A new admin is offered the tour the first time they sign in.</p>
         )}
       </section>
     </div>

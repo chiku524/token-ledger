@@ -7,7 +7,7 @@ export function SectionHeader({
   className,
 }: {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }) {
