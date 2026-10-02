@@ -42,6 +42,14 @@ describe("permission matrix", () => {
     expect(can("accountant", "source.import")).toBe(true);
     expect(can("accountant", "entity.write")).toBe(false);
     expect(can("accountant", "fx.write")).toBe(false);
+    // An approver approves but never posts directly, and cannot manage users.
+    expect(can("approver", "journal.approve")).toBe(true);
+    expect(can("approver", "journal.post")).toBe(false);
+    expect(can("approver", "journal.reverse")).toBe(false);
+    expect(can("approver", "users.manage")).toBe(false);
+    expect(can("accountant", "journal.approve")).toBe(false);
+    expect(can("accountant", "reconciliation.match")).toBe(true);
+    expect(can("viewer", "reconciliation.match")).toBe(false);
     expect(can("admin", "users.manage")).toBe(true);
     expect(can("admin", "entity.write")).toBe(true);
     expect(can("admin", "fx.write")).toBe(true);

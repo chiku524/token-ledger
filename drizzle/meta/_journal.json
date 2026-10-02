@@ -78,6 +78,13 @@
       "when": 1790899577166,
       "tag": "0010_past_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790903470929,
+      "tag": "0011_clear_shadow_king",
+      "breakpoints": true
     }
   ]
 }

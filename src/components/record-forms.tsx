@@ -1,13 +1,16 @@
 import {
+  approveDraftAction,
   createEntityAction,
   createFxRateAction,
   importCsvAction,
   postJournalAction,
   postRevaluationAction,
+  prepareJournalAction,
   refreshConnectionAction,
   refreshMarketDataAction,
   reverseJournalAction,
   revokeConnectionAction,
+  submitDraftAction,
 } from "@/app/dashboard/actions";
 import type { Books } from "@/data/books";
 
@@ -98,6 +101,40 @@ export function ConnectionControls({
         <input type="hidden" name="connectionId" value={connectionId} />
         <button type="submit" className="btn-secondary">
           Disconnect
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export function DraftSubmitControls({ draftId, csrf }: { draftId: string; csrf: string }) {
+  return (
+    <form action={submitDraftAction}>
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="draftId" value={draftId} />
+      <button type="submit" className="btn-secondary">
+        Submit for approval
+      </button>
+    </form>
+  );
+}
+
+export function DraftApprovalControls({ draftId, csrf, isOwner }: { draftId: string; csrf: string; isOwner: boolean }) {
+  return (
+    <div className="grid gap-2">
+      <form action={approveDraftAction} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="csrf" value={csrf} />
+        <input type="hidden" name="draftId" value={draftId} />
+        {isOwner ? (
+          <input
+            name="overrideNote"
+            placeholder="Owner override note (only if you prepared it)"
+            maxLength={200}
+            className="text-sm"
+          />
+        ) : null}
+        <button type="submit" className="btn">
+          Approve and post
         </button>
       </form>
     </div>
@@ -306,10 +343,14 @@ export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
           </tbody>
         </table>
       </div>
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className="btn">
           Post entry
         </button>
+        <button type="submit" formAction={prepareJournalAction} className="btn-secondary">
+          Save as draft
+        </button>
+        <span className="text-sm text-ink-soft">A draft is not in the books until an approver posts it.</span>
       </div>
     </form>
   );

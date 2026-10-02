@@ -8,7 +8,8 @@ import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
 import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
-import { postFormJournal } from "@/data/journal-form";
+import { draftFromForm, postFormJournal } from "@/data/journal-form";
+import { approveDraft, createDraft, submitDraft } from "@/db/drafts";
 import { loadBooks } from "@/data/load-books";
 import { refreshAssetPrices, refreshFxRates } from "@/data/market-data";
 import { revaluationForEntity } from "@/data/valuation";
@@ -246,6 +247,67 @@ export async function postJournalAction(formData: FormData) {
     await insertJournal(books, entry, actorName(session));
   });
   finish(path, "Entry posted. Posted entries are not edited. Post a correction if one is wrong.");
+}
+
+/** Save a journal as a draft, invisible to reports until approved. */
+export async function prepareJournalAction(formData: FormData) {
+  const path = "/dashboard/ledger";
+  const session = await guard(path, "journal.prepare", formData);
+  requireWritable(path, session);
+  const parsed = journalFormSchema.safeParse({
+    entityId: formData.get("entityId"),
+    reference: formData.get("reference"),
+    entryDate: formData.get("entryDate"),
+    memo: formData.get("memo"),
+    lines: linesFromForm(formData),
+  });
+  if (!parsed.success) fail(path, firstIssue(parsed.error));
+  const books = await loadBooks(session.organizationId);
+  await save(path, async () => {
+    assertEntity(session, parsed.data.entityId);
+    const draft = draftFromForm(parsed.data, books);
+    await createDraft(session.organizationId, {
+      entityId: draft.entityId,
+      reference: parsed.data.reference,
+      entryDate: parsed.data.entryDate,
+      memo: parsed.data.memo,
+      currency: draft.currency,
+      lines: draft.lines,
+      preparedBy: actorName(session),
+      actor: actorName(session),
+    });
+  });
+  finish(path, "Draft saved. It is not in the books until an approver posts it.");
+}
+
+/** Submit a draft to the approval queue. */
+export async function submitDraftAction(formData: FormData) {
+  const path = "/dashboard/approvals";
+  const session = await guard(path, "journal.prepare", formData);
+  requireWritable(path, session);
+  const draftId = String(formData.get("draftId") ?? "");
+  await save(path, () => submitDraft(session.organizationId, draftId, actorName(session)));
+  finish(path, "Draft submitted for approval.");
+}
+
+/** Approve a pending draft; this is what posts it to the immutable books. */
+export async function approveDraftAction(formData: FormData) {
+  const path = "/dashboard/approvals";
+  const session = await guard(path, "journal.approve", formData);
+  requireWritable(path, session);
+  const draftId = String(formData.get("draftId") ?? "");
+  const isOwner = session.role === "owner";
+  const overrideNote = isOwner ? String(formData.get("overrideNote") ?? "").trim() || null : null;
+  await save(path, () =>
+    approveDraft({
+      organizationId: session.organizationId,
+      draftId,
+      approverActor: actorName(session),
+      approverRole: session.role,
+      overrideNote,
+    }),
+  );
+  finish(path, "Entry approved and posted.");
 }
 
 export async function reverseJournalAction(formData: FormData) {

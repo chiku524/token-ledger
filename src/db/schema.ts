@@ -52,7 +52,8 @@ export const normalBalance = pgEnum("normal_balance", ["debit", "credit"]);
 export const journalSide = pgEnum("journal_side", ["debit", "credit"]);
 export const quantityDirection = pgEnum("quantity_direction", ["in", "out"]);
 export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", "exception"]);
-export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "viewer"]);
+export const journalDraftStatus = pgEnum("journal_draft_status", ["draft", "pending", "posted"]);
+export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer"]);
 export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
 export const syncRunStatus = pgEnum("sync_run_status", ["running", "ok", "partial", "failed", "not_live"]);
 export const syncRunTrigger = pgEnum("sync_run_trigger", ["manual", "scheduled", "webhook", "cli"]);
@@ -257,6 +258,75 @@ export const journalLines = pgTable(
       "journal_lines_quantity_positive",
       sql`(${table.quantityMinor} is null or ${table.quantityMinor} > 0)`,
     ),
+  ],
+);
+
+/**
+ * A journal before it is posted. `draft` is editable and invisible to reports;
+ * `pending` awaits approval; `posted` is a link to the immutable journal entry it
+ * became (or the reference of a reversal). Approval inserts into the immutable
+ * `journal_entries`/`journal_lines` and marks the draft posted, so posted books
+ * stay immutable and a draft is never a posted row.
+ */
+export const journalDrafts = pgTable(
+  "journal_drafts",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    reference: text("reference").notNull(),
+    entryDate: date("entry_date").notNull(),
+    memo: text("memo").notNull(),
+    currency: text("currency").notNull(),
+    debitMinor: bigint("debit_minor", { mode: "bigint" }).notNull(),
+    creditMinor: bigint("credit_minor", { mode: "bigint" }).notNull(),
+    status: journalDraftStatus("status").notNull(),
+    /** Who prepared it. An approver of the same identity is blocked without an override. */
+    preparedBy: text("prepared_by").notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    /** The posted entry this draft became, once approved. */
+    postedEntryId: text("posted_entry_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("journal_drafts_org_status_idx").on(table.organizationId, table.status),
+    index("journal_drafts_entity_idx").on(table.entityId),
+    check("journal_drafts_balanced", sql`${table.debitMinor} = ${table.creditMinor}`),
+    check("journal_drafts_positive", sql`${table.debitMinor} > 0`),
+  ],
+);
+
+/** A line of a draft journal. Free to change or delete while the draft is editable. */
+export const journalDraftLines = pgTable(
+  "journal_draft_lines",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    draftId: text("draft_id")
+      .notNull()
+      .references(() => journalDrafts.id),
+    lineNumber: integer("line_number").notNull(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    side: journalSide("side").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    currency: text("currency").notNull(),
+    quantityMinor: quantity("quantity_minor"),
+    quantityDirection: quantityDirection("quantity_direction"),
+    assetId: text("asset_id").references(() => assets.id),
+    sourceId: text("source_id").references(() => sources.id),
+    memo: text("memo"),
+  },
+  (table) => [
+    uniqueIndex("journal_draft_lines_draft_line_unique").on(table.draftId, table.lineNumber),
+    check("journal_draft_lines_amount_positive", sql`${table.amountMinor} > 0`),
   ],
 );
 

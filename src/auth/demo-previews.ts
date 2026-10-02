@@ -12,6 +12,7 @@ export const DEMO_PREVIEWS: readonly {
   { id: "owner", label: "Owner", role: "owner", email: "owner@harbourline.example", name: "Amina Rahman", entityScope: [] },
   { id: "admin", label: "Admin", role: "admin", email: "admin@harbourline.example", name: "Ben Lim", entityScope: [] },
   { id: "accountant", label: "Accountant", role: "accountant", email: "accountant@harbourline.example", name: "Chloe Tan", entityScope: [] },
+  { id: "approver", label: "Approver", role: "approver", email: "approver@harbourline.example", name: "Farid Ismail", entityScope: [] },
   { id: "viewer", label: "Viewer", role: "viewer", email: "viewer@harbourline.example", name: "David Ong", entityScope: [] },
   {
     id: "viewer-sg",

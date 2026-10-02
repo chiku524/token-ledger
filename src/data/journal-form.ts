@@ -48,6 +48,45 @@ export function postFormJournal(form: JournalForm, books: Pick<Books, "entities"
   return postJournalEntry(input);
 }
 
+/**
+ * Validate a journal form into draft lines (no id, no posting). Uses the same
+ * per-line rules as posting, so a draft cannot hold an entry that could never
+ * post. Returns the entity, totals, and lines for a draft row.
+ */
+export function draftFromForm(
+  form: JournalForm,
+  books: Pick<Books, "entities" | "accounts" | "assets" | "sources">,
+): {
+  entityId: string;
+  currency: string;
+  lines: Array<{
+    accountCode: string;
+    side: "debit" | "credit";
+    amountMinor: bigint;
+    currency: string;
+    assetCode?: string;
+    quantityMinor?: bigint;
+    quantityDirection?: "in" | "out";
+    sourceId?: string;
+  }>;
+} {
+  const posted = postFormJournal(form, books);
+  return {
+    entityId: posted.entityId,
+    currency: posted.currency,
+    lines: posted.lines.map((line) => ({
+      accountCode: line.accountCode,
+      side: line.side,
+      amountMinor: line.amountMinor,
+      currency: line.currency,
+      assetCode: line.assetCode,
+      quantityMinor: line.quantityMinor,
+      quantityDirection: line.quantityDirection,
+      sourceId: line.sourceId,
+    })),
+  };
+}
+
 export function assertCanReverse(entries: readonly StoredJournalEntry[], entryId: string): StoredJournalEntry {
   const entry = entries.find((item) => item.id === entryId);
   if (!entry) throw new LedgerError("EMPTY_REFERENCE", "That entry is not in these books.");
