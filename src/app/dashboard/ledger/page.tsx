@@ -1,3 +1,4 @@
+import { BookOpen } from "lucide-react";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
@@ -52,7 +53,7 @@ export default async function LedgerPage({
         <RoleNote>You can view entries and download CSVs. Posting and corrections are hidden.</RoleNote>
       )}
       {visible.length === 0 ? (
-        <EmptyState>No entries in these dates.</EmptyState>
+        <EmptyState icon={BookOpen}>No entries in these dates. Widen the dates above to see more.</EmptyState>
       ) : (
         <div className="space-y-6">
           {visible.map((entry) => (

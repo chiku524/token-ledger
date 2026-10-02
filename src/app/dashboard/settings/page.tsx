@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { connectionStatusTone, StatusBadge } from "@/components/app/status-badge";
 import { TableCard } from "@/components/app/table-card";
+import { Link2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectorForm } from "@/components/connector-form";
@@ -82,7 +84,19 @@ export default async function SettingsPage({
           </div>
         ) : null}
         {books.connections.length === 0 ? (
-          <EmptyState className="mt-4">No connections yet.</EmptyState>
+          <EmptyState
+            className="mt-4"
+            icon={Link2}
+            action={
+              canSource ? (
+                <Button asChild variant="secondary">
+                  <Link href="/dashboard/setup">Open the connection steps</Link>
+                </Button>
+              ) : undefined
+            }
+          >
+            No connections yet.
+          </EmptyState>
         ) : (
           <TableCard>
             <Table>

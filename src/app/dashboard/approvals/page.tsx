@@ -1,3 +1,4 @@
+import { CheckCircle2 } from "lucide-react";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
@@ -47,7 +48,7 @@ export default async function ApprovalsPage({
       {!canPrepare ? (
         <EmptyState>Approval is for an owner, admin, accountant, or approver.</EmptyState>
       ) : drafts.length === 0 ? (
-        <EmptyState>Nothing is waiting for approval.</EmptyState>
+        <EmptyState icon={CheckCircle2}>Nothing is waiting for approval.</EmptyState>
       ) : (
         <TableCard className="mt-0">
           <Table>

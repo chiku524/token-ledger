@@ -153,7 +153,7 @@ export function MatchControls({
   csrf: string;
 }) {
   return (
-    <form action={matchReconciliationAction} className="grid gap-2">
+    <form action={matchReconciliationAction} className="grid min-w-60 gap-2">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
       <NativeSelect name="journalLine" required aria-label="Journal line">
@@ -172,7 +172,7 @@ export function MatchControls({
 
 export function UnmatchControls({ sourceTransactionId, csrf }: { sourceTransactionId: string; csrf: string }) {
   return (
-    <form action={unmatchReconciliationAction} className="grid gap-2">
+    <form action={unmatchReconciliationAction} className="grid min-w-60 gap-2">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
       <Input name="note" required maxLength={200} placeholder="Why this is not a match" aria-label="Note" />

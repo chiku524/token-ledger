@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Building2 } from "lucide-react";
 import { MoneyBars } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
 import { RevaluationForm } from "@/components/record-forms";
@@ -47,7 +48,16 @@ export default async function ReportsPage({
     return (
       <>
         <PageHeader kicker="Reports" title="Reports" description="Add a company before balances can be prepared." />
-        <EmptyState>No companies yet.</EmptyState>
+        <EmptyState
+          icon={Building2}
+          action={
+            <Button asChild variant="secondary">
+              <Link href="/dashboard/entities">Companies</Link>
+            </Button>
+          }
+        >
+          No companies yet.
+        </EmptyState>
       </>
     );
   }

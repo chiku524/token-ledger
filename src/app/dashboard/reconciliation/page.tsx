@@ -1,3 +1,4 @@
+import { GitCompare } from "lucide-react";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -72,7 +73,7 @@ export default async function ReconciliationPage({
         </div>
       ) : null}
       {ordered.length === 0 ? (
-        <EmptyState>Nothing to match in these dates.</EmptyState>
+        <EmptyState icon={GitCompare}>Nothing to match in these dates.</EmptyState>
       ) : (
         <>
           <div className="mb-8 grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
