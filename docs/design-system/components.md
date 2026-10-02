@@ -33,6 +33,18 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 `Flash` (`src/components/flash.tsx`) is rebuilt on `Alert` and **is live** on every
 page that already used it.
 
+## App shell (Phase 3, live)
+
+| File | Role |
+|---|---|
+| `dashboard-shell.tsx` | Desktop sidebar, mobile top bar, unverified-email `Alert` |
+| `dashboard-nav.tsx` | lucide icons, one shared `layoutId` pill for the active link |
+| `mobile-nav.tsx` | `Sheet` menu below `md`, closes on navigation |
+| `user-menu.tsx` | `DropdownMenu` with email, scope, and sign out |
+| `theme-toggle.tsx` | Icon `Button`; same `tl-theme` key and no-flash script |
+| `app/dashboard/template.tsx` | `PageTransition` fade on every dashboard navigation |
+| `app/dashboard/loading.tsx` | `Skeleton` placeholder |
+
 ## Brand (`src/components/logo.tsx`)
 
 `LogoMark` and `Logo`, variants `brand` (default), `onLight`, `onLime`, `mono`. Colours

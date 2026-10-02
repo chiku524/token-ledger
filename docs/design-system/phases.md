@@ -14,7 +14,7 @@ light before it is committed.
   - `ui/*` (extend the existing `button.tsx` with a `brand` variant and brand sizing,
     and fold `SubmitButton` into the new set), `app/*`, `Logo`, motion primitives,
     small tests
-- [ ] **3. App shell** — `feat: restyle dashboard shell`
+- [x] **3. App shell** — `feat: restyle dashboard shell`
   - Sidebar, mobile Sheet nav, theme toggle, user menu, skeleton loading
 - [ ] **4a. Forms and shared components** — `record-forms`, `connector-form`, `period-form`, `example-banner`, `connection-tour` as Dialog
 - [ ] **4b. Overview pages** — dashboard, sources, entities, setup, guide, charts
