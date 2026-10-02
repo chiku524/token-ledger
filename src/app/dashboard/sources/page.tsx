@@ -6,16 +6,21 @@ import { can } from "@/auth/roles";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
-import { CsvImportForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
+import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { valueBooksHoldings } from "@/data/valuation";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import {
+  ageLabel,
   connectionModeLabel,
   connectionStatusLabel,
   entityName,
+  formatMoney,
   formatQuantity,
+  freshnessLabel,
+  originLabel,
   placeTypeLabel,
   scopeLabel,
   sourceName,
@@ -43,6 +48,13 @@ export default async function SourcesPage({
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
+  const valuation = valueBooksHoldings({
+    snapshots: books.balanceSnapshots,
+    prices: books.assetPrices,
+    assets: books.assets,
+    quoteCurrency: "USD",
+    asOf: new Date().toISOString(),
+  });
   const connectors = listStubAdapters();
   const liveConnectors = listLiveAdapters();
   const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
@@ -149,6 +161,80 @@ export default async function SourcesPage({
           </table>
         </div>
       )}
+      </section>
+
+      <section id="market-value" className="scroll-mt-6">
+        <h2 className="mt-10 text-lg font-semibold tracking-tight">Market value</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          Observed holdings valued at the latest saved price in {valuation.quoteCurrency}. A price never posts to the
+          journal. A stale or missing price is shown, not hidden.
+        </p>
+        {canSource && writable ? (
+          <div className="mt-4">
+            <MarketDataControls csrf={csrf} next="/dashboard/sources" />
+          </div>
+        ) : null}
+        {valuation.stale ? (
+          <p role="alert" className="mt-3 max-w-2xl rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal">
+            At least one price is older than a day. Treat this total as provisional.
+          </p>
+        ) : null}
+        {valuation.rows.length === 0 && valuation.unpriced.length === 0 ? (
+          <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No observed holdings to value yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto panel">
+            <table className="ledger-table">
+              <caption className="sr-only">Holdings valued at market price</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Asset</th>
+                  <th scope="col" className="num">Quantity held</th>
+                  <th scope="col" className="num">Value · {valuation.quoteCurrency}</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Freshness</th>
+                </tr>
+              </thead>
+              <tbody>
+                {valuation.rows.map((row) => (
+                  <tr key={row.assetCode}>
+                    <td>{row.assetCode}</td>
+                    <td className="num">{formatQuantity(row.quantityMinor, row.assetCode, books.assets)}</td>
+                    <td className="num">{formatMoney(row.valueMinor, row.quoteCurrency)}</td>
+                    <td>
+                      <span className="capitalize">{originLabel(row.origin)}</span>
+                      <span className="mt-1 block text-xs text-ink-soft">{row.source}</span>
+                    </td>
+                    <td>
+                      <span className={row.age === "stale" ? "text-seal" : "text-pine"}>{freshnessLabel(row.age)}</span>
+                      <span className="mt-1 block text-xs text-ink-soft">{ageLabel(row.asOf, valuation.asOf)}</span>
+                    </td>
+                  </tr>
+                ))}
+                {valuation.unpriced.map((row) => (
+                  <tr key={`unpriced_${row.assetCode}`}>
+                    <td>{row.assetCode}</td>
+                    <td className="num">{formatQuantity(row.quantityMinor, row.assetCode, books.assets)}</td>
+                    <td className="num text-ink-soft">No price</td>
+                    <td>—</td>
+                    <td>
+                      <span className="text-seal">{freshnessLabel("missing")}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {valuation.rows.length > 0 ? (
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+                    <td />
+                    <td className="num">{formatMoney(valuation.totalMinor, valuation.quoteCurrency)}</td>
+                    <td colSpan={2}>{valuation.incomplete ? "Partial: some holdings are unpriced or stale." : "All holdings priced."}</td>
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        )}
       </section>
 
       <h2 className="mt-10 text-lg font-semibold tracking-tight">Booked value</h2>

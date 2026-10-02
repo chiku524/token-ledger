@@ -4,6 +4,7 @@ import {
   importCsvAction,
   postJournalAction,
   refreshConnectionAction,
+  refreshMarketDataAction,
   reverseJournalAction,
   revokeConnectionAction,
 } from "@/app/dashboard/actions";
@@ -99,6 +100,21 @@ export function ConnectionControls({
         </button>
       </form>
     </div>
+  );
+}
+
+export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf: string; next?: string }) {
+  return (
+    <form action={refreshMarketDataAction} className="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="next" value={next} />
+      <button type="submit" className="btn-secondary">
+        Refresh prices and rates
+      </button>
+      <span className="text-sm text-ink-soft">
+        Fetches live prices and FX rates, stored with their source and date. Never posts a journal.
+      </span>
+    </form>
   );
 }
 

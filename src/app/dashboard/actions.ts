@@ -10,6 +10,7 @@ import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { postFormJournal } from "@/data/journal-form";
 import { loadBooks } from "@/data/load-books";
+import { refreshAssetPrices, refreshFxRates } from "@/data/market-data";
 import { runConnectionSync, type SyncRunOutcome } from "@/data/run-sync";
 import { parseSourceTransactionCsv } from "@/data/source-csv";
 import {
@@ -112,6 +113,21 @@ async function validateExchangeCredential(venueKey: string, credential: Exchange
     const message = error instanceof Error ? error.message : "The exchange rejected the credential.";
     throw new BooksWriteError(`Credential check failed: ${message}`);
   }
+}
+
+/** Fetch and store live asset prices and FX rates for this organization. */
+export async function refreshMarketDataAction(formData: FormData) {
+  const path = connectionReturnPath(formData.get("next"));
+  const session = await guard(path, "source.write", formData);
+  requireWritable(path, session);
+  let message = "";
+  await save(path, async () => {
+    const prices = await refreshAssetPrices(session.organizationId);
+    const fx = await refreshFxRates(session.organizationId);
+    message = `${prices.message} ${fx.message}`.trim();
+    if (prices.skipped && fx.skipped) throw new BooksWriteError(prices.message);
+  });
+  finish(path, message || "Market data refreshed.");
 }
 
 export async function refreshConnectionAction(formData: FormData) {
