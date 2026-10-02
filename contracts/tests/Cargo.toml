@@ -8,19 +8,17 @@ publish = false
 name = "token_ledger_contract_tests"
 path = "src/lib.rs"
 
-[features]
-# Program-level integration tests need litesvm, whose 0.17 dependency tree does
-# not yet compile against the current solana 3.x/4.x crates
-# (solana-keypair 3.1.2: five8 DecodeError does not implement Error). Gated so
-# the default `cargo test` stays green; enable with `--features litesvm` once
-# upstream settles or a compatible pin is found.
-litesvm = ["dep:litesvm"]
-
+# Versions pinned to litesvm 0.17's own solana dependency set.
 [dependencies]
-litesvm = { version = "0.17.0", optional = true }
-solana-address = { version = "~2.7.0", optional = true }
-solana-keypair = { version = "3.1.2", optional = true }
-solana-message = { version = "4.2.4", optional = true }
-solana-transaction = { version = "4.1.5", optional = true }
-solana-instruction = { version = "~3.5.0", optional = true }
-solana-signer = { version = "3.0.1", optional = true }
+litesvm = "0.17.0"
+solana-address = "~2.7.0"
+solana-keypair = "3.1.2"
+solana-message = "4.2.4"
+solana-transaction = "4.1.5"
+solana-instruction = "~3.5.0"
+solana-signer = "3.0.1"
+
+# solana-keypair 3.1.2 -> five8 1.0.0 -> five8_core 0.1.2, whose
+# `impl std::error::Error for DecodeError` is behind this non-default feature.
+# Enable it so the dependency compiles.
+five8_core = { version = "0.1.2", features = ["std"] }

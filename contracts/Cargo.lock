@@ -5436,6 +5436,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 name = "token-ledger-contract-tests"
 version = "0.1.0"
 dependencies = [
+ "five8_core 0.1.2",
  "litesvm",
  "solana-address 2.7.0",
  "solana-instruction 3.5.1",
