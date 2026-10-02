@@ -6,7 +6,14 @@
  */
 import { constantTimeEqual, fromBase64Url, randomBytes, toBase64Url } from "@/lib/webcrypto";
 
-const ITERATIONS = 210_000;
+/**
+ * Cloudflare Workers (Workerd) refuses PBKDF2 above 100,000 iterations:
+ * "iteration counts above 100000 are not supported". Node has no such cap, but
+ * the same code must run on both, so use the Workers ceiling. Each hash stores
+ * its own iteration count, so hashes made at a higher count still verify where
+ * the platform allows it.
+ */
+const ITERATIONS = 100_000;
 const KEY_BYTES = 32;
 const SALT_BYTES = 16;
 const HASH = "sha256";
@@ -52,7 +59,15 @@ export async function verifyPassword(password: string, stored: string): Promise<
   }
   if (salt.length < 8 || expected.length < 16) return false;
 
-  const actual = await pbkdf2(password, salt, iterations, expected.length);
+  // A stored hash may use a higher iteration count than this runtime allows
+  // (Workerd caps PBKDF2 at 100,000). If deriving throws, fail closed rather
+  // than crashing the request; needsRehash flags it for a re-hash where allowed.
+  let actual: Uint8Array;
+  try {
+    actual = await pbkdf2(password, salt, iterations, expected.length);
+  } catch {
+    return false;
+  }
   return constantTimeEqual(actual, expected);
 }
 

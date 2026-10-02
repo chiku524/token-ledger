@@ -20,7 +20,12 @@ const LEGACY_VERSION = "v1";
 const ALGORITHM = "aes-256-gcm";
 const IV_BYTES = 12;
 const KEY_BYTES = 32;
-const PBKDF2_ITERATIONS = 210_000;
+/**
+ * Workerd caps PBKDF2 at 100,000 iterations, and this must run on both Node and
+ * Workers, so use the Workers ceiling. `v2` blobs are opened and re-sealed with
+ * this count; a blob sealed at a higher count on Node would need re-sealing.
+ */
+const PBKDF2_ITERATIONS = 100_000;
 const SALT = "token-ledger.connector-credential.v1";
 
 const keyCache = new Map<string, Promise<CryptoKey>>();
