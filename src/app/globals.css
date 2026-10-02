@@ -345,3 +345,14 @@ html.dark {
     @apply font-sans;
   }
 }
+@layer components {
+  .page-width {
+    @apply mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12;
+  }
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.23em] text-muted-foreground sm:text-[11px];
+  }
+  .section-title {
+    @apply text-3xl font-semibold leading-[1.12] tracking-[-0.045em] sm:text-4xl lg:text-[46px];
+  }
+}

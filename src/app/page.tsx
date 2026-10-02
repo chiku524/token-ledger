@@ -1,136 +1,177 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Wordmark } from "@/components/wordmark";
-import { exampleBooks } from "@/data/example-books";
-import { accountLabel, formatMoney } from "@/data/present";
+import { ArrowRight, ArrowUpRight, BarChart3, Building2, FileCheck2, Link2, Sprout } from "lucide-react";
+import { content, exampleHref, navigation, signupHref } from "@/components/landing/content";
+import { DashboardPreview } from "@/components/landing/dashboard-preview";
+import { LandingHeader } from "@/components/landing/landing-header";
+import { Logo } from "@/components/logo";
+import { Stagger, StaggerItem } from "@/components/motion/stagger";
+import { FadeIn } from "@/components/motion/fade-in";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-const reward = exampleBooks.journalEntries.find((entry) => entry.reference === "JE-2026-004");
-
-const features = [
-  {
-    title: "See it all",
-    body: "Wallets, exchanges, and custodians are read-only connections. Addresses, accounts, and vaults show up as one list of what you hold.",
-  },
-  {
-    title: "Check it",
-    body: "Activity from each place is compared with the journal. Anything that does not match stays visible.",
-  },
-  {
-    title: "Report it",
-    body: "Balances and crypto values for each company, then one combined view. The same entries can go to Xero, QuickBooks, or other accounting software.",
-  },
-];
+const stepIcons = [Link2, FileCheck2, BarChart3];
+const planIcons = [Sprout, Building2];
 
 export default function HomePage() {
   return (
-    <div className="min-h-full">
-      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-3 px-4 py-5 md:px-8">
-        <Wordmark />
-        <div className="flex flex-wrap items-center gap-2">
-          <ThemeToggle />
-          <Link href="/sign-in?next=/dashboard" className="btn-secondary">
-            Open the example
-          </Link>
-          <Link href="/sign-up" className="btn">
-            Create an account
-          </Link>
-        </div>
-      </header>
+    <>
+      <a
+        href="#main"
+        className="sr-only fixed top-3 left-3 z-50 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only"
+      >
+        Skip to content
+      </a>
+      <LandingHeader />
 
-      <main className="mx-auto max-w-6xl px-4 pb-16 md:px-8">
-        <section className="grid items-start gap-8 py-8 md:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.8fr)] md:py-14">
-          <div>
-            <p className="kicker">Malaysia · Singapore</p>
-            <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">
-              See every asset, wherever it is held.
+      <main id="main">
+        <section
+          id="product"
+          className="page-width grid scroll-mt-24 items-center gap-12 pt-12 pb-16 sm:pt-16 lg:grid-cols-[0.95fr_1.15fr] lg:gap-10 lg:pt-14 lg:pb-20"
+        >
+          <FadeIn y={12}>
+            <p className="eyebrow mb-6 max-w-sm leading-6">{content.eyebrow}</p>
+            <h1 className="text-[clamp(2.8rem,5.1vw,4.55rem)] leading-[1.04] font-semibold tracking-[-0.06em]">
+              <span className="block">{content.headline[0]}</span>
+              <span className="block text-brand dark:text-primary">{content.headline[1]}</span>
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-soft">
-              Token Ledger puts wallets, exchanges, and custodians in one view. Hot wallets, cold wallets, and staking
-              sit next to exchange accounts and custodian vaults. You can match what moved with the journal, then send
-              the entries to Xero, QuickBooks, or other accounting software.
+            <p className="mt-7 max-w-[470px] text-sm leading-[1.85] text-muted-foreground sm:text-base">
+              {content.description}
             </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Link href="/sign-up" className="btn">
-                Create an account
-              </Link>
-              <Link href="/sign-in?next=/dashboard" className="btn-secondary">
-                See the Q2 2026 example
-              </Link>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
+                <Link href={exampleHref}>
+                  {content.demoLabel}
+                  <ArrowUpRight aria-hidden />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href={signupHref}>
+                  {content.signupLabel}
+                  <ArrowRight aria-hidden />
+                </Link>
+              </Button>
             </div>
-          </div>
-
-          {reward ? (
-            <article className="panel p-5">
-              <p className="text-xs font-medium text-ink-soft">Sample entry</p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight">{reward.reference}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{reward.memo}</p>
-              <table className="ledger-table mt-4">
-                <caption className="sr-only">Sample staking reward</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Account</th>
-                    <th scope="col" className="num">Debit</th>
-                    <th scope="col" className="num">Credit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reward.lines.map((line) => (
-                    <tr key={line.lineNumber}>
-                      <td>{accountLabel(reward.entityId, line.accountCode)}</td>
-                      <td className="num">{line.side === "debit" ? formatMoney(line.amountMinor, line.currency) : ""}</td>
-                      <td className="num">{line.side === "credit" ? formatMoney(line.amountMinor, line.currency) : ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="mt-3 text-sm text-pine">
-                Both sides match · {formatMoney(reward.debitMinor, reward.currency)}
-              </p>
-            </article>
-          ) : null}
+            <p className="mt-6 text-[11px] text-muted-foreground">{content.demoNote}</p>
+          </FadeIn>
+          <FadeIn y={16} delay={0.1}>
+            <DashboardPreview />
+          </FadeIn>
         </section>
 
-        <section className="grid gap-3 md:grid-cols-3">
-          {features.map((item) => (
-            <article key={item.title} className="panel p-5">
-              <h2 className="text-base font-semibold tracking-tight">{item.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{item.body}</p>
-            </article>
-          ))}
+        <div className="page-width">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 border-y py-6 text-[9px] font-medium tracking-[.2em] text-muted-foreground uppercase sm:gap-8 sm:text-[10px]">
+            <span>
+              Wallets <span className="px-2 text-border sm:px-4">/</span> Exchanges{" "}
+              <span className="px-2 text-border sm:px-4">/</span> Custodians
+            </span>
+            <ArrowRight aria-hidden className="size-4" />
+            <span>One ledger</span>
+            <ArrowRight aria-hidden className="size-4" />
+            <span>Accounting exports</span>
+          </div>
+        </div>
+
+        <section id="how-it-works" className="page-width scroll-mt-24 py-16 sm:py-20">
+          <p className="eyebrow mb-4">From holdings to reports</p>
+          <h2 className="section-title">{content.workflowTitle}</h2>
+          <Stagger className="mt-10 grid gap-8 md:grid-cols-3 md:gap-0">
+            {content.steps.map((step, index) => {
+              const Icon = stepIcons[index];
+              const accent = index === 1;
+              return (
+                <StaggerItem
+                  key={step.title}
+                  className="flex gap-5 border-b pb-8 last:border-0 last:pb-0 md:border-r md:border-b-0 md:px-7 md:pb-0 md:first:pl-0 md:last:border-r-0 md:last:pr-0"
+                >
+                  <div
+                    className={cn(
+                      "flex size-14 shrink-0 items-center justify-center rounded-xl",
+                      accent ? "bg-primary text-primary-foreground" : "bg-brand text-brand-foreground",
+                    )}
+                  >
+                    <Icon strokeWidth={1.7} className="size-6" aria-hidden />
+                  </div>
+                  <div>
+                    <p className={cn("mb-1 font-mono text-sm", accent ? "text-brand dark:text-primary" : "text-link")}>
+                      0{index + 1}
+                    </p>
+                    <h3 className="text-2xl font-semibold tracking-tight">{step.title}</h3>
+                    <p className="mt-3 text-[13px] leading-7 text-muted-foreground">{step.description}</p>
+                  </div>
+                </StaggerItem>
+              );
+            })}
+          </Stagger>
         </section>
 
-        <section className="mt-12 grid gap-8 md:grid-cols-2">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight">Planned tiers</h2>
-            <div className="mt-4 grid gap-3">
-              <article className="panel p-5">
-                <h3 className="font-medium">Startup</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                  Web3 startups and funds. Quarterly reports from the same books.
-                </p>
-              </article>
-              <article className="panel p-5">
-                <h3 className="font-medium">Institutional</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                  Banks, funds, and growing Web3 companies. Monthly reports, several companies in one view, and asset values.
-                </p>
-              </article>
+        <section id="plans" className="page-width scroll-mt-24">
+          <div className="grid gap-9 border-t py-14 sm:py-16 md:grid-cols-[.85fr_1.25fr] md:gap-16">
+            <div>
+              <h2 className="section-title max-w-[360px]">{content.plansTitle}</h2>
+              <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">{content.plansDescription}</p>
             </div>
+            <Stagger className="space-y-3">
+              {content.plans.map((plan, index) => {
+                const Icon = planIcons[index];
+                return (
+                  <StaggerItem key={plan.name}>
+                    <Card className="gap-0 py-0 shadow-none">
+                      <CardContent className="grid grid-cols-[auto_1fr] items-center gap-x-5 gap-y-3 p-6 sm:grid-cols-[auto_130px_1fr]">
+                        <Icon className="size-7" strokeWidth={1.5} aria-hidden />
+                        <div>
+                          <h3 className="text-lg font-medium">{plan.name}</h3>
+                          <Badge variant="example" className="mt-2">
+                            Planned
+                          </Badge>
+                        </div>
+                        <p className="col-span-2 text-xs leading-6 text-muted-foreground sm:col-span-1">
+                          {plan.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </StaggerItem>
+                );
+              })}
+            </Stagger>
           </div>
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight">Later, not in this build</h2>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-ink-soft">
-              <li>Token treasury and lifecycle management for issuers.</li>
-              <li>An AI-assisted close that drafts, not posts, adjusting entries.</li>
-              <li>Live connections to wallets, exchanges, custodians, Xero, and QuickBooks. The hooks are in place and make no network calls.</li>
-            </ul>
-            <p className="mt-6 text-sm leading-relaxed text-ink-soft">
-              The example uses Harbourline Digital, a fictional group in Malaysia and Singapore. The account names in the
-              sample are examples, not a recommendation.
-            </p>
+        </section>
+
+        <section className="page-width" aria-labelledby="cta-title">
+          <div className="flex flex-col items-start justify-between gap-8 rounded-2xl bg-brand px-7 py-10 text-brand-foreground sm:px-10 lg:flex-row lg:items-center">
+            <div>
+              <p className="mb-3 text-[10px] font-semibold tracking-[.23em] text-white/80 uppercase">Get started</p>
+              <h2
+                id="cta-title"
+                className="max-w-2xl font-heading text-3xl leading-tight font-semibold tracking-[-.045em] sm:text-4xl"
+              >
+                {content.ctaTitle}
+              </h2>
+            </div>
+            <Button asChild size="lg" className="shrink-0">
+              <Link href={exampleHref}>
+                {content.ctaLabel}
+                <ArrowUpRight aria-hidden />
+              </Link>
+            </Button>
           </div>
         </section>
       </main>
-    </div>
+
+      <footer className="page-width flex flex-col items-start justify-between gap-6 py-8 sm:flex-row sm:items-center">
+        <Link href="/" aria-label="Token Ledger home">
+          <Logo />
+        </Link>
+        <p className="max-w-[280px] text-[11px] leading-5 text-muted-foreground">{content.footerNote}</p>
+        <nav aria-label="Footer navigation" className="flex gap-5 text-[11px] text-muted-foreground">
+          {navigation.map((item) => (
+            <a key={item.href} className="hover:text-foreground" href={item.href}>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+      </footer>
+    </>
   );
 }
