@@ -37,3 +37,10 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Wire Cloudflare bindings (Hyperdrive) into `next dev` only when asked
+// (CLOUDFLARE_DEV=1). The import is dynamic and the adapter is an optional
+// devDependency, so the Vercel build never loads it.
+if (process.env.CLOUDFLARE_DEV === "1") {
+  void import("@opennextjs/cloudflare").then(({ initOpenNextCloudflareForDev }) => initOpenNextCloudflareForDev());
+}

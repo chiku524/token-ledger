@@ -19,6 +19,7 @@ import {
   entityName,
   formatMoney,
   formatQuantity,
+  formatTimestamp,
   freshnessLabel,
   originLabel,
   placeTypeLabel,
@@ -148,15 +149,17 @@ export default async function SourcesPage({
               </tr>
             </thead>
             <tbody>
-              {books.balanceSnapshots.map((snapshot) => (
+              {[...books.balanceSnapshots]
+                .sort((a, b) => b.asOf.localeCompare(a.asOf) || b.id.localeCompare(a.id))
+                .map((snapshot) => (
                 <tr key={snapshot.id}>
                   <td>{entityName(snapshot.entityId, books.entities)}</td>
                   <td>{sourceName(snapshot.sourceId, books.sources)}</td>
                   <td>{snapshot.assetCode}</td>
                   <td className="num">{formatQuantity(snapshot.quantityMinor, snapshot.assetCode, books.assets)}</td>
-                  <td>{snapshot.asOf.slice(0, 10)}</td>
+                  <td className="num text-left">{formatTimestamp(snapshot.asOf)}</td>
                 </tr>
-              ))}
+                ))}
             </tbody>
           </table>
         </div>

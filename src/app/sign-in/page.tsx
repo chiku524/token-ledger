@@ -6,7 +6,7 @@ import { DEMO_PREVIEWS } from "@/auth/demo-previews";
 import { demoSignInAllowed } from "@/auth/demo";
 import { safeNextPath } from "@/auth/csrf";
 import { findInvite } from "@/db/auth-store";
-import { readDatabaseUrl } from "@/env";
+import { hasDatabase } from "@/db/availability";
 import { one } from "@/data/query";
 import { Wordmark } from "@/components/wordmark";
 
@@ -22,7 +22,7 @@ export default async function SignInPage({
   const next = safeNextPath(one(params.next));
   const inviteToken = one(params.invite);
   const csrf = await ensureCsrf();
-  const database = Boolean(readDatabaseUrl());
+  const database = hasDatabase();
   const demo = demoSignInAllowed();
   const invite = inviteToken && database ? await findInvite(inviteToken) : null;
 

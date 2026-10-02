@@ -11,7 +11,8 @@ import { absoluteLink, deliver } from "@/email/links";
 import { verifyEmail } from "@/email/messages";
 import { registerOrganization } from "@/db/register";
 import { BooksWriteError } from "@/db/write";
-import { authSecretConfigured, readDatabaseUrl } from "@/env";
+import { hasDatabase } from "@/db/availability";
+import { authSecretConfigured } from "@/env";
 
 export async function signUpAction(formData: FormData) {
   try {
@@ -19,7 +20,7 @@ export async function signUpAction(formData: FormData) {
   } catch (error) {
     redirect(signUpPath(messageOf(error)));
   }
-  if (!readDatabaseUrl() || !authSecretConfigured()) {
+  if (!hasDatabase() || !authSecretConfigured()) {
     redirect(signUpPath("Creating an account needs DATABASE_URL and AUTH_SECRET."));
   }
 

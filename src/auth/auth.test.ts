@@ -11,6 +11,10 @@ describe("password hashing", () => {
   it("hashes with PBKDF2 and rejects a different password", async () => {
     const stored = await hashPassword("Harbourline-owner-1");
     expect(stored.startsWith("pbkdf2$")).toBe(true);
+    // Workerd (Cloudflare Workers) refuses PBKDF2 above 100,000 iterations, so
+    // the hash must stay at or below that to run on both Node and Workers.
+    const iterations = Number(stored.split("$")[2]);
+    expect(iterations).toBeLessThanOrEqual(100_000);
     expect(await verifyPassword("Harbourline-owner-1", stored)).toBe(true);
     expect(await verifyPassword("wrong-password", stored)).toBe(false);
     expect(await verifyPassword("Harbourline-owner-1", "not-a-hash")).toBe(false);

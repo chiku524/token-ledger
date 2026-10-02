@@ -65,10 +65,20 @@ export class SolanaReader {
 
     const movements: NormalizedSourceTransaction[] = [];
     for (const entry of inRange) {
-      const response = await this.client.call<ParsedTransaction | null>("getTransaction", [
-        entry.signature,
-        { encoding: "jsonParsed", maxSupportedTransactionVersion: 0, commitment: "finalized" },
-      ]);
+      // Version 1 covers both legacy (0) and versioned (1) transactions; the
+      // RPC rejects the request outright if the client asks for a version lower
+      // than a transaction in the result.
+      let response: ParsedTransaction | null;
+      try {
+        response = await this.client.call<ParsedTransaction | null>("getTransaction", [
+          entry.signature,
+          { encoding: "jsonParsed", maxSupportedTransactionVersion: 1, commitment: "finalized" },
+        ]);
+      } catch {
+        // One unreadable transaction must not sink the whole read; skip it and
+        // keep the rest of the history.
+        continue;
+      }
       if (!response) continue;
       movements.push(...mapTransactionToMovements(entry.signature, response, address, this.registry));
     }

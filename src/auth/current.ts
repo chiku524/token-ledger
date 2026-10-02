@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { readDatabaseUrl } from "@/env";
+import { hasDatabase } from "@/db/availability";
 import { userForSessionToken, type AccountUser } from "@/db/auth-store";
 import { CSRF_COOKIE, csrfMatches, newCsrfToken, originAllowed } from "./csrf";
 import { DEMO_COOKIE, SESSION_COOKIE } from "./cookies";
@@ -48,7 +48,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
       };
     }
   }
-  if (!readDatabaseUrl()) return null;
+  if (!hasDatabase()) return null;
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const user = await userForSessionToken(token);

@@ -179,7 +179,17 @@ export default async function ReportsPage({
       <section className="mt-10">
         <h2 className="text-lg font-semibold tracking-tight">Crypto held</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          Grouped by what the account is for: crypto, crypto held for sale, or stablecoins. The sample uses those labels as examples.
+          Booked value from <strong>posted journal entries</strong>, grouped by what the account is for: crypto, crypto held
+          for sale, or stablecoins. Reading a wallet records an observed balance and does not post a journal, so a holding
+          appears here only after it is journaled on the{" "}
+          <Link href="/dashboard/ledger" className="underline">
+            Journal
+          </Link>{" "}
+          page. Observed balances are on{" "}
+          <Link href="/dashboard/sources" className="underline">
+            Holdings
+          </Link>
+          .
         </p>
         <div className="mt-4 overflow-x-auto panel">
           <table className="ledger-table">
@@ -195,7 +205,10 @@ export default async function ReportsPage({
             <tbody>
               {carrying.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>No crypto movements in these dates.</td>
+                  <td colSpan={4}>
+                    No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal;
+                    post an entry on the Journal page to see it held here.
+                  </td>
                 </tr>
               ) : (
                 carrying.map((row) => (

@@ -23,7 +23,8 @@ import {
 } from "@/db/auth-store";
 import { absoluteLink, deliver } from "@/email/links";
 import { resetEmail } from "@/email/messages";
-import { readDatabaseUrl, authSecretConfigured } from "@/env";
+import { hasDatabase } from "@/db/availability";
+import { authSecretConfigured } from "@/env";
 import { passwordFormSchema, firstIssue } from "@/data/validate";
 
 export async function signInAction(formData: FormData) {
@@ -33,7 +34,7 @@ export async function signInAction(formData: FormData) {
   } catch (error) {
     redirect(signInPath(messageOf(error), next));
   }
-  if (!readDatabaseUrl()) {
+  if (!hasDatabase()) {
     redirect(signInPath("Password sign-in needs DATABASE_URL. Use a demo role below, or configure Postgres.", next));
   }
   const result = await authenticate(String(formData.get("email") ?? ""), String(formData.get("password") ?? ""));
@@ -76,7 +77,7 @@ export async function acceptInviteAction(formData: FormData) {
   } catch (error) {
     redirect(signInPath(messageOf(error), "/dashboard", invite));
   }
-  if (!readDatabaseUrl() || !authSecretConfigured()) {
+  if (!hasDatabase() || !authSecretConfigured()) {
     redirect(signInPath("Accepting an invite needs DATABASE_URL and AUTH_SECRET.", "/dashboard", invite));
   }
   const parsed = passwordFormSchema.safeParse({
@@ -109,7 +110,7 @@ export async function signOutAction(formData: FormData) {
   }
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
-  if (token && readDatabaseUrl()) {
+  if (token && hasDatabase()) {
     const user = await userForSessionToken(token);
     await deleteSession(token);
     if (user) {
@@ -138,7 +139,7 @@ export async function requestPasswordResetAction(formData: FormData) {
   }
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const generic = "If that email has an account, a reset link has been sent.";
-  if (!readDatabaseUrl() || !authSecretConfigured() || !email) redirect(`${path}?sent=${encodeURIComponent(generic)}`);
+  if (!hasDatabase() || !authSecretConfigured() || !email) redirect(`${path}?sent=${encodeURIComponent(generic)}`);
 
   const user = await findUserByEmail(email);
   if (user && user.status === "active") {
@@ -171,7 +172,7 @@ export async function resetPasswordAction(formData: FormData) {
   } catch (error) {
     redirect(`${path}&error=${encodeURIComponent(messageOf(error))}`);
   }
-  if (!readDatabaseUrl() || !authSecretConfigured()) redirect("/reset-password?error=" + encodeURIComponent("Password reset needs DATABASE_URL and AUTH_SECRET."));
+  if (!hasDatabase() || !authSecretConfigured()) redirect("/reset-password?error=" + encodeURIComponent("Password reset needs DATABASE_URL and AUTH_SECRET."));
   const parsed = passwordFormSchema.safeParse({ password: formData.get("password"), confirm: formData.get("confirm") });
   if (!parsed.success) redirect(`${path}&error=${encodeURIComponent(firstIssue(parsed.error))}`);
   const user = await consumePasswordReset(token, await hashPassword(parsed.data.password));
@@ -195,7 +196,7 @@ export async function verifyEmailAction(formData: FormData) {
   } catch (error) {
     redirect(`/verify-email?token=${encodeURIComponent(token)}&error=${encodeURIComponent(messageOf(error))}`);
   }
-  if (!readDatabaseUrl() || !authSecretConfigured()) redirect("/verify-email?error=" + encodeURIComponent("Verification needs a database."));
+  if (!hasDatabase() || !authSecretConfigured()) redirect("/verify-email?error=" + encodeURIComponent("Verification needs a database."));
   const user = await consumeEmailVerification(token);
   if (!user) redirect("/verify-email?error=" + encodeURIComponent("That verification link is invalid or expired."));
   await writeAudit({

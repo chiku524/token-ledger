@@ -72,6 +72,14 @@ export function originLabel(origin: "example" | "live"): string {
   return origin === "live" ? "Live" : "Example";
 }
 
+/**
+ * An ISO instant as "YYYY-MM-DD HH:MM" (UTC). Use where a moment matters, such
+ * as an observed balance; use `slice(0, 10)` only where the date alone is meant.
+ */
+export function formatTimestamp(iso: string): string {
+  return iso.slice(0, 16).replace("T", " ");
+}
+
 /** Whole-day age of a timestamp relative to a reference, for "2 days old". */
 export function ageLabel(asOf: string, reference: string): string {
   const observed = Date.parse(asOf);
