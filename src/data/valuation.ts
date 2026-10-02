@@ -3,8 +3,9 @@
  * Pure, so it is testable without a database. The latest observed snapshot per
  * source and asset is the holding; `valueHoldings` prices it.
  */
-import { valueHoldings, type AssetPrice, type ValuationSummary } from "@/ledger";
-import type { BooksBalanceSnapshot, StoredAssetPrice } from "./books";
+import { assetCarryingSchedule, proposeRevaluation, valueHoldings, type AssetPrice, type RevaluationProposal, type ValuationSummary } from "@/ledger";
+import type { PostedJournalEntry } from "@/ledger";
+import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice } from "./books";
 
 /** The most recent observed quantity per source+asset. Zero is a real observation. */
 export function holdingsFromSnapshots(
@@ -42,5 +43,43 @@ export function valueBooksHoldings(input: {
     quoteCurrency: input.quoteCurrency,
     asOf: input.asOf,
     stalenessMs: input.stalenessMs,
+  });
+}
+
+/**
+ * Build a revaluation proposal for one entity: carrying value per asset from the
+ * journal, valued at the latest saved price. Returns a *proposal* — balanced
+ * journal lines the accountant reviews and posts, never an automatic post.
+ */
+export function revaluationForEntity(input: {
+  entries: readonly PostedJournalEntry[];
+  accounts: readonly BooksAccount[];
+  assets: readonly BooksAsset[];
+  prices: readonly StoredAssetPrice[];
+  entityId: string;
+  quoteCurrency: string;
+  assetAccountCode: string;
+  gainAccountCode: string;
+  lossAccountCode: string;
+  asOf: string;
+}): RevaluationProposal {
+  const carrying = assetCarryingSchedule(input.entries, input.accounts, input.entityId);
+  const decimals = new Map(input.assets.map((asset) => [asset.code, asset.decimals]));
+  const holdings = carrying
+    .filter((row) => row.currency === input.quoteCurrency && row.quantityMinor > 0n)
+    .map((row) => ({
+      assetCode: row.assetCode,
+      quantityMinor: row.quantityMinor,
+      quantityScale: decimals.get(row.assetCode) ?? 0,
+      carryingMinor: row.carryingMinor,
+    }));
+  return proposeRevaluation({
+    prices: input.prices as readonly AssetPrice[],
+    holdings,
+    quoteCurrency: input.quoteCurrency,
+    assetAccountCode: input.assetAccountCode,
+    gainAccountCode: input.gainAccountCode,
+    lossAccountCode: input.lossAccountCode,
+    asOf: input.asOf,
   });
 }

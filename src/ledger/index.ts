@@ -28,6 +28,8 @@ export {
   valueHoldings,
 } from "./valuation";
 export type { PriceAge, PricedValue, ValuationSummary } from "./valuation";
+export { proposeRevaluation } from "./revaluation";
+export type { RevaluationHolding, RevaluationLine, RevaluationProposal } from "./revaluation";
 export { formatMinor, minorToNumber, toMinor, toMinorRounded } from "./money";
 export { reverseJournalEntry } from "./reverse";
 export { assertUniqueEntryIds, postJournalEntry } from "./post";

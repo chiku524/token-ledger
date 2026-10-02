@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { MoneyBars } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
+import { RevaluationForm } from "@/components/record-forms";
+import { ensureCsrf } from "@/auth/current";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
 import { reportAssetBars, reportComposition } from "@/data/charts";
@@ -9,6 +11,8 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
+import { revaluationForEntity } from "@/data/valuation";
+import { booksAreWritable } from "@/data/load-books";
 import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
 import { assetCarryingSchedule, netBalanceMinor, trialBalance } from "@/ledger";
 
@@ -41,6 +45,21 @@ export default async function ReportsPage({
 
   const balance = trialBalance(scoped.journalEntries, books.accounts, entity.id);
   const carrying = assetCarryingSchedule(scoped.journalEntries, books.accounts, entity.id);
+  const canPost = can(session.role, "journal.post") && booksAreWritable() && !session.demo;
+  const revaluation = canPost
+    ? revaluationForEntity({
+        entries: books.journalEntries,
+        accounts: books.accounts,
+        assets: books.assets,
+        prices: books.assetPrices,
+        entityId: entity.id,
+        quoteCurrency: entity.functionalCurrency,
+        assetAccountCode: "1310",
+        gainAccountCode: "4200",
+        lossAccountCode: "5200",
+        asOf: range.to,
+      })
+    : null;
   const balanced = balance.debitTotal === balance.creditTotal;
   const assetBars = reportAssetBars(entity.id, scoped);
   const composition = reportComposition(entity.id, scoped);
@@ -192,6 +211,64 @@ export default async function ReportsPage({
           </table>
         </div>
       </section>
+
+      {revaluation ? (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold tracking-tight">Revaluation · {entity.functionalCurrency}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+            Carrying value compared with the latest saved price. Posting records one balanced entry (gain or loss) for the
+            net difference, with a reference so the price basis is visible. Nothing is posted automatically.
+            {revaluation.staleAssetCodes.length > 0
+              ? " Some prices are stale; treat the proposal as provisional."
+              : ""}
+          </p>
+          {revaluation.lines.length === 0 ? (
+            <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">
+              Nothing to revalue at these prices, or no priced holdings.
+            </p>
+          ) : (
+            <>
+              <div className="mt-4 overflow-x-auto panel">
+                <table className="ledger-table">
+                  <caption className="sr-only">Revaluation proposal for {entity.name}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Asset</th>
+                      <th scope="col" className="num">Carrying</th>
+                      <th scope="col" className="num">Market</th>
+                      <th scope="col" className="num">Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {revaluation.lines.map((line) => (
+                      <tr key={line.assetCode}>
+                        <td>{line.assetCode}</td>
+                        <td className="num">{formatMoney(line.carryingMinor, entity.functionalCurrency)}</td>
+                        <td className="num">{formatMoney(line.marketMinor, entity.functionalCurrency)}</td>
+                        <td className={`num ${line.differenceMinor < 0n ? "text-seal" : "text-pine"}`}>
+                          {line.differenceMinor < 0n ? "−" : "+"}
+                          {formatMoney(line.differenceMinor < 0n ? -line.differenceMinor : line.differenceMinor, entity.functionalCurrency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row">Net {revaluation.netMinor >= 0n ? "gain" : "loss"}</th>
+                      <td colSpan={2} />
+                      <td className="num">{formatMoney(revaluation.netMinor < 0n ? -revaluation.netMinor : revaluation.netMinor, entity.functionalCurrency)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <RevaluationForm entityId={entity.id} asOf={range.to} csrf={await ensureCsrf()} />
+            </>
+          )}
+          {revaluation.unpriced.length > 0 ? (
+            <p className="mt-3 text-sm text-ink-soft">Not priced, so left out: {revaluation.unpriced.join(", ")}.</p>
+          ) : null}
+        </section>
+      ) : null}
 
       <p className="mt-8 max-w-2xl text-sm leading-relaxed text-ink-soft">{books.notice}</p>
     </>
