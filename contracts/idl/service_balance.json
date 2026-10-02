@@ -1,0 +1,1512 @@
+{
+  "address": "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb",
+  "metadata": {
+    "name": "service_balance",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Token Ledger Service Balance: bounded, customer-authorized USDC subscriptions"
+  },
+  "instructions": [
+    {
+      "name": "activate_mandate_and_charge",
+      "discriminator": [
+        27,
+        158,
+        211,
+        164,
+        80,
+        23,
+        133,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "plan"
+        },
+        {
+          "name": "mandate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  110,
+                  100,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant"
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  108,
+                  108,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.merchant",
+                "account": "BillingVault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.controller",
+                "account": "BillingVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_token",
+          "writable": true
+        },
+        {
+          "name": "destination_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "max_total_debit",
+          "type": "u64"
+        },
+        {
+          "name": "authorization_expiry",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "collect_cycle",
+      "discriminator": [
+        133,
+        120,
+        131,
+        109,
+        113,
+        161,
+        86,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "collector",
+          "docs": [
+            "The collector triggers the charge; any caller could, but only to the",
+            "fixed destination, so this is an operational role, not an authority."
+          ],
+          "signer": true
+        },
+        {
+          "name": "merchant"
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "mandate",
+          "writable": true
+        },
+        {
+          "name": "vault_authority_placeholder",
+          "docs": [
+            "event are the durable record. Left for a later revision."
+          ],
+          "writable": true
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  108,
+                  108,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.merchant",
+                "account": "BillingVault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.controller",
+                "account": "BillingVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_token",
+          "writable": true
+        },
+        {
+          "name": "destination_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_billing_vault",
+      "discriminator": [
+        5,
+        124,
+        128,
+        23,
+        2,
+        251,
+        207,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant.admin",
+                "account": "MerchantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  108,
+                  108,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "controller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  108,
+                  108,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "controller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  108,
+                  108,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "controller",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "create_plan_version",
+      "discriminator": [
+        35,
+        119,
+        73,
+        125,
+        33,
+        216,
+        110,
+        111
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "merchant"
+          ]
+        },
+        {
+          "name": "merchant"
+        },
+        {
+          "name": "plan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  110,
+                  95,
+                  118,
+                  101,
+                  114,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "plan_id"
+              },
+              {
+                "kind": "arg",
+                "path": "version"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "plan_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "version",
+          "type": "u16"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "max_periods",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "depositor_token",
+          "writable": true
+        },
+        {
+          "name": "vault_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_merchant",
+      "discriminator": [
+        7,
+        90,
+        74,
+        38,
+        99,
+        111,
+        142,
+        77
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "collector"
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "token_program",
+          "type": "pubkey"
+        },
+        {
+          "name": "destination",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "replace_mandate",
+      "discriminator": [
+        68,
+        86,
+        19,
+        108,
+        67,
+        139,
+        30,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "plan"
+        },
+        {
+          "name": "mandate",
+          "docs": [
+            "The current mandate, replaced in place. A replacement never creates a",
+            "second mandate, so overlapping coverage cannot be charged twice."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  110,
+                  100,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "max_total_debit",
+          "type": "u64"
+        },
+        {
+          "name": "authorization_expiry",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "revoke_mandate",
+      "discriminator": [
+        252,
+        97,
+        140,
+        119,
+        67,
+        43,
+        177,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "mandate",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "rotate_collector",
+      "discriminator": [
+        242,
+        186,
+        190,
+        160,
+        86,
+        171,
+        219,
+        191
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "merchant"
+          ]
+        },
+        {
+          "name": "merchant",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "collector",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_collection_pause",
+      "discriminator": [
+        68,
+        115,
+        6,
+        8,
+        223,
+        24,
+        76,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "merchant"
+          ]
+        },
+        {
+          "name": "merchant",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "controller",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  108,
+                  108,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.merchant",
+                "account": "BillingVault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.controller",
+                "account": "BillingVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_token",
+          "writable": true
+        },
+        {
+          "name": "destination_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BillingVault",
+      "discriminator": [
+        44,
+        139,
+        47,
+        153,
+        40,
+        100,
+        244,
+        122
+      ]
+    },
+    {
+      "name": "Mandate",
+      "discriminator": [
+        113,
+        216,
+        98,
+        159,
+        185,
+        63,
+        55,
+        18
+      ]
+    },
+    {
+      "name": "MerchantConfig",
+      "discriminator": [
+        184,
+        154,
+        125,
+        252,
+        112,
+        73,
+        0,
+        144
+      ]
+    },
+    {
+      "name": "PlanVersion",
+      "discriminator": [
+        28,
+        234,
+        239,
+        110,
+        19,
+        210,
+        3,
+        13
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BillingVaultCreated",
+      "discriminator": [
+        239,
+        47,
+        122,
+        40,
+        61,
+        181,
+        159,
+        173
+      ]
+    },
+    {
+      "name": "CollectionPauseChanged",
+      "discriminator": [
+        205,
+        91,
+        12,
+        203,
+        248,
+        45,
+        244,
+        126
+      ]
+    },
+    {
+      "name": "CollectorRotated",
+      "discriminator": [
+        99,
+        3,
+        62,
+        187,
+        111,
+        208,
+        211,
+        89
+      ]
+    },
+    {
+      "name": "CycleCollected",
+      "discriminator": [
+        236,
+        45,
+        184,
+        233,
+        5,
+        176,
+        237,
+        92
+      ]
+    },
+    {
+      "name": "Deposited",
+      "discriminator": [
+        111,
+        141,
+        26,
+        45,
+        161,
+        35,
+        100,
+        57
+      ]
+    },
+    {
+      "name": "MandateActivated",
+      "discriminator": [
+        169,
+        1,
+        206,
+        214,
+        221,
+        108,
+        57,
+        156
+      ]
+    },
+    {
+      "name": "MandateReplaced",
+      "discriminator": [
+        217,
+        129,
+        69,
+        180,
+        13,
+        78,
+        77,
+        232
+      ]
+    },
+    {
+      "name": "MandateRevoked",
+      "discriminator": [
+        228,
+        111,
+        181,
+        60,
+        204,
+        58,
+        131,
+        28
+      ]
+    },
+    {
+      "name": "Withdrawn",
+      "discriminator": [
+        20,
+        89,
+        223,
+        198,
+        194,
+        124,
+        219,
+        13
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotAdmin",
+      "msg": "The caller is not the merchant admin."
+    },
+    {
+      "code": 6001,
+      "name": "NotCollector",
+      "msg": "The caller is not the authorized collector."
+    },
+    {
+      "code": 6002,
+      "name": "NotController",
+      "msg": "The caller is not the billing vault controller."
+    },
+    {
+      "code": 6003,
+      "name": "CollectionPaused",
+      "msg": "Collection is paused."
+    },
+    {
+      "code": 6004,
+      "name": "MandateRevoked",
+      "msg": "The mandate is revoked."
+    },
+    {
+      "code": 6005,
+      "name": "MandateExpired",
+      "msg": "The mandate has expired."
+    },
+    {
+      "code": 6006,
+      "name": "WrongCycle",
+      "msg": "The cycle number does not match the mandate's expected next cycle."
+    },
+    {
+      "code": 6007,
+      "name": "WrongAmount",
+      "msg": "The amount does not equal the signed plan price."
+    },
+    {
+      "code": 6008,
+      "name": "CapExceeded",
+      "msg": "The authorization cap would be exceeded."
+    },
+    {
+      "code": 6009,
+      "name": "NotYetDue",
+      "msg": "The mandate is not yet due for another collection."
+    },
+    {
+      "code": 6010,
+      "name": "CoveragePastExpiry",
+      "msg": "New coverage would end after the mandate authorization expiry."
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient token balance."
+    },
+    {
+      "code": 6012,
+      "name": "WrongMint",
+      "msg": "The mint or token program does not match the merchant config."
+    },
+    {
+      "code": 6013,
+      "name": "MathOverflow",
+      "msg": "An arithmetic overflow occurred."
+    },
+    {
+      "code": 6014,
+      "name": "WrongMerchant",
+      "msg": "The vault is not associated with this merchant."
+    },
+    {
+      "code": 6015,
+      "name": "WrongTokenAccount",
+      "msg": "The token account is not owned by the vault authority."
+    }
+  ],
+  "types": [
+    {
+      "name": "BillingVault",
+      "docs": [
+        "A customer's billing vault. The vault authority is a PDA of this program;",
+        "the vault's token account is owned by that PDA. Only the controller may",
+        "deposit, sign a mandate, revoke or withdraw."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "authority_bump",
+            "type": "u8"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "controller",
+            "docs": [
+              "The single controller wallet for this vault (version one)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_account",
+            "docs": [
+              "The vault's USDC token account."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "generation",
+            "docs": [
+              "Monotonic generation, incremented on mandate replacement."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BillingVaultCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "controller",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollectionPauseChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollectorRotated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "collector",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CycleCollected",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          },
+          {
+            "name": "cycle",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "coverage_start",
+            "type": "i64"
+          },
+          {
+            "name": "coverage_end",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Deposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Mandate",
+      "docs": [
+        "A signed, bounded authorization. Its terms are fixed at signing; a replacement",
+        "is a new mandate with a higher generation."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "plan",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "docs": [
+              "Fixed price copied from the plan version at signing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "period_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "max_total_debit",
+            "docs": [
+              "Lifetime cap on cumulative debits, in base units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "authorization_expiry",
+            "docs": [
+              "After this instant, no new coverage may extend."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "total_debited",
+            "docs": [
+              "Cumulative amount debited so far."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "next_cycle",
+            "docs": [
+              "The next cycle number expected on a collection."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paid_through",
+            "docs": [
+              "Coverage end time already paid for."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "revoked",
+            "type": "bool"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MandateActivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          },
+          {
+            "name": "cycle",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "paid_through",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MandateReplaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          },
+          {
+            "name": "generation",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MandateRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MerchantConfig",
+      "docs": [
+        "Merchant administration. Holds no customer funds; it names the fixed mint,",
+        "the collector that may trigger collection, and a pause switch. It can never",
+        "withdraw customer funds or change the destination of an existing mandate."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "admin",
+            "docs": [
+              "Governance authority that administers the merchant config."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "collector",
+            "docs": [
+              "Operational key allowed to trigger a collection. Rotatable."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "The one USDC mint this deployment accepts."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "token_program",
+            "docs": [
+              "The SPL Token program (legacy) this deployment uses."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "destination",
+            "docs": [
+              "Fixed merchant destination for collected funds."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "collection_paused",
+            "docs": [
+              "When true, new collections are refused. Withdrawals are never blocked."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlanVersion",
+      "docs": [
+        "An immutable plan version. A new price or term is a new version; an existing",
+        "mandate keeps pointing at the version it signed."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "plan_id",
+            "docs": [
+              "Opaque plan id the merchant controls."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "version",
+            "type": "u16"
+          },
+          {
+            "name": "price",
+            "docs": [
+              "Fixed price per 30-day period, in USDC base units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "period_seconds",
+            "docs": [
+              "Period length in seconds (30 days)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "max_periods",
+            "docs": [
+              "How many periods a mandate may be charged in total."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Withdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

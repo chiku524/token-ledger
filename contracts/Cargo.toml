@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["programs/shared", "programs/service-balance", "programs/treasury-payables", "tests"]
+
+[workspace.dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl = "0.32.1"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1

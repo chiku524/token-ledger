@@ -46,9 +46,10 @@ export interface SnapshotEntry {
   reversesEntryId: string | null;
 }
 
-export interface SnapshotConnection extends Omit<BooksConnection, "lastSyncedAt" | "nextAttemptAt"> {
+export interface SnapshotConnection extends Omit<BooksConnection, "lastSyncedAt" | "nextAttemptAt" | "verifiedAt"> {
   lastSyncedAt: Date | null;
   nextAttemptAt: Date | null;
+  verifiedAt: Date | null;
 }
 
 export interface SnapshotBalance extends Omit<BooksBalanceSnapshot, "asOf"> {
@@ -127,6 +128,7 @@ export function mapSnapshotToBooks(snapshot: BooksSnapshot): Books {
       ...connection,
       lastSyncedAt: connection.lastSyncedAt ? connection.lastSyncedAt.toISOString() : null,
       nextAttemptAt: connection.nextAttemptAt ? connection.nextAttemptAt.toISOString() : null,
+      verifiedAt: connection.verifiedAt ? connection.verifiedAt.toISOString() : null,
     })),
     sources: snapshot.sources,
     balanceSnapshots: snapshot.balanceSnapshots.map((snapshotRow) => ({

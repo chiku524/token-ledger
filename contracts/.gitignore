@@ -1,0 +1,12 @@
+# Rust / Anchor build output
+target/
+**/target/
+
+# Local test artifacts and keypairs. Program keypairs are generated locally;
+# commit only the declared program IDs (in Anchor.toml and declare_id!).
+# Do not commit deploy keypairs.
+target/deploy/*-keypair.json
+*.so
+
+# Local validator ledger
+test-ledger/

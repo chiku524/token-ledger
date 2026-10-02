@@ -1,0 +1,1737 @@
+{
+  "address": "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs",
+  "metadata": {
+    "name": "treasury_payables",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Token Ledger Accounts Payable treasury: quorum-approved supplier payments"
+  },
+  "instructions": [
+    {
+      "name": "approve_governance",
+      "discriminator": [
+        90,
+        116,
+        1,
+        180,
+        176,
+        79,
+        244,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "approver",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "relations": [
+            "governance"
+          ]
+        },
+        {
+          "name": "governance",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "approve_payment",
+      "discriminator": [
+        21,
+        123,
+        195,
+        139,
+        107,
+        141,
+        34,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "approver",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_payment",
+      "discriminator": [
+        217,
+        129,
+        71,
+        37,
+        216,
+        193,
+        38,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "funder_token",
+          "writable": true
+        },
+        {
+          "name": "treasury_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "execute_emergency_exit",
+      "discriminator": [
+        100,
+        185,
+        247,
+        167,
+        47,
+        188,
+        16,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "relations": [
+            "governance"
+          ]
+        },
+        {
+          "name": "governance",
+          "writable": true
+        },
+        {
+          "name": "treasury_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury_token",
+          "writable": true
+        },
+        {
+          "name": "recovery_token",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_payment",
+      "discriminator": [
+        86,
+        4,
+        7,
+        7,
+        120,
+        139,
+        232,
+        139
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "docs": [
+            "Any caller may execute an already eligible payment; the fixed checks",
+            "prevent diversion. Kept as a signer so the operation is attributable."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true
+        },
+        {
+          "name": "settlement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  118,
+                  111,
+                  105,
+                  99,
+                  101,
+                  95,
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.invoice_key",
+                "account": "PaymentProposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury_token",
+          "writable": true
+        },
+        {
+          "name": "recipient_token",
+          "writable": true
+        },
+        {
+          "name": "daily_spend",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121,
+                  95,
+                  115,
+                  112,
+                  101,
+                  110,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_policy_change",
+      "discriminator": [
+        127,
+        42,
+        199,
+        98,
+        79,
+        199,
+        181,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "relations": [
+            "governance"
+          ]
+        },
+        {
+          "name": "governance",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_treasury",
+      "discriminator": [
+        124,
+        186,
+        211,
+        195,
+        85,
+        165,
+        129,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "entity"
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "entity"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "treasury_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "entity",
+          "type": "pubkey"
+        },
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "token_program",
+          "type": "pubkey"
+        },
+        {
+          "name": "threshold",
+          "type": "u8"
+        },
+        {
+          "name": "approvers",
+          "type": {
+            "vec": "pubkey"
+          }
+        },
+        {
+          "name": "proposers",
+          "type": {
+            "vec": "pubkey"
+          }
+        },
+        {
+          "name": "per_payment_limit",
+          "type": "u64"
+        },
+        {
+          "name": "daily_limit",
+          "type": "u64"
+        },
+        {
+          "name": "max_proposal_lifetime",
+          "type": "i64"
+        },
+        {
+          "name": "recovery",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "pause_execution",
+      "discriminator": [
+        254,
+        15,
+        49,
+        32,
+        131,
+        119,
+        85,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "propose_governance",
+      "discriminator": [
+        129,
+        138,
+        213,
+        117,
+        56,
+        242,
+        208,
+        54
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "governance",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": {
+            "defined": {
+              "name": "GovernanceKind"
+            }
+          }
+        },
+        {
+          "name": "new_threshold",
+          "type": "u8"
+        },
+        {
+          "name": "new_approver_count",
+          "type": "u8"
+        },
+        {
+          "name": "new_approvers",
+          "type": {
+            "array": [
+              "pubkey",
+              10
+            ]
+          }
+        },
+        {
+          "name": "new_per_payment_limit",
+          "type": "u64"
+        },
+        {
+          "name": "new_daily_limit",
+          "type": "u64"
+        },
+        {
+          "name": "new_recovery",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "propose_payment",
+      "discriminator": [
+        102,
+        219,
+        97,
+        51,
+        201,
+        219,
+        247,
+        27
+      ],
+      "accounts": [
+        {
+          "name": "proposer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "settlement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  110,
+                  118,
+                  111,
+                  105,
+                  99,
+                  101,
+                  95,
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "arg",
+                "path": "invoice_key"
+              }
+            ]
+          }
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "arg",
+                "path": "invoice_key"
+              },
+              {
+                "kind": "arg",
+                "path": "revision"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "treasury"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "invoice_key",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "revision",
+          "type": "u32"
+        },
+        {
+          "name": "recipient_owner",
+          "type": "pubkey"
+        },
+        {
+          "name": "gross_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "revoke_approval",
+      "discriminator": [
+        44,
+        51,
+        184,
+        108,
+        182,
+        202,
+        20,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "approver",
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "relations": [
+            "proposal"
+          ]
+        },
+        {
+          "name": "proposal",
+          "writable": true
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "DailySpend",
+      "discriminator": [
+        101,
+        40,
+        199,
+        240,
+        86,
+        235,
+        159,
+        153
+      ]
+    },
+    {
+      "name": "GovernanceProposal",
+      "discriminator": [
+        53,
+        107,
+        240,
+        190,
+        43,
+        73,
+        65,
+        143
+      ]
+    },
+    {
+      "name": "InvoiceSettlement",
+      "discriminator": [
+        10,
+        6,
+        253,
+        49,
+        227,
+        161,
+        223,
+        69
+      ]
+    },
+    {
+      "name": "PaymentProposal",
+      "discriminator": [
+        12,
+        244,
+        209,
+        90,
+        226,
+        76,
+        223,
+        128
+      ]
+    },
+    {
+      "name": "TreasuryConfig",
+      "discriminator": [
+        124,
+        54,
+        212,
+        227,
+        213,
+        189,
+        168,
+        41
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ApprovalRevoked",
+      "discriminator": [
+        0,
+        143,
+        189,
+        167,
+        179,
+        12,
+        235,
+        123
+      ]
+    },
+    {
+      "name": "EmergencyExitExecuted",
+      "discriminator": [
+        236,
+        206,
+        26,
+        200,
+        72,
+        89,
+        239,
+        121
+      ]
+    },
+    {
+      "name": "PaymentApproved",
+      "discriminator": [
+        198,
+        137,
+        113,
+        99,
+        77,
+        210,
+        108,
+        36
+      ]
+    },
+    {
+      "name": "PaymentCancelled",
+      "discriminator": [
+        137,
+        140,
+        226,
+        59,
+        55,
+        152,
+        253,
+        179
+      ]
+    },
+    {
+      "name": "PaymentExecuted",
+      "discriminator": [
+        153,
+        165,
+        141,
+        18,
+        246,
+        20,
+        204,
+        227
+      ]
+    },
+    {
+      "name": "PaymentProposed",
+      "discriminator": [
+        13,
+        197,
+        21,
+        96,
+        186,
+        23,
+        185,
+        125
+      ]
+    },
+    {
+      "name": "PolicyChanged",
+      "discriminator": [
+        248,
+        184,
+        113,
+        45,
+        123,
+        255,
+        43,
+        248
+      ]
+    },
+    {
+      "name": "TreasuryCreated",
+      "discriminator": [
+        190,
+        59,
+        58,
+        105,
+        76,
+        234,
+        21,
+        199
+      ]
+    },
+    {
+      "name": "TreasuryFunded",
+      "discriminator": [
+        172,
+        66,
+        241,
+        101,
+        216,
+        219,
+        147,
+        130
+      ]
+    },
+    {
+      "name": "TreasuryPaused",
+      "discriminator": [
+        28,
+        43,
+        74,
+        164,
+        9,
+        18,
+        109,
+        91
+      ]
+    },
+    {
+      "name": "TreasuryUnpaused",
+      "discriminator": [
+        70,
+        108,
+        185,
+        239,
+        91,
+        161,
+        110,
+        154
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotAuthorized",
+      "msg": "The caller is not authorized for this action."
+    },
+    {
+      "code": 6001,
+      "name": "BadThreshold",
+      "msg": "The approval threshold is invalid."
+    },
+    {
+      "code": 6002,
+      "name": "TooManySigners",
+      "msg": "Too many approvers or proposers."
+    },
+    {
+      "code": 6003,
+      "name": "DuplicateApproval",
+      "msg": "This signer has already approved."
+    },
+    {
+      "code": 6004,
+      "name": "StalePolicy",
+      "msg": "The policy version does not match the current treasury policy."
+    },
+    {
+      "code": 6005,
+      "name": "StaleRevision",
+      "msg": "The proposal is not the active revision for this invoice."
+    },
+    {
+      "code": 6006,
+      "name": "Expired",
+      "msg": "The proposal has expired."
+    },
+    {
+      "code": 6007,
+      "name": "Cancelled",
+      "msg": "The proposal has been cancelled."
+    },
+    {
+      "code": 6008,
+      "name": "AlreadyExecuted",
+      "msg": "The proposal has already executed."
+    },
+    {
+      "code": 6009,
+      "name": "Paused",
+      "msg": "Execution is paused."
+    },
+    {
+      "code": 6010,
+      "name": "OverPerPaymentLimit",
+      "msg": "The amount exceeds the per-payment limit."
+    },
+    {
+      "code": 6011,
+      "name": "OverDailyLimit",
+      "msg": "The amount exceeds the remaining daily limit."
+    },
+    {
+      "code": 6012,
+      "name": "WrongRecipient",
+      "msg": "The recipient token account is not the approved owner's canonical account."
+    },
+    {
+      "code": 6013,
+      "name": "WrongMint",
+      "msg": "The mint or token program does not match the treasury."
+    },
+    {
+      "code": 6014,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient treasury balance."
+    },
+    {
+      "code": 6015,
+      "name": "InvoiceAlreadyPaid",
+      "msg": "The invoice has already settled."
+    },
+    {
+      "code": 6016,
+      "name": "MathOverflow",
+      "msg": "An arithmetic overflow occurred."
+    },
+    {
+      "code": 6017,
+      "name": "TreasuryClosed",
+      "msg": "The treasury is closed."
+    },
+    {
+      "code": 6018,
+      "name": "NotEnoughApprovals",
+      "msg": "Not enough approvals."
+    },
+    {
+      "code": 6019,
+      "name": "NotPaused",
+      "msg": "The treasury is not paused."
+    }
+  ],
+  "types": [
+    {
+      "name": "ApprovalRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "approver",
+            "type": "pubkey"
+          },
+          {
+            "name": "approvals",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DailySpend",
+      "docs": [
+        "A per-day spending counter. `day` is the fixed UTC day index; a new day",
+        "resets the counter."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "day",
+            "type": "i64"
+          },
+          {
+            "name": "spent",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EmergencyExitExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "recovery",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GovernanceKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "PolicyChange"
+          },
+          {
+            "name": "Unpause"
+          },
+          {
+            "name": "EmergencyExit"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GovernanceProposal",
+      "docs": [
+        "A governance action: a policy change, an unpause, or an emergency exit."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_version",
+            "type": "u64"
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "GovernanceKind"
+              }
+            }
+          },
+          {
+            "name": "proposed_at",
+            "type": "i64"
+          },
+          {
+            "name": "approvals",
+            "type": "u16"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "cancelled",
+            "type": "bool"
+          },
+          {
+            "name": "new_threshold",
+            "docs": [
+              "New policy fields, used when `kind` is a policy change."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "new_approver_count",
+            "type": "u8"
+          },
+          {
+            "name": "new_approvers",
+            "type": {
+              "array": [
+                "pubkey",
+                10
+              ]
+            }
+          },
+          {
+            "name": "new_per_payment_limit",
+            "type": "u64"
+          },
+          {
+            "name": "new_daily_limit",
+            "type": "u64"
+          },
+          {
+            "name": "new_recovery",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InvoiceKey",
+      "docs": [
+        "Stable identity for an invoice. The backend enforces normalized supplier +",
+        "reference uniqueness; the chain only guarantees one settlement per key."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "InvoiceSettlement",
+      "docs": [
+        "Persistent paid marker for one invoice identity. Created and marked paid",
+        "atomically with the transfer, so the same invoice cannot settle twice."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "invoice_key",
+            "type": {
+              "defined": {
+                "name": "InvoiceKey"
+              }
+            }
+          },
+          {
+            "name": "active_revision",
+            "type": "u32"
+          },
+          {
+            "name": "paid",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentApproved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "approver",
+            "type": "pubkey"
+          },
+          {
+            "name": "approvals",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "invoice_key",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentProposal",
+      "docs": [
+        "A payment proposal. Immutable fields are bound at creation; an edit is a new",
+        "revision that invalidates old approvals."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "invoice_key",
+            "type": {
+              "defined": {
+                "name": "InvoiceKey"
+              }
+            }
+          },
+          {
+            "name": "revision",
+            "type": "u32"
+          },
+          {
+            "name": "policy_version",
+            "type": "u64"
+          },
+          {
+            "name": "recipient_owner",
+            "docs": [
+              "Recipient owner; its canonical token account is validated at execution."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "gross_amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "approvals",
+            "docs": [
+              "Bitmap of approvers who have approved (index into treasury.approvers)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "cancelled",
+            "type": "bool"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "invoice_key",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "revision",
+            "type": "u32"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_version",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryConfig",
+      "docs": [
+        "Fixed policy for one treasury. Changes require a governance proposal under",
+        "the current threshold; Token Ledger support has no override."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "authority_bump",
+            "type": "u8"
+          },
+          {
+            "name": "entity",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "policy_version",
+            "type": "u64"
+          },
+          {
+            "name": "threshold",
+            "docs": [
+              "How many distinct approvals are required."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "approver_count",
+            "type": "u8"
+          },
+          {
+            "name": "proposer_count",
+            "type": "u8"
+          },
+          {
+            "name": "approvers",
+            "type": {
+              "array": [
+                "pubkey",
+                10
+              ]
+            }
+          },
+          {
+            "name": "proposers",
+            "type": {
+              "array": [
+                "pubkey",
+                10
+              ]
+            }
+          },
+          {
+            "name": "per_payment_limit",
+            "docs": [
+              "Per-payment cap in base units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "daily_limit",
+            "docs": [
+              "Fixed UTC-day spending cap in base units."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_proposal_lifetime",
+            "docs": [
+              "Maximum lifetime of a payment proposal, in seconds."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "execution_paused",
+            "type": "bool"
+          },
+          {
+            "name": "recovery",
+            "docs": [
+              "A recovery wallet a quorum may exit to while paused."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "closed",
+            "docs": [
+              "Set once an emergency exit has run; no further payments are allowed."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "entity",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryFunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryPaused",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryUnpaused",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ]
+}

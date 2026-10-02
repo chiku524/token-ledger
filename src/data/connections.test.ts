@@ -16,6 +16,8 @@ describe("connectionFromForm", () => {
       venue: "ethereum",
       status: "pending",
       scopes: READ_ONLY_SCOPES,
+      ownership: "watch_only",
+      verifiedAddress: null,
     });
     expect(draft.source).toMatchObject({ kind: "wallet", role: "cold", chain: "ethereum", identifier: "0xabc" });
   });

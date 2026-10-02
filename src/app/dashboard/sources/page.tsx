@@ -30,6 +30,7 @@ import {
   formatTimestamp,
   freshnessLabel,
   originLabel,
+  ownershipLabel,
   placeTypeLabel,
   scopeLabel,
   sourceName,
@@ -101,6 +102,7 @@ export default async function SourcesPage({
                   <TableHead scope="col">Company</TableHead>
                   <TableHead scope="col">Connection</TableHead>
                   <TableHead scope="col">Access</TableHead>
+                  <TableHead scope="col">Ownership</TableHead>
                   <TableHead scope="col">Status</TableHead>
                   <TableHead scope="col">Last checked</TableHead>
                 </TableRow>
@@ -122,6 +124,16 @@ export default async function SourcesPage({
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {venueLabel(connection.venue)} · {scopeLabel(connection.scopes)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge tone={connection.ownership === "verified" ? "success" : "neutral"}>
+                          {ownershipLabel(connection.ownership)}
+                        </StatusBadge>
+                        {connection.verifiedAddress ? (
+                          <span className="mt-1 block font-mono text-xs text-muted-foreground">{connection.verifiedAddress}</span>
+                        ) : (
+                          <span className="mt-1 block text-xs text-muted-foreground">Not signed</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <StatusBadge tone={connectionStatusTone(connection.status)}>

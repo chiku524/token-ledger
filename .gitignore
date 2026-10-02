@@ -47,3 +47,6 @@ next-env.d.ts
 
 # cloudflare local dev vars
 .dev.vars
+
+# contracts scripts (isolated node deps)
+contracts/scripts/node_modules/

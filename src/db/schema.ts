@@ -46,6 +46,7 @@ export const sourceKind = pgEnum("source_kind", ["wallet", "exchange", "custodia
 export const walletRole = pgEnum("wallet_role", ["hot", "cold", "staking"]);
 export const connectionMode = pgEnum("connection_mode", ["watch", "exchange_read", "custodian_read"]);
 export const connectionStatus = pgEnum("connection_status", ["pending", "healthy", "degraded", "revoked"]);
+export const connectionOwnership = pgEnum("connection_ownership", ["verified", "watch_only"]);
 export const assetClass = pgEnum("asset_class", ["crypto", "stablecoin", "fiat"]);
 export const accountType = pgEnum("account_type", ["asset", "liability", "equity", "income", "expense"]);
 export const normalBalance = pgEnum("normal_balance", ["debit", "credit"]);
@@ -113,6 +114,7 @@ export const assets = pgTable(
  * Consent for a read-only feed. Scopes are balances and movements only.
  * A custodian secret is intentionally absent. An exchange credential, when one
  * is needed, is stored sealed in `connection_credentials`, never here.
+ * A verified wallet stores the signature that proved control. It does not store a key.
  */
 export const connections = pgTable(
   "connections",
@@ -129,6 +131,10 @@ export const connections = pgTable(
     name: text("name").notNull(),
     status: connectionStatus("status").notNull(),
     scopes: text("scopes").notNull(),
+    ownership: connectionOwnership("ownership").notNull().default("watch_only"),
+    verifiedAddress: text("verified_address"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verificationSignature: text("verification_signature"),
     cursor: text("cursor"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     lastError: text("last_error"),
@@ -143,6 +149,36 @@ export const connections = pgTable(
   (table) => [
     index("connections_organization_id_idx").on(table.organizationId),
     index("connections_entity_id_idx").on(table.entityId),
+  ],
+);
+
+/**
+ * One-use proof that a signed-in user controls an address.
+ * Consumed when the connection is created. A replay cannot consume it again.
+ */
+export const ownershipChallenges = pgTable(
+  "ownership_challenges",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    sessionId: text("session_id").notNull(),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    chain: text("chain").notNull(),
+    address: text("address").notNull(),
+    domain: text("domain").notNull(),
+    nonce: text("nonce").notNull(),
+    message: text("message").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("ownership_challenges_nonce_unique").on(table.nonce),
+    index("ownership_challenges_organization_id_idx").on(table.organizationId),
   ],
 );
 

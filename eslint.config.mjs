@@ -24,6 +24,8 @@ const eslintConfig = defineConfig([
     ".open-next/**",
     ".wrangler/**",
     "cloudflare-env.d.ts",
+    // Solana contracts and their devnet scripts are their own project.
+    "contracts/**",
   ]),
 ]);
 

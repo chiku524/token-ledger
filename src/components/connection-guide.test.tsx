@@ -7,6 +7,8 @@ describe("ConnectionGuide", () => {
     const html = renderToStaticMarkup(<ConnectionGuide csrf="csrf" canRestartTour={false} />);
     expect(html).toContain("Where a connection sits");
     expect(html).toContain("Watch-only wallet");
+    expect(html).toContain("Verified means the sign-in controlled the address.");
+    expect(html).toContain("Watched means the address was typed");
     expect(html).toContain("Exchange, read-only");
     expect(html).toContain("Custodian, read-only");
     expect(html).toContain("Observed balance");

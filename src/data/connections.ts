@@ -1,4 +1,4 @@
-import type { BooksConnection, BooksSource, ConnectionMode } from "./books";
+import type { BooksConnection, BooksSource, ConnectionMode, ConnectionOwnership } from "./books";
 
 /** The only scopes a connection may hold. Withdraw, trade, and sign are refused. */
 export const READ_ONLY_SCOPES = "balances,movements";
@@ -36,6 +36,10 @@ export interface ConnectionDraft {
     name: string;
     status: "pending";
     scopes: typeof READ_ONLY_SCOPES;
+    ownership: ConnectionOwnership;
+    verifiedAddress: string | null;
+    verifiedAt: Date | null;
+    verificationSignature: string | null;
   };
   source: {
     entityId: string;
@@ -62,6 +66,10 @@ export function connectionFromForm(input: {
     name: input.name,
     status: "pending" as const,
     scopes: READ_ONLY_SCOPES,
+    ownership: "watch_only" as const,
+    verifiedAddress: null,
+    verifiedAt: null,
+    verificationSignature: null,
   };
   if (input.mode === "watch") {
     const venue = input.chain ?? "";
@@ -110,6 +118,39 @@ export function connectionFromForm(input: {
       name: input.name,
       chain: input.chain,
       identifier: input.identifier,
+    },
+  };
+}
+
+export function verifiedWalletDraft(input: {
+  entityId: string;
+  chain: "ethereum" | "solana" | "polygon";
+  name: string;
+  role: NonNullable<BooksSource["role"]>;
+  address: string;
+  signature: string;
+  verifiedAt: Date;
+}): ConnectionDraft {
+  return {
+    connection: {
+      entityId: input.entityId,
+      mode: "watch",
+      venue: input.chain,
+      name: input.name,
+      status: "pending",
+      scopes: READ_ONLY_SCOPES,
+      ownership: "verified",
+      verifiedAddress: input.address,
+      verifiedAt: input.verifiedAt,
+      verificationSignature: input.signature,
+    },
+    source: {
+      entityId: input.entityId,
+      kind: "wallet",
+      role: input.role,
+      name: input.name,
+      chain: input.chain,
+      identifier: input.address,
     },
   };
 }

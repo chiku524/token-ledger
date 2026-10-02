@@ -4,14 +4,17 @@ import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { ConnectorForm } from "@/components/connector-form";
 import { Flash } from "@/components/flash";
+import { OwnershipChoice } from "@/components/ownership-choice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNote } from "@/components/record-forms";
+import { WalletVerifyForm } from "@/components/wallet-verify-form";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { SETUP_FLOW, setupStep } from "@/data/setup-flow";
+import { reownProjectId } from "@/env";
 
 export const metadata = { title: "Connect" };
 
@@ -47,14 +50,24 @@ export default async function SetupPage({
       ) : null}
       {step && writable && books.entities.length > 0 ? (
         <div className="mt-4 max-w-2xl">
+          {step.mode === "watch" ? (
+            <div className="mb-4 grid gap-4">
+              <OwnershipChoice walletConnectReady={reownProjectId() !== null} />
+              <WalletVerifyForm books={books} csrf={csrf} next={step.next} projectId={reownProjectId()} />
+            </div>
+          ) : null}
           <ConnectorForm
             id={step.id}
             books={books}
             csrf={csrf}
             mode={step.mode}
             next={step.next}
-            title={step.title}
-            intro={step.lede}
+            title={step.mode === "watch" ? "Watch an address" : step.title}
+            intro={
+              step.mode === "watch"
+                ? "Paste a public address. No signature is required. Use this when you cannot sign, including a cold address."
+                : step.lede
+            }
           />
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             {current.index > 0 ? (

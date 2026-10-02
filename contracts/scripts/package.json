@@ -1,0 +1,17 @@
+{
+  "name": "token-ledger-contracts-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Devnet driver scripts for the Token Ledger Solana programs. Isolated from the app so its deps do not touch the Next.js build.",
+  "scripts": {
+    "smoke": "tsx smoke.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.95.0"
+  },
+  "devDependencies": {
+    "tsx": "^4"
+  }
+}
