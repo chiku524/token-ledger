@@ -572,6 +572,12 @@ export const users = pgTable(
     entityScope: text("entity_scope").notNull().default(""),
     /** Set when an admin finishes or skips the connection tour. Null means a new admin still needs it. */
     connectionTourCompletedAt: timestamp("connection_tour_completed_at", { withTimezone: true }),
+    /**
+     * When the email was confirmed. Null means unverified: the account works, but
+     * the pages can prompt to confirm. A sign-up and an accepted invite count as
+     * unverified until a link is followed.
+     */
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -620,6 +626,51 @@ export const invites = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("invites_token_hash_unique").on(table.tokenHash)],
+);
+
+/**
+ * A single-use password-reset token. Only a hash is stored; the token itself is
+ * emailed and never logged. A reset invalidates the user's sessions.
+ */
+export const passwordResets = pgTable(
+  "password_resets",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("password_resets_token_hash_unique").on(table.tokenHash),
+    index("password_resets_user_id_idx").on(table.userId),
+  ],
+);
+
+/** A single-use email-verification token. Only a hash is stored. */
+export const emailVerifications = pgTable(
+  "email_verifications",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("email_verifications_token_hash_unique").on(table.tokenHash),
+    index("email_verifications_user_id_idx").on(table.userId),
+  ],
 );
 
 /**

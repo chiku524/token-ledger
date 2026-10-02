@@ -19,6 +19,8 @@ export interface SessionUser {
   demo: boolean;
   /** Null until this admin finishes or skips the connection tour. */
   connectionTourCompletedAt: string | null;
+  /** True once the email is confirmed. Always true in demo mode. */
+  emailVerified: boolean;
 }
 
 export class AuthError extends Error {
@@ -42,6 +44,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
         entityScope: demo.entityScope,
         demo: true,
         connectionTourCompletedAt: null,
+        emailVerified: true,
       };
     }
   }
@@ -101,5 +104,6 @@ function toSession(user: AccountUser): SessionUser {
     entityScope: user.entityScope,
     demo: false,
     connectionTourCompletedAt: user.connectionTourCompletedAt ? user.connectionTourCompletedAt.toISOString() : null,
+    emailVerified: user.emailVerifiedAt !== null,
   };
 }

@@ -89,7 +89,18 @@ Demo sign-in is only for the example books: it is allowed when `DATABASE_URL` is
 
 Harbourline stores one example rate, 1 MYR = 0.3000 SGD. SGD amounts use the exact inverse (10/3), which is not a second stored rate.
 
-There is no email delivery. FX and prices are live (see below).
+FX and prices are live (see below). Email is optional (see "Email and account self-service").
+
+## Email and account self-service
+
+Transactional email (invites, password reset, email verification) uses Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set. Email is optional: without it, nothing is sent, an invite falls back to the on-screen link, and the reset and verify flows report that nothing went out. Tokens and message bodies are never logged.
+
+- **Invites** are emailed when configured; the link is still shown once. Every invite is audited whether or not it was sent.
+- **Password reset** (`/reset-password`) always responds the same way, so it does not disclose whether an email has an account. Setting a new password signs out existing sessions.
+- **Email verification** sends a link on sign-up; an unverified account still works but shows a banner to confirm.
+- `APP_URL` sets the base for links; unset, the request host is used.
+
+See `docs/adr-email.md`.
 
 ## Reconciliation and accounting controls
 
@@ -109,6 +120,8 @@ Environment variables:
 - `CONNECTOR_ENCRYPTION_KEY` — required to store exchange credentials, at least 32 characters, server-only. Derives the AES-256-GCM key that seals secrets at rest.
 - `CRON_SECRET` — optional. When set, the scheduled sync route (`/api/cron/sync`) requires it as a bearer token; Vercel Cron sends it automatically. At least 16 characters.
 - `WEBHOOK_SIGNING_SECRET` — required to accept signed source webhooks (`/api/webhooks/source`), at least 32 characters, server-only. A per-source signing secret is derived from it.
+- `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_FROM_NAME` — optional. Transactional email. Unset means nothing is sent and the flows fall back.
+- `APP_URL` — optional. The base URL for links in emails. Unset uses the request host.
 - `WEBHOOK_URL` — optional. The receiver URL `pnpm webhook:send` posts to.
 - `KRAKEN_API_KEY`/`_SECRET`, `BYBIT_API_KEY`/`_SECRET`, `BINANCE_API_KEY`/`_SECRET`, `GATE_API_KEY`/`_SECRET`, `BACKPACK_API_KEY`/`_SECRET` — read-only keys used by `pnpm exchange:verify`. In the app a credential is entered by the user and stored sealed.
 - `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, `BOOTSTRAP_OWNER_PASSWORD` — used only by `pnpm auth:bootstrap`.

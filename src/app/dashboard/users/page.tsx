@@ -8,14 +8,15 @@ import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { one } from "@/data/query";
 import { activeOwnerIds, findInvite, listOrganizationUsers } from "@/db/auth-store";
-import { readDatabaseUrl } from "@/env";
+import { absoluteLink } from "@/email/links";
+import { readDatabaseUrl, readEmailFrom, readResendApiKey } from "@/env";
 
 export const metadata = { title: "Users" };
 
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string | string[]; saved?: string | string[]; issued?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; saved?: string | string[]; issued?: string | string[]; emailed?: string | string[] }>;
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
@@ -51,11 +52,13 @@ export default async function UsersPage({
       }));
   const owners = database ? await activeOwnerIds(session.organizationId) : people.filter((person) => person.role === "owner" && person.status === "active").map((person) => person.id);
   const issued = one(params.issued);
+  const emailed = one(params.emailed) === "1";
   const invite = issued && database ? await findInvite(issued) : null;
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-  const proto = headerList.get("x-forwarded-proto") ?? "http";
-  const inviteLink = invite && host ? `${proto}://${host}/sign-in?invite=${issued}` : null;
+  const proto = headerList.get("x-forwarded-proto");
+  const inviteLink = invite && issued ? absoluteLink(`/sign-in?invite=${issued}`, host, proto) : null;
+  const emailConfigured = Boolean(readResendApiKey() && readEmailFrom());
   const assignable = ROLES.filter((role) => canAssignRole(session, role, null));
 
   return (
@@ -68,7 +71,10 @@ export default async function UsersPage({
       <Flash error={one(params.error)} saved={one(params.saved)} />
       {inviteLink ? (
         <p role="status" className="mb-6 border border-pine/40 bg-paper-raised px-4 py-3 text-sm text-pine">
-          Invite link for {invite?.email}. It is not emailed. Copy it now. It expires in 7 days.
+          {emailed
+            ? `Invite emailed to ${invite?.email}. You can also share the link below.`
+            : `Invite link for ${invite?.email}. ${emailConfigured ? "The email could not be sent." : "Email is not configured, so it is shown here."} Copy it now.`}{" "}
+          It expires in 7 days.
           <span className="mt-2 block font-mono text-xs break-all text-ink">{inviteLink}</span>
         </p>
       ) : null}

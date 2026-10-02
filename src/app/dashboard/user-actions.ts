@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
+import { absoluteLink, deliver } from "@/email/links";
+import { inviteEmail } from "@/email/messages";
 import { canAssignRole, canDeactivate, isRole, removesLastOwner } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
 import { loadBooks } from "@/data/load-books";
@@ -41,9 +44,11 @@ export async function inviteUserAction(formData: FormData) {
   if (existing && existing.organizationId === session.organizationId) {
     fail(PATH, "That email is already in this organization.");
   }
+  const booksForName = books;
   let token = "";
+  let userId = "";
   try {
-    const id = await insertUser({
+    userId = await insertUser({
       organizationId: session.organizationId,
       email: parsed.data.email,
       name: parsed.data.name,
@@ -59,19 +64,38 @@ export async function inviteUserAction(formData: FormData) {
       entityScope: parsed.data.entityScope,
       createdBy: session.id,
     });
-    await writeAudit({
-      organizationId: session.organizationId,
-      actor: actorName(session),
-      action: "user.invited",
-      subjectType: "user",
-      subjectId: id,
-      detail: `Invited ${parsed.data.email} as ${parsed.data.role}.`,
-    });
   } catch (error) {
     fail(PATH, safeMessage(error));
   }
+
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  const proto = headerList.get("x-forwarded-proto");
+  const link = absoluteLink(`/sign-in?invite=${token}`, host, proto);
+  const delivery = link
+    ? await deliver(
+        inviteEmail({
+          to: parsed.data.email,
+          link,
+          organizationName: booksForName.organization.name,
+          inviterName: session.name,
+          expiresInDays: 7,
+        }),
+      )
+    : { sent: false, reason: "No base URL was configured." };
+
+  await writeAudit({
+    organizationId: session.organizationId,
+    actor: actorName(session),
+    action: delivery.sent ? "user.invited" : "user.invite_created",
+    subjectType: "user",
+    subjectId: userId,
+    detail: delivery.sent
+      ? `Invited ${parsed.data.email} as ${parsed.data.role}; invite emailed.`
+      : `Invited ${parsed.data.email} as ${parsed.data.role}; email not sent (${delivery.reason}).`,
+  });
   revalidatePath("/dashboard", "layout");
-  redirect(`${PATH}?issued=${encodeURIComponent(token)}`);
+  redirect(`${PATH}?issued=${encodeURIComponent(token)}${delivery.sent ? "&emailed=1" : ""}`);
 }
 
 export async function changeAccessAction(formData: FormData) {

@@ -163,6 +163,31 @@ export function readBitcoinEsploraUrl(
 export const SUI_PUBLIC_GRAPHQL_URL = "https://graphql.mainnet.sui.io/graphql";
 
 /**
+ * Transactional email. Optional: when unset, email is not sent and a flow falls
+ * back to showing the link on screen (invites) or logging the token (dev). Set
+ * RESEND_API_KEY and EMAIL_FROM to send. See docs/adr-email.md.
+ */
+export function readResendApiKey(
+  env: { RESEND_API_KEY?: string } = { RESEND_API_KEY: process.env.RESEND_API_KEY },
+): string | null {
+  const raw = env.RESEND_API_KEY;
+  if (raw === undefined || raw.trim() === "") return null;
+  return raw.trim();
+}
+
+export function readEmailFrom(
+  env: { EMAIL_FROM?: string; EMAIL_FROM_NAME?: string } = {
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
+  },
+): { email: string; name: string } | null {
+  const email = env.EMAIL_FROM?.trim() ?? "";
+  if (email === "") return null;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("EMAIL_FROM must be an email address.");
+  return { email, name: env.EMAIL_FROM_NAME?.trim() || "Token Ledger" };
+}
+
+/**
  * Optional. A Sui GraphQL endpoint. Unset uses the keyless public endpoint
  * (`https://graphql.mainnet.sui.io/graphql`) or a provider via this variable.
  * Must be https with no embedded credentials.

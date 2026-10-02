@@ -1,12 +1,14 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { assertCsrf } from "@/auth/current";
 import { cookieSecure, DEMO_COOKIE, SESSION_COOKIE, sessionCookieOptions } from "@/auth/cookies";
 import { hashPassword } from "@/auth/password";
 import { parseSignup } from "@/data/signup";
-import { createSession, findUserByEmail } from "@/db/auth-store";
+import { createEmailVerification, createSession, findUserByEmail } from "@/db/auth-store";
+import { absoluteLink, deliver } from "@/email/links";
+import { verifyEmail } from "@/email/messages";
 import { registerOrganization } from "@/db/register";
 import { BooksWriteError } from "@/db/write";
 import { authSecretConfigured, readDatabaseUrl } from "@/env";
@@ -43,6 +45,17 @@ export async function signUpAction(formData: FormData) {
     const jar = await cookies();
     jar.set(SESSION_COOKIE, token, sessionCookieOptions(cookieSecure()));
     jar.delete(DEMO_COOKIE);
+    // Send a confirmation email. Best-effort: a failure does not block sign-up.
+    const headerList = await headers();
+    const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+    const proto = headerList.get("x-forwarded-proto");
+    const verifyToken = await createEmailVerification(created.userId, created.organizationId);
+    const link = absoluteLink(`/verify-email?token=${verifyToken}`, host, proto);
+    if (link) {
+      await deliver(
+        verifyEmail({ to: parsed.value.account.email, link, organizationName: parsed.value.company.organizationName }),
+      );
+    }
   } catch (error) {
     redirect(signUpPath(error instanceof BooksWriteError ? error.message : "The account could not be created."));
   }

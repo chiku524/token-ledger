@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { authenticate } from "@/auth/authenticate";
 import { assertCsrf } from "@/auth/current";
@@ -10,7 +10,19 @@ import { demoSignInAllowed, signDemoToken } from "@/auth/demo";
 import { safeNextPath } from "@/auth/csrf";
 import { hashPassword } from "@/auth/password";
 import { can } from "@/auth/roles";
-import { consumeInvite, createSession, deleteSession, userForSessionToken, writeAudit } from "@/db/auth-store";
+import {
+  consumeEmailVerification,
+  consumeInvite,
+  consumePasswordReset,
+  createPasswordReset,
+  createSession,
+  deleteSession,
+  findUserByEmail,
+  userForSessionToken,
+  writeAudit,
+} from "@/db/auth-store";
+import { absoluteLink, deliver } from "@/email/links";
+import { resetEmail } from "@/email/messages";
 import { readDatabaseUrl, authSecretConfigured } from "@/env";
 import { passwordFormSchema, firstIssue } from "@/data/validate";
 
@@ -114,6 +126,87 @@ export async function signOutAction(formData: FormData) {
   jar.delete(SESSION_COOKIE);
   jar.delete(DEMO_COOKIE);
   redirect("/sign-in");
+}
+
+/** Request a password reset. Always reports success so an email is not disclosed. */
+export async function requestPasswordResetAction(formData: FormData) {
+  const path = "/reset-password";
+  try {
+    await assertCsrf(formData);
+  } catch (error) {
+    redirect(`${path}?error=${encodeURIComponent(messageOf(error))}`);
+  }
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const generic = "If that email has an account, a reset link has been sent.";
+  if (!readDatabaseUrl() || !authSecretConfigured() || !email) redirect(`${path}?sent=${encodeURIComponent(generic)}`);
+
+  const user = await findUserByEmail(email);
+  if (user && user.status === "active") {
+    const token = await createPasswordReset(user.id, user.organizationId);
+    const headerList = await headers();
+    const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+    const proto = headerList.get("x-forwarded-proto");
+    const link = absoluteLink(`/reset-password?token=${token}`, host, proto);
+    if (link) {
+      await deliver(resetEmail({ to: user.email, link, organizationName: user.name, expiresInDays: 60 }));
+    }
+    await writeAudit({
+      organizationId: user.organizationId,
+      actor: `${user.name} <${user.email}>`,
+      action: "auth.password_reset_requested",
+      subjectType: "user",
+      subjectId: user.id,
+      detail: "Password reset requested.",
+    });
+  }
+  redirect(`${path}?sent=${encodeURIComponent(generic)}`);
+}
+
+/** Set a new password from a reset token. */
+export async function resetPasswordAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const path = `/reset-password?token=${encodeURIComponent(token)}`;
+  try {
+    await assertCsrf(formData);
+  } catch (error) {
+    redirect(`${path}&error=${encodeURIComponent(messageOf(error))}`);
+  }
+  if (!readDatabaseUrl() || !authSecretConfigured()) redirect("/reset-password?error=" + encodeURIComponent("Password reset needs DATABASE_URL and AUTH_SECRET."));
+  const parsed = passwordFormSchema.safeParse({ password: formData.get("password"), confirm: formData.get("confirm") });
+  if (!parsed.success) redirect(`${path}&error=${encodeURIComponent(firstIssue(parsed.error))}`);
+  const user = await consumePasswordReset(token, await hashPassword(parsed.data.password));
+  if (!user) redirect("/reset-password?error=" + encodeURIComponent("That reset link is invalid or expired."));
+  await writeAudit({
+    organizationId: user.organizationId,
+    actor: `${user.name} <${user.email}>`,
+    action: "auth.password_reset",
+    subjectType: "user",
+    subjectId: user.id,
+    detail: "Password reset; sessions signed out.",
+  });
+  redirect(`/sign-in?saved=${encodeURIComponent("Password changed. Sign in with your new password.")}`);
+}
+
+/** Confirm an email from a verification token. */
+export async function verifyEmailAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  try {
+    await assertCsrf(formData);
+  } catch (error) {
+    redirect(`/verify-email?token=${encodeURIComponent(token)}&error=${encodeURIComponent(messageOf(error))}`);
+  }
+  if (!readDatabaseUrl() || !authSecretConfigured()) redirect("/verify-email?error=" + encodeURIComponent("Verification needs a database."));
+  const user = await consumeEmailVerification(token);
+  if (!user) redirect("/verify-email?error=" + encodeURIComponent("That verification link is invalid or expired."));
+  await writeAudit({
+    organizationId: user.organizationId,
+    actor: `${user.name} <${user.email}>`,
+    action: "user.email_verified",
+    subjectType: "user",
+    subjectId: user.id,
+    detail: "Email confirmed.",
+  });
+  redirect(`/sign-in?saved=${encodeURIComponent("Email confirmed. You can sign in.")}`);
 }
 
 function actorLine(user: { name: string; email: string }): string {
