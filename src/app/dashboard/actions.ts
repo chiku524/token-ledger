@@ -10,6 +10,7 @@ import { connectionReturnPath } from "@/data/connection-return";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { draftFromForm, postFormJournal } from "@/data/journal-form";
 import { approveDraft, createDraft, submitDraft } from "@/db/drafts";
+import { matchReconciliation, unmatchReconciliation } from "@/db/reconciliation";
 import { loadBooks } from "@/data/load-books";
 import { refreshAssetPrices, refreshFxRates } from "@/data/market-data";
 import { revaluationForEntity } from "@/data/valuation";
@@ -247,6 +248,59 @@ export async function postJournalAction(formData: FormData) {
     await insertJournal(books, entry, actorName(session));
   });
   finish(path, "Entry posted. Posted entries are not edited. Post a correction if one is wrong.");
+}
+
+/** Pair a source transaction with a journal line, clearing an exception. */
+export async function matchReconciliationAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "reconciliation.match", formData);
+  requireWritable(path, session);
+  const sourceTransactionId = String(formData.get("sourceTransactionId") ?? "");
+  const journalLine = String(formData.get("journalLine") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const books = await loadBooks(session.organizationId);
+  const transaction = books.sourceTransactions.find((item) => item.id === sourceTransactionId);
+  if (!transaction) fail(path, "That activity is not in this organization.");
+  assertEntityOrFail(path, session, transaction.entityId);
+  const [entryId, lineNumberText] = journalLine.split(":");
+  const lineNumber = Number(lineNumberText);
+  const entry = books.journalEntries.find((item) => item.id === entryId);
+  if (!entry || !Number.isInteger(lineNumber)) fail(path, "Choose a journal line to match.");
+  await save(path, () =>
+    matchReconciliation({
+      organizationId: session.organizationId,
+      entityId: transaction.entityId,
+      sourceTransactionId: transaction.id,
+      journalEntryId: entry.id,
+      journalLineNumber: lineNumber,
+      note,
+      actor: actorName(session),
+    }),
+  );
+  finish(path, "Matched. The decision is saved and survives a reload.");
+}
+
+/** Reject an automatic match, leaving the pair as an exception. */
+export async function unmatchReconciliationAction(formData: FormData) {
+  const path = "/dashboard/reconciliation";
+  const session = await guard(path, "reconciliation.match", formData);
+  requireWritable(path, session);
+  const sourceTransactionId = String(formData.get("sourceTransactionId") ?? "");
+  const note = String(formData.get("note") ?? "");
+  const books = await loadBooks(session.organizationId);
+  const transaction = books.sourceTransactions.find((item) => item.id === sourceTransactionId);
+  if (!transaction) fail(path, "That activity is not in this organization.");
+  assertEntityOrFail(path, session, transaction.entityId);
+  await save(path, () =>
+    unmatchReconciliation({
+      organizationId: session.organizationId,
+      entityId: transaction.entityId,
+      sourceTransactionId: transaction.id,
+      note,
+      actor: actorName(session),
+    }),
+  );
+  finish(path, "Match rejected. The row is an exception again.");
 }
 
 /** Save a journal as a draft, invisible to reports until approved. */

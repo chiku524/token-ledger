@@ -15,6 +15,7 @@ import {
   journalEntries,
   journalLines,
   organizations,
+  reconciliationOverrides,
   sourceTransactions,
   sources,
 } from "./schema";
@@ -40,7 +41,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
   }
 
   const organizationId = organization.id;
-  const [entityRows, assetRows, connectionRows, sourceRows, snapshotRows, accountRows, entryRows, lineRows, transactionRows, rateRows, priceRows, auditRows] =
+  const [entityRows, assetRows, connectionRows, sourceRows, snapshotRows, accountRows, entryRows, lineRows, transactionRows, rateRows, priceRows, overrideRows, auditRows] =
     await Promise.all([
       db.select().from(entities).where(eq(entities.organizationId, organizationId)),
       db.select().from(assets).where(eq(assets.organizationId, organizationId)),
@@ -53,6 +54,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
       db.select().from(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId)),
       db.select().from(fxRates).where(eq(fxRates.organizationId, organizationId)),
       db.select().from(assetPrices).where(eq(assetPrices.organizationId, organizationId)),
+      db.select().from(reconciliationOverrides).where(eq(reconciliationOverrides.organizationId, organizationId)),
       db.select().from(auditEvents).where(eq(auditEvents.organizationId, organizationId)),
     ]);
 
@@ -144,6 +146,13 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
     }),
     fxRates: rateRows,
     assetPrices: priceRows.map((price) => ({ ...price, asOf: price.asOf.toISOString() })),
+    reconciliationOverrides: overrideRows.map((row) => ({
+      sourceTransactionId: row.sourceTransactionId,
+      journalEntryId: row.journalEntryId,
+      journalLineNumber: row.journalLineNumber,
+      kind: row.kind,
+      note: row.note,
+    })),
     auditEvents: auditRows,
   };
 

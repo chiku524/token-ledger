@@ -1,5 +1,6 @@
 import type { FxRate } from "@/ledger/fx";
 import type { AssetPrice } from "@/ledger/pricing";
+import type { ReconciliationOverride } from "./reconciliation";
 import type { AccountType, PostedJournalEntry, QuantityDirection, Side } from "@/ledger";
 
 export interface StoredJournalEntry extends PostedJournalEntry {
@@ -144,6 +145,8 @@ export interface Books {
   journalEntries: readonly StoredJournalEntry[];
   sourceTransactions: readonly BooksSourceTransaction[];
   reconciliations: readonly BooksReconciliation[];
+  /** Manual reconciliation decisions overlaid on the automatic matches. */
+  reconciliationOverrides: readonly ReconciliationOverride[];
   fxRates: readonly StoredFxRate[];
   assetPrices: readonly StoredAssetPrice[];
   auditEvents: readonly AuditEvent[];

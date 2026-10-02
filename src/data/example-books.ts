@@ -419,6 +419,7 @@ export const exampleBooks = {
   reconciliations: exampleReconciliations,
   fxRates: exampleFxRates,
   assetPrices: exampleAssetPrices,
+  reconciliationOverrides: [],
   auditEvents: exampleAuditEvents,
 } satisfies Books;
 

@@ -8,9 +8,11 @@ import {
   prepareJournalAction,
   refreshConnectionAction,
   refreshMarketDataAction,
+  matchReconciliationAction,
   reverseJournalAction,
   revokeConnectionAction,
   submitDraftAction,
+  unmatchReconciliationAction,
 } from "@/app/dashboard/actions";
 import type { Books } from "@/data/books";
 
@@ -104,6 +106,48 @@ export function ConnectionControls({
         </button>
       </form>
     </div>
+  );
+}
+
+export function MatchControls({
+  sourceTransactionId,
+  candidates,
+  csrf,
+}: {
+  sourceTransactionId: string;
+  candidates: Array<{ id: string; label: string }>;
+  csrf: string;
+}) {
+  return (
+    <form action={matchReconciliationAction} className="grid gap-2">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
+      <select name="journalLine" required className="text-sm">
+        <option value="">Choose a journal line…</option>
+        {candidates.map((candidate) => (
+          <option key={candidate.id} value={candidate.id}>
+            {candidate.label}
+          </option>
+        ))}
+      </select>
+      <input name="note" required maxLength={200} placeholder="Why this match" className="text-sm" />
+      <button type="submit" className="btn-secondary">
+        Match
+      </button>
+    </form>
+  );
+}
+
+export function UnmatchControls({ sourceTransactionId, csrf }: { sourceTransactionId: string; csrf: string }) {
+  return (
+    <form action={unmatchReconciliationAction} className="grid gap-2">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
+      <input name="note" required maxLength={200} placeholder="Why this is not a match" className="text-sm" />
+      <button type="submit" className="btn-secondary">
+        Unmatch
+      </button>
+    </form>
   );
 }
 

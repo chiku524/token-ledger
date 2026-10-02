@@ -53,6 +53,8 @@ export const journalSide = pgEnum("journal_side", ["debit", "credit"]);
 export const quantityDirection = pgEnum("quantity_direction", ["in", "out"]);
 export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", "exception"]);
 export const journalDraftStatus = pgEnum("journal_draft_status", ["draft", "pending", "posted"]);
+/** "match" pairs a transaction with a line; "unmatch" rejects an automatic match. */
+export const reconciliationOverrideKind = pgEnum("reconciliation_override_kind", ["match", "unmatch"]);
 export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer"]);
 export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
 export const syncRunStatus = pgEnum("sync_run_status", ["running", "ok", "partial", "failed", "not_live"]);
@@ -415,6 +417,40 @@ export const reconciliationRecords = pgTable(
   (table) => [
     index("reconciliation_records_entity_period_idx").on(table.entityId, table.periodStart, table.periodEnd),
     check("reconciliation_records_quantity_positive", sql`${table.quantityMinor} > 0`),
+  ],
+);
+
+/**
+ * A manual reconciliation decision that survives a reload. Automatic matching
+ * runs on load and produces exceptions; an accountant pairs a source transaction
+ * with a journal line here. The builder overlays these on top of the automatic
+ * result, so the automatic pass stays pure and a human decision is explicit and
+ * auditable. `kind` distinguishes an acceptance ("match") from a rejection
+ * ("unmatch") of an automatic match.
+ */
+export const reconciliationOverrides = pgTable(
+  "reconciliation_overrides",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    sourceTransactionId: text("source_transaction_id")
+      .notNull()
+      .references(() => sourceTransactions.id),
+    journalEntryId: text("journal_entry_id"),
+    journalLineNumber: integer("journal_line_number"),
+    kind: reconciliationOverrideKind("kind").notNull(),
+    note: text("note").notNull(),
+    actor: text("actor").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("reconciliation_overrides_source_unique").on(table.sourceTransactionId),
+    index("reconciliation_overrides_org_idx").on(table.organizationId),
   ],
 );
 

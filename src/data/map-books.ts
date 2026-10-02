@@ -10,7 +10,7 @@ import type {
   BooksSourceTransaction,
   StoredJournalEntry,
 } from "./books";
-import { buildReconciliations } from "./reconciliation";
+import { buildReconciliations, type ReconciliationOverride } from "./reconciliation";
 
 export interface SnapshotOrganization {
   id: string;
@@ -68,6 +68,7 @@ export interface BooksSnapshot {
   sourceTransactions: BooksSourceTransaction[];
   fxRates: Books["fxRates"][number][];
   assetPrices: Books["assetPrices"][number][];
+  reconciliationOverrides: ReconciliationOverride[];
   auditEvents: Array<Omit<Books["auditEvents"][number], "occurredAt"> & { occurredAt: Date }>;
 }
 
@@ -135,7 +136,14 @@ export function mapSnapshotToBooks(snapshot: BooksSnapshot): Books {
     accounts: snapshot.accounts,
     journalEntries,
     sourceTransactions: snapshot.sourceTransactions,
-    reconciliations: buildReconciliations(snapshot.organization.id, snapshot.sourceTransactions, journalEntries, start),
+    reconciliations: buildReconciliations(
+      snapshot.organization.id,
+      snapshot.sourceTransactions,
+      journalEntries,
+      start,
+      snapshot.reconciliationOverrides,
+    ),
+    reconciliationOverrides: snapshot.reconciliationOverrides,
     fxRates: snapshot.fxRates,
     assetPrices: snapshot.assetPrices,
     auditEvents: snapshot.auditEvents
