@@ -4,7 +4,7 @@
  * stored price stays, and staleness handling on the pages makes the age visible.
  * Prices are observations for valuation only; they never post to the journal.
  */
-import { booksAreWritable, loadBooks } from "./load-books";
+import { booksAreWritable, loadBooksForJob } from "./load-books";
 import { insertAssetPrices, insertFxRate } from "@/db/write";
 import { CoinGeckoPriceProvider, type NormalizedPrice } from "@/adapters/market/prices";
 import { EcbFxProvider } from "@/adapters/market/fx";
@@ -34,7 +34,7 @@ export async function refreshAssetPrices(
   organizationId: string,
   provider: CoinGeckoPriceProvider = new CoinGeckoPriceProvider(),
 ): Promise<MarketRefreshOutcome> {
-  const books = await loadBooks(organizationId);
+  const books = await loadBooksForJob(organizationId);
   const held = trackedAssetCodes(books);
 
   let prices: NormalizedPrice[] = [];
@@ -98,7 +98,7 @@ export async function refreshFxRates(
   organizationId: string,
   provider: EcbFxProvider = new EcbFxProvider(),
 ): Promise<FxRefreshOutcome> {
-  const books = await loadBooks(organizationId);
+  const books = await loadBooksForJob(organizationId);
   const currencies = [...new Set(books.entities.map((entity) => entity.functionalCurrency))].sort();
   const pairs: Array<{ base: string; quote: string }> = [];
   for (const base of currencies) {
@@ -132,6 +132,7 @@ export async function refreshFxRates(
         scale: rate.scale,
         asOf: rate.asOf.slice(0, 10),
         note: `Live rate from ${rate.source}. Stored once; the inverse is derived.`,
+        origin: "live",
       },
       "market data",
     );

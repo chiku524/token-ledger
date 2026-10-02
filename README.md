@@ -127,6 +127,18 @@ docker run -p 3000:3000 -e DATABASE_URL=... -e AUTH_SECRET=... token-ledger
 
 Report pages can download a trial balance, journal, or reconciliation CSV for the selected period. The export route is `/dashboard/reports/export`.
 
+## Market data and valuation
+
+Holdings can be valued at sourced, dated market prices, and rates and prices carry their provenance and age. Prices come from CoinGecko and FX rates from the ECB reference rates (both keyless and read-only), stored with `origin` (`example` or `live`), `as_of`, and `source`. A price never posts to the journal.
+
+- `asset_prices` stores prices as rational `numeric(78,0)` minor units. `fx_rates` stores each ordered pair once; the inverse is derived.
+- **Sources** shows a Market value section: observed holdings valued in USD, with source, origin, and a fresh/stale badge. An unpriced holding is listed, not hidden; a stale total is flagged provisional.
+- **Reports** shows a revaluation proposal (carrying vs market) and a form to post one balanced entry for the net gain or loss. Nothing posts automatically; reverse it if the price was wrong.
+- **Combined** shows an IAS 21 translation alongside the single-rate view: closing rate for assets/liabilities, average for income/expense, difference to a translation reserve.
+- Refresh from the UI (**Refresh prices and rates**), the scheduled cron pass, or `pnpm market:refresh [ORG_ID] [--prices|--fx]`. A fetch failure never blocks sync; the last value ages out visibly.
+
+See `docs/adr-market-data.md`.
+
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
 
 ## Scheduled sync and operations
@@ -149,7 +161,8 @@ src/ledger              Double-entry posting, reversals, FX, trial balance, reco
 src/db                  Drizzle schema, client, seed, read, and write
 src/adapters            Source readers (chains, exchanges, custodians), a shared adapter contract
                         (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
-src/data                Example books, validation, the Postgres-or-example loader, and the sync/webhook policy
+src/data                Example books, validation, the Postgres-or-example loader, sync policy, and valuation
+src/adapters/market     Keyless price (CoinGecko) and FX (ECB) providers
 src/app/api             Route handlers: the scheduled cron pass and the signed webhook receiver
 drizzle                 SQL migrations
 docs                    Decisions, including docs/adr-{solana,evm,bitcoin,sui}-data-source.md and docs/adr-scheduled-ingestion.md

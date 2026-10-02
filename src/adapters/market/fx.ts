@@ -1,6 +1,6 @@
 /**
- * Live foreign-exchange rates from a public, keyless source (the ECB reference
- * rates published through exchangerate.host's free endpoint). Read-only.
+ * Live foreign-exchange rates from a public, keyless source: Frankfurter, which
+ * serves the ECB reference rates. Read-only and needs no API key.
  *
  * A rate is stored once per ordered pair, as a rational numerator/scale, and the
  * inverse is derived, never stored twice — the same rule the manual FX form
@@ -34,13 +34,14 @@ export interface FxProviderOptions {
   now?: () => Date;
 }
 
-const DEFAULT_BASE_URL = "https://api.exchangerate.host";
+const DEFAULT_BASE_URL = "https://api.frankfurter.dev/v1";
 const DEFAULT_TIMEOUT_MS = 15_000;
 /** How many decimal places a fetched rate is rounded to. */
 const RATE_SCALE = 6;
 
+/** Frankfurter serves ECB reference rates; a base with no ECB quote (e.g. MYR) is not returned. */
 export class EcbFxProvider {
-  readonly source = "exchangerate.host";
+  readonly source = "frankfurter";
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;

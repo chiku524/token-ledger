@@ -22,7 +22,7 @@ import {
 } from "@/db/sync-runs";
 import { BooksWriteError, recordSyncFailure, recordSyncSuccess } from "@/db/write";
 import type { Books, BooksConnection } from "./books";
-import { booksAreWritable, loadBooks } from "./load-books";
+import { booksAreWritable, loadBooksForJob } from "./load-books";
 import { sourcesForConnection } from "./connections";
 import { backoffForFailures, consecutiveFailureCount, isConnectionDue } from "./sync-schedule";
 
@@ -178,7 +178,7 @@ export async function runAllConnectionSyncs(
   organizationId: string,
   options: { actor: string; trigger: SyncRunTrigger; onlyDue?: boolean } = { actor: "scheduler", trigger: "scheduled" },
 ): Promise<SyncRunOutcome[]> {
-  const books = await loadBooks(organizationId);
+  const books = await loadBooksForJob(organizationId);
   const onlyDue = options.onlyDue ?? options.trigger === "scheduled";
   const now = new Date();
   const connectionIds = books.connections
@@ -188,7 +188,7 @@ export async function runAllConnectionSyncs(
   const outcomes: SyncRunOutcome[] = [];
   for (const connectionId of connectionIds) {
     // Reload per run so each connection's cursor and status reflect prior runs.
-    const fresh = await loadBooks(organizationId);
+    const fresh = await loadBooksForJob(organizationId);
     outcomes.push(await runConnectionSync(fresh, connectionId, options));
   }
   return outcomes;

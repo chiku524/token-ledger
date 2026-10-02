@@ -21,9 +21,9 @@ describe("EcbFxProvider", () => {
       { base: "USD", quote: "USD" },
     ]);
     expect(rates).toEqual([
-      { baseCurrency: "MYR", quoteCurrency: "SGD", numerator: 301230n, scale: 6, asOf: "2026-06-15T00:00:00.000Z", source: "exchangerate.host" },
-      { baseCurrency: "MYR", quoteCurrency: "USD", numerator: 212340n, scale: 6, asOf: "2026-06-15T00:00:00.000Z", source: "exchangerate.host" },
-      { baseCurrency: "USD", quoteCurrency: "MYR", numerator: 4700000n, scale: 6, asOf: "2026-06-15T00:00:00.000Z", source: "exchangerate.host" },
+      { baseCurrency: "MYR", quoteCurrency: "SGD", numerator: 301230n, scale: 6, asOf: "2026-06-15T00:00:00.000Z", source: "frankfurter" },
+      { baseCurrency: "MYR", quoteCurrency: "USD", numerator: 212340n, scale: 6, asOf: "2026-06-15T00:00:00.000Z", source: "frankfurter" },
+      { baseCurrency: "USD", quoteCurrency: "MYR", numerator: 4700000n, scale: 6, asOf: "2026-06-15T00:00:00.000Z", source: "frankfurter" },
     ]);
   });
 

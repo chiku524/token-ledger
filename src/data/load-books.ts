@@ -10,11 +10,20 @@ import { exampleBooks } from "./example-books";
  */
 export const loadBooks = cache(async (organizationId?: string): Promise<Books> => {
   await connection();
+  return loadBooksForJob(organizationId);
+});
+
+/**
+ * Load books outside a request. A scheduler, worker, or CLI has no React
+ * request scope, so it must skip `connection()`. Falls back to the example
+ * books when no database is configured.
+ */
+export async function loadBooksForJob(organizationId?: string): Promise<Books> {
   const url = readDatabaseUrl();
   if (!url) return exampleBooks;
   const { loadBooksFromDatabase } = await import("@/db/read");
   return loadBooksFromDatabase(organizationId);
-});
+}
 
 export function booksAreWritable(): boolean {
   return readDatabaseUrl() !== null;

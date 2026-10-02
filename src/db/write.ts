@@ -275,6 +275,9 @@ export async function insertFxRate(
     scale: number;
     asOf: string;
     note: string;
+    /** Defaults to the organization's origin for a manually entered rate; a
+     * fetched rate passes "live" so provenance is accurate. */
+    origin?: "example" | "live";
   },
   actor: string,
 ): Promise<void> {
@@ -290,7 +293,7 @@ export async function insertFxRate(
       numerator: input.numerator,
       scale: input.scale,
       asOf: input.asOf,
-      origin: books.organization.origin,
+      origin: input.origin ?? books.organization.origin,
       note: input.note,
     });
     await tx.insert(auditEvents).values(
