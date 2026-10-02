@@ -189,6 +189,29 @@ const CoinbaseAdapter = new VenueExchangeAdapter(VENUES.coinbase!, {
     "/v2/accounts/acct/transactions": { data: [] },
   }),
 });
+const GeminiAdapter = new VenueExchangeAdapter(VENUES.gemini!, {
+  credential: { apiKey: "access", apiSecret: "tl-oauth:refresh" },
+  fetchImpl: venueFetch({
+    "/v1/balances": [{ currency: "BTC", amount: "0.5" }],
+    "/v1/transfers": [],
+  }),
+});
+const OkxAdapter = new VenueExchangeAdapter(VENUES.okx!, {
+  credential: { apiKey: "k", apiSecret: "s", apiPassphrase: "phrase" },
+  fetchImpl: venueFetch({
+    "/api/v5/account/balance": { code: "0", data: [{ details: [{ ccy: "BTC", cashBal: "0.5" }] }] },
+    "/api/v5/asset/deposit-history": { code: "0", data: [] },
+    "/api/v5/asset/withdrawal-history": { code: "0", data: [] },
+  }),
+});
+const KucoinAdapter = new VenueExchangeAdapter(VENUES.kucoin!, {
+  credential: { apiKey: "k", apiSecret: "s", apiPassphrase: "phrase" },
+  fetchImpl: venueFetch({
+    "/api/v1/accounts": { code: "200000", data: [{ currency: "BTC", balance: "0.5" }] },
+    "/api/v1/deposits": { code: "200000", data: { items: [] } },
+    "/api/v1/withdrawals": { code: "200000", data: { items: [] } },
+  }),
+});
 const BackpackAdapter = new VenueExchangeAdapter(VENUES.backpack!, {
   // A valid 32-byte ED25519 seed for the signing key.
   credential: { apiKey: "k", apiSecret: "0pHS6caRnH8SvlIwvnI3/LAsSdaKWOc3YJXQ0Q8dtrI=" },
@@ -267,6 +290,9 @@ for (const [name, adapter] of [
   ["Gate.io exchange", GateAdapter],
   ["Backpack exchange", BackpackAdapter],
   ["Coinbase exchange", CoinbaseAdapter],
+  ["Gemini exchange", GeminiAdapter],
+  ["OKX exchange", OkxAdapter],
+  ["KuCoin exchange", KucoinAdapter],
 ] as const) {
   runAdapterContract({
     name,
@@ -279,7 +305,7 @@ for (const [name, adapter] of [
 describe("contract coverage: every registered source adapter has a case", () => {
   it("every exchange venue in the registry is covered", async () => {
     const { VENUE_KEYS } = await import("./sources/exchange/registry");
-    const covered = new Set(["kraken", "bybit", "binance", "gate", "backpack", "coinbase"]);
+    const covered = new Set(["kraken", "bybit", "binance", "gate", "backpack", "coinbase", "gemini", "okx", "kucoin"]);
     for (const key of VENUE_KEYS) expect(covered.has(key)).toBe(true);
   });
 

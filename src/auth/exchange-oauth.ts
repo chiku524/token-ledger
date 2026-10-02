@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-/** Exchanges that CoinStats connects with an Allow-access redirect. */
-export const OAUTH_EXCHANGES = ["coinbase", "bybit"] as const;
+/** Exchanges whose public OAuth grant can be limited to read. */
+export const OAUTH_EXCHANGES = ["coinbase", "bybit", "gemini"] as const;
 export type OauthExchange = (typeof OAUTH_EXCHANGES)[number];
 
 export const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
@@ -13,6 +13,12 @@ const COINBASE_SCOPES = "wallet:accounts:read,wallet:transactions:read";
 const BYBIT_AUTHORIZE = "https://www.bybit.com/en/oauth";
 const BYBIT_TOKEN = "https://api2.bybit.com/oauth/v1/public/access_token";
 const BYBIT_OPENAPI = "https://api2.bybit.com/oauth/v1/resource/restrict/openapi";
+const GEMINI_AUTHORIZE = "https://exchange.gemini.com/auth";
+const GEMINI_TOKEN = "https://exchange.gemini.com/auth/token";
+const GEMINI_SCOPES = "balances:read,history:read";
+
+/** Marks a stored refresh token so the Gemini connector uses bearer auth. */
+export const OAUTH_SECRET_PREFIX = "tl-oauth:";
 
 export interface OauthClient {
   clientId: string;
@@ -32,17 +38,21 @@ export function isOauthExchange(value: string): value is OauthExchange {
   return (OAUTH_EXCHANGES as readonly string[]).includes(value);
 }
 
-/** Coinbase opens on OAuth. Bybit opens on the API key, with OAuth next to it. */
+/** Coinbase and Gemini open on OAuth. Bybit opens on the API key, with OAuth next to it. */
 export function oauthDefaultTab(venue: OauthExchange): "oauth" | "api" {
-  return venue === "coinbase" ? "oauth" : "api";
+  return venue === "bybit" ? "api" : "oauth";
 }
 
 export function readOauthClient(
   venue: OauthExchange,
   env: Record<string, string | undefined> = process.env,
 ): OauthClient | null {
-  const idName = venue === "coinbase" ? "COINBASE_CLIENT_ID" : "BYBIT_OAUTH_CLIENT_ID";
-  const secretName = venue === "coinbase" ? "COINBASE_CLIENT_SECRET" : "BYBIT_OAUTH_CLIENT_SECRET";
+  const names: Record<OauthExchange, [string, string]> = {
+    coinbase: ["COINBASE_CLIENT_ID", "COINBASE_CLIENT_SECRET"],
+    bybit: ["BYBIT_OAUTH_CLIENT_ID", "BYBIT_OAUTH_CLIENT_SECRET"],
+    gemini: ["GEMINI_CLIENT_ID", "GEMINI_CLIENT_SECRET"],
+  };
+  const [idName, secretName] = names[venue];
   const clientId = env[idName]?.trim() ?? "";
   const clientSecret = env[secretName]?.trim() ?? "";
   if (!clientId || !clientSecret) return null;
@@ -75,6 +85,10 @@ export function buildExchangeAuthorizeUrl(input: {
   if (input.venue === "coinbase") {
     params.set("scope", COINBASE_SCOPES);
     return `${COINBASE_AUTHORIZE}?${params.toString()}`;
+  }
+  if (input.venue === "gemini") {
+    params.set("scope", GEMINI_SCOPES);
+    return `${GEMINI_AUTHORIZE}?${params.toString()}`;
   }
   params.set("scope", "openapi");
   return `${BYBIT_AUTHORIZE}?${params.toString()}`;
@@ -115,7 +129,7 @@ export interface OauthCredential {
 
 /**
  * Turn an authorization code into a sealed-ready credential.
- * Bybit returns a read-only API key. Coinbase returns an access token and a refresh token.
+ * Bybit returns a read-only API key. Coinbase and Gemini return an access token and a refresh token.
  */
 export async function exchangeAuthorizationCode(input: {
   venue: OauthExchange;
@@ -126,6 +140,7 @@ export async function exchangeAuthorizationCode(input: {
 }): Promise<OauthCredential> {
   const fetchImpl = input.fetchImpl ?? fetch;
   if (input.venue === "bybit") return exchangeBybit(input.client, input.code, fetchImpl);
+  if (input.venue === "gemini") return exchangeGemini(input.client, input.code, input.redirectUri, fetchImpl);
   return exchangeCoinbase(input.client, input.code, input.redirectUri, fetchImpl);
 }
 
@@ -169,6 +184,56 @@ async function exchangeCoinbase(
   return { apiKey: access, apiSecret: refresh };
 }
 
+/** Refresh a Gemini access token. Gemini rotates the refresh token. Returns null when Gemini refuses. */
+export async function refreshGeminiAccessToken(
+  storedSecret: string,
+  client: OauthClient,
+  fetchImpl: typeof fetch = fetch,
+): Promise<OauthCredential | null> {
+  const refreshToken = storedSecret.startsWith(OAUTH_SECRET_PREFIX) ? storedSecret.slice(OAUTH_SECRET_PREFIX.length) : storedSecret;
+  try {
+    const json = await postJson(fetchImpl, GEMINI_TOKEN, {
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: client.clientId,
+      client_secret: client.clientSecret,
+    });
+    const access = stringField(json, "access_token");
+    if (!access) return null;
+    const scope = stringField(json, "scope");
+    if (scope && !geminiScopeIsReadOnly(scope)) return null;
+    return { apiKey: access, apiSecret: `${OAUTH_SECRET_PREFIX}${stringField(json, "refresh_token") ?? refreshToken}` };
+  } catch {
+    return null;
+  }
+}
+
+async function exchangeGemini(
+  client: OauthClient,
+  code: string,
+  redirectUri: string,
+  fetchImpl: typeof fetch,
+): Promise<OauthCredential> {
+  const json = await postJson(fetchImpl, GEMINI_TOKEN, {
+    grant_type: "authorization_code",
+    code,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
+    redirect_uri: redirectUri,
+  });
+  const access = stringField(json, "access_token");
+  const refresh = stringField(json, "refresh_token");
+  const scope = stringField(json, "scope");
+  if (!access || !refresh) throw new Error("Gemini did not return a token.");
+  if (scope && !geminiScopeIsReadOnly(scope)) throw new Error("Gemini granted more than read access.");
+  return { apiKey: access, apiSecret: `${OAUTH_SECRET_PREFIX}${refresh}` };
+}
+
+function geminiScopeIsReadOnly(scope: string): boolean {
+  const granted = scope.split(/[,\s]+/).filter(Boolean);
+  return granted.length > 0 && granted.every((item) => item === "balances:read" || item === "history:read");
+}
+
 async function exchangeBybit(client: OauthClient, code: string, fetchImpl: typeof fetch): Promise<OauthCredential> {
   const token = await postForm(fetchImpl, BYBIT_TOKEN, new URLSearchParams({
     client_id: client.clientId,
@@ -185,6 +250,17 @@ async function exchangeBybit(client: OauthClient, code: string, fetchImpl: typeo
   const apiSecret = json.result?.api_secret;
   if (json.ret_code !== 0 || !apiKey || !apiSecret) throw new Error("Bybit did not return a read-only key.");
   return { apiKey, apiSecret };
+}
+
+async function postJson(fetchImpl: typeof fetch, url: string, body: Record<string, string>): Promise<unknown> {
+  const response = await fetchImpl(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error("The exchange refused the authorization code.");
+  return JSON.parse(text) as unknown;
 }
 
 async function postForm(fetchImpl: typeof fetch, url: string, body: URLSearchParams): Promise<unknown> {

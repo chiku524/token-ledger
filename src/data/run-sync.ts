@@ -13,7 +13,7 @@ import type { NormalizedBalance, NormalizedSourceTransaction } from "@/adapters/
 import { venueDefinition } from "@/adapters/sources/exchange/registry";
 import { custodianDefinition } from "@/adapters/sources/custodian/registry";
 import { getConnectionCredential, openStoredCredential, putConnectionCredential } from "@/db/credentials";
-import { readOauthClient, refreshCoinbaseAccessToken } from "@/auth/exchange-oauth";
+import { readOauthClient, refreshCoinbaseAccessToken, refreshGeminiAccessToken, OAUTH_SECRET_PREFIX } from "@/auth/exchange-oauth";
 import {
   finishSyncRun,
   recentRunsForConnection,
@@ -96,6 +96,16 @@ export async function runConnectionSync(
       const client = readOauthClient("coinbase");
       if (client) {
         const refreshed = await refreshCoinbaseAccessToken(exchangeCredential.apiSecret, client);
+        if (refreshed) {
+          exchangeCredential = refreshed;
+          await putConnectionCredential(organizationId, connection.id, refreshed);
+        }
+      }
+    }
+    if (connection.venue === "gemini" && exchangeCredential.apiSecret.startsWith(OAUTH_SECRET_PREFIX)) {
+      const client = readOauthClient("gemini");
+      if (client) {
+        const refreshed = await refreshGeminiAccessToken(exchangeCredential.apiSecret, client);
         if (refreshed) {
           exchangeCredential = refreshed;
           await putConnectionCredential(organizationId, connection.id, refreshed);

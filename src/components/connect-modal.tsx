@@ -325,6 +325,12 @@ function ExchangePanel({
             <span>API secret</span>
             <input name="apiSecret" required type="password" autoComplete="off" maxLength={400} className="font-mono text-sm" />
           </label>
+          {exchange.key === "okx" || exchange.key === "kucoin" ? (
+            <label className="field">
+              <span>API passphrase</span>
+              <input name="apiPassphrase" required type="password" autoComplete="off" maxLength={200} className="font-mono text-sm" />
+            </label>
+          ) : null}
           <SubmitButton>Connect</SubmitButton>
         </form>
       )}

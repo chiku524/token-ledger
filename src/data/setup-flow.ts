@@ -13,7 +13,7 @@ export const SETUP_FLOW = [
     id: "exchange",
     mode: "exchange_read",
     title: "Connect an exchange",
-    lede: "Coinbase and Bybit can connect with OAuth. Other exchanges take a read-only API key. Nothing can trade or withdraw.",
+    lede: "Coinbase, Bybit, and Gemini can connect with OAuth. Other exchanges take a read-only API key. Nothing can trade or withdraw.",
     next: "/dashboard/setup?step=custodian",
     skip: "Skip exchange",
   },

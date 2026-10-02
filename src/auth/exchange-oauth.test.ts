@@ -5,6 +5,7 @@ import {
   oauthDefaultTab,
   readOauthState,
   refreshCoinbaseAccessToken,
+  refreshGeminiAccessToken,
   signOauthState,
   type OauthState,
 } from "./exchange-oauth";
@@ -24,8 +25,9 @@ function state(overrides: Partial<OauthState> = {}): OauthState {
 }
 
 describe("exchange oauth", () => {
-  it("opens Coinbase on OAuth and Bybit on the API key", () => {
+  it("opens Coinbase and Gemini on OAuth and Bybit on the API key", () => {
     expect(oauthDefaultTab("coinbase")).toBe("oauth");
+    expect(oauthDefaultTab("gemini")).toBe("oauth");
     expect(oauthDefaultTab("bybit")).toBe("api");
   });
 
@@ -48,6 +50,15 @@ describe("exchange oauth", () => {
     }));
     expect(bybit.origin + bybit.pathname).toBe("https://www.bybit.com/en/oauth");
     expect(bybit.searchParams.get("scope")).toBe("openapi");
+
+    const gemini = new URL(buildExchangeAuthorizeUrl({
+      venue: "gemini",
+      clientId: "gem-id",
+      redirectUri: "https://app.example/api/connect/exchange/callback",
+      state: "state-1",
+    }));
+    expect(gemini.origin + gemini.pathname).toBe("https://exchange.gemini.com/auth");
+    expect(gemini.searchParams.get("scope")).toBe("balances:read,history:read");
   });
 
   it("rejects a tampered, expired, or replayed-looking state", () => {
@@ -86,6 +97,33 @@ describe("exchange oauth", () => {
       redirectUri: "https://app.example/callback",
       fetchImpl,
     })).resolves.toEqual({ apiKey: "access", apiSecret: "refresh" });
+
+    await expect(exchangeAuthorizationCode({
+      venue: "gemini",
+      client: { clientId: "id", clientSecret: "secret" },
+      code: "code",
+      redirectUri: "https://app.example/callback",
+      fetchImpl: (async () => new Response(JSON.stringify({
+        access_token: "access",
+        refresh_token: "refresh",
+        scope: "balances:read,history:read",
+      }), { status: 200 })) as typeof fetch,
+    })).resolves.toEqual({ apiKey: "access", apiSecret: "tl-oauth:refresh" });
+  });
+
+  it("refuses a Gemini grant that includes trade or send", async () => {
+    const fetchImpl = (async () => new Response(JSON.stringify({
+      access_token: "access",
+      refresh_token: "refresh",
+      scope: "balances:read,orders:create",
+    }), { status: 200 })) as typeof fetch;
+    await expect(exchangeAuthorizationCode({
+      venue: "gemini",
+      client: { clientId: "id", clientSecret: "secret" },
+      code: "code",
+      redirectUri: "https://app.example/callback",
+      fetchImpl,
+    })).rejects.toThrow(/read access/i);
   });
 
   it("refreshes a Coinbase access token and keeps the old refresh token when none is returned", async () => {
@@ -93,6 +131,18 @@ describe("exchange oauth", () => {
     await expect(refreshCoinbaseAccessToken("refresh", { clientId: "id", clientSecret: "secret" }, fetchImpl)).resolves.toEqual({
       apiKey: "next",
       apiSecret: "refresh",
+    });
+  });
+
+  it("refreshes a Gemini access token and keeps the oauth marker", async () => {
+    const fetchImpl = (async () => new Response(JSON.stringify({
+      access_token: "next",
+      refresh_token: "rotated",
+      scope: "balances:read",
+    }), { status: 200 })) as typeof fetch;
+    await expect(refreshGeminiAccessToken("tl-oauth:refresh", { clientId: "id", clientSecret: "secret" }, fetchImpl)).resolves.toEqual({
+      apiKey: "next",
+      apiSecret: "tl-oauth:rotated",
     });
   });
 });
