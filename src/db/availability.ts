@@ -16,9 +16,16 @@ export function hasDatabase(): boolean {
 
 /** The Hyperdrive connection string, when running on a Worker. */
 export function hyperdriveConnectionString(): string | null {
-  const ctx = (globalThis as Record<symbol, unknown>)[Symbol.for("__cloudflare-context__")] as
-    | { env?: { HYPERDRIVE?: { connectionString?: string } } }
-    | undefined;
-  const binding = ctx?.env?.HYPERDRIVE?.connectionString;
+  const binding = cloudflareContext()?.env?.HYPERDRIVE?.connectionString;
   return typeof binding === "string" && binding.length > 0 ? binding : null;
+}
+
+/**
+ * The Cloudflare context the OpenNext adapter sets for the current request, or
+ * null on Node. Its `ctx` is the Worker's ExecutionContext, stable within a
+ * request, which the database client uses as a per-request cache key.
+ */
+export function cloudflareContext(): { env?: { HYPERDRIVE?: { connectionString?: string } }; ctx?: unknown } | null {
+  const value = (globalThis as Record<symbol, unknown>)[Symbol.for("__cloudflare-context__")];
+  return value && typeof value === "object" ? (value as { env?: { HYPERDRIVE?: { connectionString?: string } }; ctx?: unknown }) : null;
 }

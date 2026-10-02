@@ -1,29 +1,28 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
-import { hyperdriveConnectionString } from "./availability";
+import { cloudflareContext, hyperdriveConnectionString } from "./availability";
 
 export type Database = PostgresJsDatabase<typeof schema>;
 
-let client: ReturnType<typeof postgres> | undefined;
-let database: Database | undefined;
-
 /**
- * The connection string, and how the driver should be configured for it.
- *
- * On Cloudflare Workers the OpenNext adapter sets the Cloudflare context on a
- * global symbol; the database is reached through a Hyperdrive binding. Hyperdrive
- * uses transaction pooling, so `prepare` must be `true` and `fetch_types` false
- * (Cloudflare's guidance for Postgres.js). On Node/Vercel, `DATABASE_URL` is used
- * with `prepare: false`, which is what a serverless/pooled Postgres expects.
- *
- * The context symbol is read directly rather than importing
- * `@opennextjs/cloudflare`, so the optional adapter is never part of the Vercel
- * build. It is the same symbol the adapter uses.
+ * On Cloudflare Workers the postgres client must be **per request**, not cached
+ * across requests: Hyperdrive maintains the pool, and a client reused after its
+ * request has returned hangs ("the Worker's code had hung") because its
+ * underlying socket has been closed with the request's I/O context. The
+ * ExecutionContext is stable within a request and new per request, so it is the
+ * cache key. On Node (Vercel, scripts) the client is cached at module scope, as
+ * before.
  */
+const workerClients = new WeakMap<object, { client: ReturnType<typeof postgres>; database: Database }>();
+
+let nodeClient: ReturnType<typeof postgres> | undefined;
+let nodeDatabase: Database | undefined;
+
 function resolveConnection(): { url: string; options: postgres.Options<Record<string, never>> } {
   const hyperdrive = hyperdriveConnectionString();
   if (hyperdrive) {
+    // Hyperdrive pools, so a fresh short-lived client per request is expected.
     return { url: hyperdrive, options: { max: 5, prepare: true, fetch_types: false } };
   }
   const url = process.env.DATABASE_URL;
@@ -34,16 +33,27 @@ function resolveConnection(): { url: string; options: postgres.Options<Record<st
 }
 
 export function getDb(): Database {
-  if (!database || !client) {
+  const ctx = cloudflareContext();
+  if (ctx?.ctx && typeof ctx.ctx === "object") {
+    const cached = workerClients.get(ctx.ctx);
+    if (cached) return cached.database;
     const { url, options } = resolveConnection();
-    client = postgres(url, options as postgres.Options<Record<string, never>>);
-    database = drizzle(client, { schema });
+    const client = postgres(url, options as postgres.Options<Record<string, never>>);
+    const database = drizzle(client, { schema });
+    workerClients.set(ctx.ctx, { client, database });
+    return database;
   }
-  return database;
+
+  if (!nodeDatabase || !nodeClient) {
+    const { url, options } = resolveConnection();
+    nodeClient = postgres(url, options as postgres.Options<Record<string, never>>);
+    nodeDatabase = drizzle(nodeClient, { schema });
+  }
+  return nodeDatabase;
 }
 
 export async function closeDb(): Promise<void> {
-  if (client) await client.end();
-  client = undefined;
-  database = undefined;
+  if (nodeClient) await nodeClient.end();
+  nodeClient = undefined;
+  nodeDatabase = undefined;
 }
