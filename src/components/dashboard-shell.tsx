@@ -64,6 +64,11 @@ export function DashboardShell({
       </aside>
       <div className="min-w-0">
         <ExampleBanner origin={origin} notice={notice} />
+        {!session.emailVerified && !session.demo ? (
+          <p role="alert" className="mx-4 mt-4 max-w-3xl rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal md:mx-8">
+            Confirm your email address. Check your inbox for the confirmation link; if it is missing, an owner can resend it.
+          </p>
+        ) : null}
         <main id="content" className="px-4 py-6 md:px-8 md:py-8">
           {children}
         </main>
