@@ -25,6 +25,12 @@
     "cf:types": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@reown/appkit": "^1.8.24",
+    "@reown/appkit-adapter-solana": "^1.8.24",
+    "@reown/appkit-adapter-wagmi": "^1.8.24",
+    "@scure/base": "^2.4.0",
+    "@tanstack/react-query": "^5.104.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "drizzle-orm": "^0.45.3",
@@ -37,6 +43,8 @@
     "recharts": "^3.10.1",
     "shadcn": "^4.21.1",
     "tw-animate-css": "^1.4.0",
+    "viem": "^2.57.2",
+    "wagmi": "^3.7.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {

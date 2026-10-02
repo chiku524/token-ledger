@@ -5,7 +5,7 @@ export const SETUP_FLOW = [
     id: "wallet",
     mode: "watch",
     title: "Connect a wallet",
-    lede: `A public address on ${WATCH_CHAIN_LABELS}. Nothing is signed, and no key is stored.`,
+    lede: `Paste a public address on ${WATCH_CHAIN_LABELS}, or connect Ethereum, Solana, or Polygon and sign to prove you control it. No key is stored, and nothing can move funds.`,
     next: "/dashboard/setup?step=exchange",
     skip: "Skip wallet",
   },

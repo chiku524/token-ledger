@@ -48,6 +48,10 @@ export function walletRoleLabel(role: "hot" | "cold" | "staking" | null): string
   return "—";
 }
 
+export function ownershipLabel(ownership: "verified" | "watch_only"): string {
+  return ownership === "verified" ? "Verified" : "Watched";
+}
+
 export function connectionModeLabel(mode: "watch" | "exchange_read" | "custodian_read"): string {
   if (mode === "watch") return "Watch-only wallet";
   if (mode === "exchange_read") return "Exchange, read-only";

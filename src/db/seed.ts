@@ -70,6 +70,8 @@ async function main() {
         ...connection,
         lastSyncedAt: connection.lastSyncedAt ? new Date(connection.lastSyncedAt) : null,
         nextAttemptAt: connection.nextAttemptAt ? new Date(connection.nextAttemptAt) : null,
+        verifiedAt: connection.verifiedAt ? new Date(connection.verifiedAt) : null,
+        verificationSignature: null,
       })),
     );
     await tx.insert(sources).values([...books.sources]);
