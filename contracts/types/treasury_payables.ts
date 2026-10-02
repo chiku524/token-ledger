@@ -635,44 +635,7 @@ export type TreasuryPayables = {
         },
         {
           "name": "governance",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  111,
-                  118,
-                  101,
-                  114,
-                  110,
-                  97,
-                  110,
-                  99,
-                  101,
-                  95,
-                  112,
-                  114,
-                  111,
-                  112,
-                  111,
-                  115,
-                  97,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "treasury"
-              },
-              {
-                "kind": "account",
-                "path": "treasury.policy_version",
-                "account": "treasuryConfig"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "systemProgram",
