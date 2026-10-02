@@ -160,6 +160,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.bootstrapped": "Owner created",
   "user.signed_up": "Account created",
   "user.seeded": "Sample person added",
+  "user.verification_resent": "Confirmation email resent",
 };
 
 export function actionLabel(action: string): string {

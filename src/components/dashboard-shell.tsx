@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
+import { resendVerificationAction } from "@/app/dashboard/user-actions";
 import type { SessionUser } from "@/auth/current";
+import { SubmitButton } from "@/components/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConnectionTour } from "./connection-tour";
 import { DashboardNav } from "./dashboard-nav";
@@ -75,7 +77,13 @@ export function DashboardShell({
           <Alert variant="warning" className="mx-4 mt-4 max-w-3xl md:mx-8">
             <TriangleAlert aria-hidden />
             <AlertDescription>
-              Confirm your email address. Check your inbox for the confirmation link; if it is missing, an owner can resend it.
+              <span>Confirm your email address. Check your inbox for the confirmation link.</span>
+              <form action={resendVerificationAction} className="mt-2">
+                <input type="hidden" name="csrf" value={csrf} />
+                <SubmitButton variant="secondary" size="sm" pendingLabel="Sending…">
+                  Resend confirmation email
+                </SubmitButton>
+              </form>
             </AlertDescription>
           </Alert>
         ) : null}
