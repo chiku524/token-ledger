@@ -21,6 +21,12 @@
     "binding": "ASSETS",
     "directory": ".open-next/assets"
   },
+  // Public, browser-safe values. NEXT_PUBLIC_REOWN_PROJECT_ID enables the
+  // WalletConnect/Reown modal; without it an installed wallet can still sign.
+  // Safe to commit (it is exposed to the browser by design).
+  "vars": {
+    "NEXT_PUBLIC_REOWN_PROJECT_ID": "840841f806a3e3d48403f5a51478e358"
+  },
   // The scheduled sync pass. The free plan permits a daily cron; use */15 on a
   // paid plan to match DEFAULT_SYNC_INTERVAL_MS.
   "triggers": {
