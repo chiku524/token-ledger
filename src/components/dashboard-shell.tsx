@@ -35,7 +35,7 @@ export function DashboardShell({
 
   return (
     <div className="min-h-full bg-background md:grid md:grid-cols-[16.75rem_minmax(0,1fr)]">
-      <a href="#content" className="skip-link">
+      <a href="#content" className="sr-only fixed top-3 left-3 z-50 rounded-lg bg-primary px-3 py-1.5 text-primary-foreground focus:not-sr-only">
         Skip to content
       </a>
       <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:hidden">

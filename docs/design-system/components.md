@@ -68,13 +68,10 @@ favicon file cannot read CSS variables) and already matches the brand mark.
 lighter so they stay readable on Night), and the theme-independent `cloud` and `night`.
 Use `danger` / `success` for text; the legacy `seal` / `pine` are too dim on Night.
 
-## Known follow-ups
+## Cleanup notes
 
-- Legacy classes in `globals.css` (`.num`, `.kicker`, `.panel`, and so on) are unlayered, so
-  they beat Tailwind utilities. Do not combine them with colour or alignment utilities
-  (`kicker text-success`, `num text-left`); use the new components instead.
-- In a background browser tab, motion animations are throttled, so screenshots can catch pages
-  mid-fade. Wait a few seconds or focus the tab.
-- The global lime focus outline in `globals.css` is unlayered, so it shows on top of
-  shadcn's own focus ring on migrated controls. Resolve in Phase 6.
+- The legacy classes (`.btn`, `.panel`, `.field`, `.ledger-table`, `.num`, `.kicker`, `.skip-link`) and the `wordmark.tsx` shim are gone. Use the components above; `eyebrow` is the small uppercase label.
+- The global lime focus outline now lives in `@layer base`, so shadcn's own ring (`outline-none` plus `ring`) wins and controls no longer show two rings.
+- `@media print` forces the light palette, hides the sidebar, forms and buttons, and avoids splitting table rows.
+- In a background browser tab, motion animations are throttled, so screenshots can catch pages mid-fade. Wait a few seconds or focus the tab.
 - Existing `Button` default size grew from 32px to 36px to match the old `.btn`.

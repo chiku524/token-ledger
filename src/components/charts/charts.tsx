@@ -249,7 +249,7 @@ function ActivityTip({
       {payload.map((item) => (
         <p key={String(item.name)} className="mt-1" style={{ color: INK }}>
           <span className="text-muted-foreground">{series.find((entry) => entry.label === item.name)?.label ?? item.name}</span>{" "}
-          <span className="num">{item.value}</span>
+          <span className="font-mono tabular-nums">{item.value}</span>
         </p>
       ))}
     </div>

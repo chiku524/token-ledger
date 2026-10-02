@@ -54,7 +54,7 @@ export function ConnectionTourStep({
 
   return (
     <>
-      <p className="kicker">
+      <p className="eyebrow">
         Connection tour · {step + 1} of {STEPS.length}
       </p>
       <DialogTitle className="mt-2 text-lg font-semibold tracking-tight">{current.title}</DialogTitle>

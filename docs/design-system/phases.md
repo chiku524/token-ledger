@@ -22,7 +22,7 @@ light before it is committed.
 - [x] **4d. Reporting and admin pages** — reports, consolidation, operations, audit, users, settings, error boundaries
 - [x] **5. Public pages** — `feat: restyle public pages`
   - Landing, sign-in, sign-up wizard, reset-password, verify-email
-- [ ] **6. Print, cleanup, a11y** — `chore: print styles, remove legacy classes, docs`
+- [x] **6. Print, cleanup, a11y** — `chore: print styles, remove legacy classes, docs`
   - `@media print` light styles, delete legacy classes, contrast and reduced-motion pass
 
 Each phase: update `components.md`, tick the box here.

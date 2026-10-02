@@ -37,7 +37,7 @@ export default async function SetupPage({
         description="Connect a wallet, an exchange, a custodian, or any combination. Skip any step. Nothing here can move funds."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
-      <p className="kicker">
+      <p className="eyebrow">
         {current.id === "done" ? "Done" : `Step ${current.index + 1} of ${SETUP_FLOW.length}`}
       </p>
       {!writable ? (
