@@ -1,33 +1,35 @@
 /**
- * Optional Cloudflare Workers config. Not used by the default (Vercel) deploy.
+ * Cloudflare Workers config. Read only by `wrangler` / OpenNext; the Vercel
+ * build ignores it. See docs/adr-cloudflare-deployment.md.
  *
- * To use it: install the optional adapter and build, then deploy.
- *   pnpm add -D @opennextjs/cloudflare wrangler
- *   npx @opennextjs/cloudflare build
- *   npx wrangler deploy
+ * Deploy:
+ *   pnpm cf:deploy
  *
- * See docs/adr-cloudflare-deployment.md. The committed Vercel path does not
- * read this file, so leaving it in place changes nothing on Vercel.
+ * The database is reached through a Hyperdrive binding named HYPERDRIVE
+ * (see src/db/client.ts). Create it once with:
+ *   npx wrangler hyperdrive create token-ledger \
+ *     --connection-string="<direct Neon connection string>"
+ * then paste the returned id below.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "token-ledger",
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-03-01",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "binding": "ASSETS",
     "directory": ".open-next/assets"
   },
-  // The scheduler route, on the Hobby-compatible daily cadence. Use */15 on a
+  // The scheduled sync pass. The free plan permits a daily cron; use */15 on a
   // paid plan to match DEFAULT_SYNC_INTERVAL_MS.
   "triggers": {
     "crons": ["0 3 * * *"]
-  }
-  // Postgres via Hyperdrive (recommended). Create the Hyperdrive config with
-  // `npx wrangler hyperdrive create ...`, then bind it and read it in
-  // src/db/client.ts instead of DATABASE_URL. See the ADR.
-  // "hyperdrive": [
-  //   { "binding": "HYPERDRIVE", "id": "<hyperdrive-config-id>" }
-  // ]
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "da7618b3f8db4940a4ec76191c9d2ad1"
+    }
+  ]
 }

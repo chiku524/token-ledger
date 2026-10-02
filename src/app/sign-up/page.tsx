@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SignupWizard } from "@/components/signup-wizard";
 import { ensureCsrf } from "@/auth/current";
-import { readDatabaseUrl, authSecretConfigured } from "@/env";
+import { hasDatabase } from "@/db/availability";
+import { authSecretConfigured } from "@/env";
 import { one } from "@/data/query";
 import { Wordmark } from "@/components/wordmark";
 
@@ -15,7 +16,7 @@ export default async function SignUpPage({
 }) {
   const error = one((await searchParams).error);
   const csrf = await ensureCsrf();
-  const ready = Boolean(readDatabaseUrl()) && authSecretConfigured();
+  const ready = hasDatabase() && authSecretConfigured();
 
   return (
     <div className="min-h-full">

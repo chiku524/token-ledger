@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { connection } from "next/server";
-import { readDatabaseUrl } from "@/env";
+import { hasDatabase } from "@/db/availability";
 import type { Books } from "./books";
 import { exampleBooks } from "./example-books";
 
@@ -19,12 +19,11 @@ export const loadBooks = cache(async (organizationId?: string): Promise<Books> =
  * books when no database is configured.
  */
 export async function loadBooksForJob(organizationId?: string): Promise<Books> {
-  const url = readDatabaseUrl();
-  if (!url) return exampleBooks;
+  if (!hasDatabase()) return exampleBooks;
   const { loadBooksFromDatabase } = await import("@/db/read");
   return loadBooksFromDatabase(organizationId);
 }
 
 export function booksAreWritable(): boolean {
-  return readDatabaseUrl() !== null;
+  return hasDatabase();
 }

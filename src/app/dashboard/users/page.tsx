@@ -9,7 +9,8 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { one } from "@/data/query";
 import { activeOwnerIds, findInvite, listOrganizationUsers } from "@/db/auth-store";
 import { absoluteLink } from "@/email/links";
-import { readDatabaseUrl, readEmailFrom, readResendApiKey } from "@/env";
+import { hasDatabase } from "@/db/availability";
+import { readEmailFrom, readResendApiKey } from "@/env";
 
 export const metadata = { title: "Users" };
 
@@ -37,7 +38,7 @@ export default async function UsersPage({
   }
 
   const csrf = await ensureCsrf();
-  const database = Boolean(readDatabaseUrl()) && !session.demo;
+  const database = hasDatabase() && !session.demo;
   const people = database
     ? await listOrganizationUsers(session.organizationId)
     : EXAMPLE_USERS.map(({ email, name, role, entityScope }) => ({
