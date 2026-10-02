@@ -67,6 +67,11 @@
   --color-brand-foreground: #ffffff;
   --color-link: #2140e6;
   --color-success: #0d7a45;
+  --color-danger: #c0362c;
+  --color-warning: #a15c00;
+  /* Brand constants: do not change with the theme (logo, documents). */
+  --color-cloud: #f7f8fc;
+  --color-night: #0c0f1f;
 }
 
 :root {
@@ -121,6 +126,8 @@ html.dark {
   --color-on-accent: #ffffff;
   --color-link: #a9b8ff;
   --color-success: #7dcea0;
+  --color-danger: #f0a8a2;
+  --color-warning: #f0c36a;
   --selection: #2a3148;
   --chart-ink: #f7f8fc;
   --chart-muted: #a7b0c4;

@@ -10,7 +10,7 @@ light before it is committed.
   - This phase adds `motion`, `MotionProvider` (mounted in the root layout), the
     `brand`, `link` and `success` tokens, and remaps shadcn `accent` to a neutral surface
   - No visual change
-- [ ] **2. Primitives and composites** — `feat: ui primitives, app composites, motion primitives`
+- [x] **2. Primitives and composites** — `feat: ui primitives, app composites, motion primitives`
   - `ui/*` (extend the existing `button.tsx` with a `brand` variant and brand sizing,
     and fold `SubmitButton` into the new set), `app/*`, `Logo`, motion primitives,
     small tests

@@ -20,7 +20,7 @@ Library: `motion` (`import { m } from "motion/react"`). Subtle, product-led.
 | Hover, press | 120ms | ease-out |
 | Fade, small slide (8px) | 200ms | `[0.22, 1, 0.36, 1]` |
 | Dialog, sheet | 250ms | same |
-| Stagger step | 40ms per item, capped at 8 items | |
+| Stagger step | 40ms per item; use for groups of about 8 or fewer | |
 | Number ticker | 600ms | ease-out |
 
 ## Patterns

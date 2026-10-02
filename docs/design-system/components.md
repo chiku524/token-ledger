@@ -1,32 +1,59 @@
 # Component inventory
 
-Filled in as each phase lands. See `README.md` for the rules.
+See `README.md` for the rules and `phases.md` for the rollout. Status: **built in
+Phase 2, not yet adopted by pages** unless noted. Pages move over in Phases 3 to 5.
 
-## Primitives (`src/components/ui/`) — Phase 2
+## Primitives (`src/components/ui/`)
 
-Button (`default` lime, `brand` cobalt, `secondary`, `outline`, `ghost`, `link`,
-`destructive`), Card, Input, Label, Textarea, Select, Table, Badge (`live`,
-`example`, `success`, `warning`, `danger`, `neutral`), Alert, Tabs, ToggleGroup,
-Dialog, Sheet, DropdownMenu, Tooltip, Separator, Skeleton.
+shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 
-## App composites (`src/components/app/`) — Phase 2
+| Component | Notes |
+|---|---|
+| `Button` | Variants `default` (lime), `brand` (cobalt), `secondary`, `outline`, `ghost`, `link`, `destructive`. Default height 36px, `lg` 40px. |
+| `Badge` | `live`, `example`, `success`, `warning`, `danger`, `neutral` (plus the shadcn defaults). |
+| `Alert` | `default`, `destructive`, `success`, `warning`. |
+| `Card` | Bordered (`border-border`), no ring. |
+| `Table` | Server-safe. Uppercase tracked header, lime-tinted row hover (the old `.ledger-table` look). |
+| `Input`, `Textarea`, `Select` | 36px, `bg-background`. Native `<select>` stays an option for server-action forms. |
+| `Label`, `Separator`, `Skeleton`, `Tabs`, `Toggle`, `ToggleGroup` | shadcn defaults |
+| `Dialog`, `Sheet`, `DropdownMenu`, `Tooltip` | shadcn defaults. Wrap the app in `TooltipProvider` when the first tooltip is used. |
+
+## App composites (`src/components/app/`)
 
 | Component | Replaces |
 |---|---|
-| `StatusBadge` | Per-page pine/seal status ternaries |
+| `StatusBadge` (+ `connectionStatusTone`) | Per-page pine/seal status ternaries |
 | `EmptyState` | `panel px-4 py-6 text-sm text-ink-soft` |
 | `SectionHeader` | `text-lg font-semibold tracking-tight` h2 |
 | `TableCard` | `mt-4 overflow-x-auto panel` |
-| `Amount` | `.num` |
+| `Amount` | `.num` (add `text-right` on the cell for column alignment) |
 | `Field` | `.field` |
-| `SegmentedLinks` | Entity switcher in reports and consolidation |
-| `Flash` | Inline alert boxes |
+| `SegmentedLinks` | Company switcher in Reports and Combined |
 
-## Motion (`src/components/motion/`) — Phase 1–2
+`Flash` (`src/components/flash.tsx`) is rebuilt on `Alert` and **is live** on every
+page that already used it.
 
-`MotionProvider`, `FadeIn`, `Stagger` / `StaggerItem`, `NumberTicker`,
-`PageTransition`, `Presence`.
+## Brand (`src/components/logo.tsx`)
 
-## Brand
+`LogoMark` and `Logo`, variants `brand` (default), `onLight`, `onLime`, `mono`. Colours
+come from tokens (`brand`, `primary`, `cloud`, `night`), not hex. `wordmark.tsx` re-exports
+them under the old names (`BrandMark`, `Wordmark`) and is **live** in the shell and
+public pages; it goes away in the cleanup phase. `src/app/icon.svg` still uses hex (a
+favicon file cannot read CSS variables) and already matches the brand mark.
 
-`Logo` (variants `onDark`, `onLight`, `onLime`, `mono`) replaces `wordmark.tsx`.
+## Motion (`src/components/motion/`)
+
+`MotionProvider` (live in the root layout), `FadeIn`, `PageTransition`, `Stagger` /
+`StaggerItem`, `NumberTicker`, `Presence`. Rules in `motion.md`.
+
+## Tokens added for the system
+
+`brand`, `brand-foreground`, `link`, `success`, `danger`, `warning` (dark values are
+lighter so they stay readable on Night), and the theme-independent `cloud` and `night`.
+Use `danger` / `success` for text; the legacy `seal` / `pine` are too dim on Night.
+
+## Known follow-ups
+
+- The global lime focus outline in `globals.css` is unlayered, so it shows on top of
+  shadcn's own focus ring on migrated controls. Resolve in Phase 6.
+- Existing `Button` default size grew from 32px to 36px to match the old `.btn`.
