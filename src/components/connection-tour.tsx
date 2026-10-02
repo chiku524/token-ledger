@@ -3,6 +3,8 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { completeConnectionTourAction } from "@/app/dashboard/tour-actions";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { WATCH_CHAIN_LABELS } from "@/data/connections";
 
 const STEPS = [
@@ -33,13 +35,63 @@ const STEPS = [
   },
 ] as const;
 
+export function ConnectionTourStep({
+  step,
+  error,
+  onBack,
+  onNext,
+  onFinish,
+}: {
+  step: number;
+  error: string | null;
+  onBack: () => void;
+  onNext: () => void;
+  onFinish: () => void;
+}) {
+  const current = STEPS[step];
+  if (!current) return null;
+  const last = step === STEPS.length - 1;
+
+  return (
+    <>
+      <p className="kicker">
+        Connection tour · {step + 1} of {STEPS.length}
+      </p>
+      <DialogTitle className="mt-2 text-lg font-semibold tracking-tight">{current.title}</DialogTitle>
+      <DialogDescription className="mt-3 text-sm leading-relaxed">{current.body}</DialogDescription>
+      {error ? (
+        <p role="alert" className="mt-3 text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {step > 0 ? (
+          <Button type="button" variant="secondary" onClick={onBack}>
+            Back
+          </Button>
+        ) : null}
+        <Button type="button" onClick={last ? onFinish : onNext}>
+          {last ? "Finish" : "Next"}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onFinish}>
+          Skip
+        </Button>
+        {last ? (
+          <a href="/dashboard/guide" className="px-2 text-sm underline">
+            Open the guide
+          </a>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 export function ConnectionTour({ csrf }: { csrf: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [step, setStep] = useState(0);
   const [open, setOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const current = STEPS[step];
 
   useEffect(() => {
     const id = STEPS[step]?.href.split("#")[1];
@@ -47,7 +99,7 @@ export function ConnectionTour({ csrf }: { csrf: string }) {
     document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, [step, pathname]);
 
-  if (!open || !current || pathname.startsWith("/dashboard/setup")) return null;
+  if (!open || pathname.startsWith("/dashboard/setup")) return null;
 
   async function finish() {
     setError(null);
@@ -70,50 +122,20 @@ export function ConnectionTour({ csrf }: { csrf: string }) {
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-ink/50 p-4 backdrop-blur-sm md:items-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="connection-tour-title"
-        className="panel w-full max-w-lg p-6"
+    <Dialog open onOpenChange={(next) => (next ? undefined : void finish())}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-lg gap-0 p-6"
+        onInteractOutside={(event) => event.preventDefault()}
       >
-        <p className="kicker">
-          Connection tour · {step + 1} of {STEPS.length}
-        </p>
-        <h2 id="connection-tour-title" className="mt-2 text-lg font-semibold tracking-tight">
-          {current.title}
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-ink-soft">{current.body}</p>
-        {error ? (
-          <p role="alert" className="mt-3 text-sm text-seal">
-            {error}
-          </p>
-        ) : null}
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {step > 0 ? (
-            <button type="button" className="btn-secondary" onClick={() => go(step - 1)}>
-              Back
-            </button>
-          ) : null}
-          {step < STEPS.length - 1 ? (
-            <button type="button" className="btn" onClick={() => go(step + 1)}>
-              Next
-            </button>
-          ) : (
-            <button type="button" className="btn" onClick={() => void finish()}>
-              Finish
-            </button>
-          )}
-          <button type="button" className="btn-secondary" onClick={() => void finish()}>
-            Skip
-          </button>
-          {step === STEPS.length - 1 ? (
-            <a href="/dashboard/guide" className="px-2 text-sm underline">
-              Open the guide
-            </a>
-          ) : null}
-        </div>
-      </div>
-    </div>
+        <ConnectionTourStep
+          step={step}
+          error={error}
+          onBack={() => go(step - 1)}
+          onNext={() => go(step + 1)}
+          onFinish={() => void finish()}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -14,7 +14,8 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 | `Alert` | `default`, `destructive`, `success`, `warning`. |
 | `Card` | Bordered (`border-border`), no ring. |
 | `Table` | Server-safe. Uppercase tracked header, lime-tinted row hover (the old `.ledger-table` look). |
-| `Input`, `Textarea`, `Select` | 36px, `bg-background`. Native `<select>` stays an option for server-action forms. |
+| `Input`, `Textarea` | 36px, `bg-background`. |
+| `NativeSelect` (+ `NativeSelectOption`, `NativeSelectOptGroup`) | Use this for forms posted to server actions. Radix `Select` is for client-driven UI only. |
 | `Label`, `Separator`, `Skeleton`, `Tabs`, `Toggle`, `ToggleGroup` | shadcn defaults |
 | `Dialog`, `Sheet`, `DropdownMenu`, `Tooltip` | shadcn defaults. Wrap the app in `TooltipProvider` when the first tooltip is used. |
 
@@ -28,6 +29,7 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 | `TableCard` | `mt-4 overflow-x-auto panel` |
 | `Amount` | `.num` (add `text-right` on the cell for column alignment) |
 | `Field` | `.field` |
+| `FormCard` | `grid gap-3 panel p-4` form with a title and description (headings `h2` or `h3`) |
 | `SegmentedLinks` | Company switcher in Reports and Combined |
 
 `Flash` (`src/components/flash.tsx`) is rebuilt on `Alert` and **is live** on every

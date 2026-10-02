@@ -1,4 +1,6 @@
+import { Field } from "@/components/app/field";
 import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
 import type { DateRange } from "@/data/period";
 
 export function PeriodForm({
@@ -15,17 +17,13 @@ export function PeriodForm({
       {hidden
         ? Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)
         : null}
-      <label className="field">
-        <span>From</span>
-        <input type="date" name="from" defaultValue={range.from} required />
-      </label>
-      <label className="field">
-        <span>To</span>
-        <input type="date" name="to" defaultValue={range.to} required />
-      </label>
-      <SubmitButton>
-        Update dates
-      </SubmitButton>
+      <Field label="From">
+        <Input type="date" name="from" defaultValue={range.from} required />
+      </Field>
+      <Field label="To">
+        <Input type="date" name="to" defaultValue={range.to} required />
+      </Field>
+      <SubmitButton>Update dates</SubmitButton>
     </form>
   );
 }
