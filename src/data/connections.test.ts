@@ -56,7 +56,7 @@ describe("connectionFromForm", () => {
   });
 
   it("keeps the chosen exchange venue", () => {
-    for (const venue of ["kraken", "bybit", "binance", "gate", "backpack"]) {
+    for (const venue of ["kraken", "bybit", "binance", "gate", "backpack", "coinbase"]) {
       const draft = connectionFromForm({
         entityId: "ent_1",
         mode: "exchange_read",
@@ -92,7 +92,7 @@ describe("connectionFromForm", () => {
         chain: null,
         role: null,
         identifier: "acct-1",
-        exchangeVenue: "coinbase",
+        exchangeVenue: "not-an-exchange",
       }),
     ).toThrow(/choose an exchange/i);
   });

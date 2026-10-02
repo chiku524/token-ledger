@@ -181,6 +181,14 @@ const GateAdapter = new VenueExchangeAdapter(VENUES.gate!, {
   credential: { apiKey: "k", apiSecret: "s" },
   fetchImpl: venueFetch({ "/spot/accounts": [{ currency: "USDT", available: "10", locked: "0" }] }),
 });
+const CoinbaseAdapter = new VenueExchangeAdapter(VENUES.coinbase!, {
+  credential: { apiKey: "access", apiSecret: "refresh" },
+  fetchImpl: venueFetch({
+    "/v2/accounts?limit=100": { data: [{ id: "acct", balance: { amount: "1.5", currency: "BTC" } }] },
+    "/v2/accounts?limit=25": { data: [{ id: "acct", balance: { amount: "1.5", currency: "BTC" } }] },
+    "/v2/accounts/acct/transactions": { data: [] },
+  }),
+});
 const BackpackAdapter = new VenueExchangeAdapter(VENUES.backpack!, {
   // A valid 32-byte ED25519 seed for the signing key.
   credential: { apiKey: "k", apiSecret: "0pHS6caRnH8SvlIwvnI3/LAsSdaKWOc3YJXQ0Q8dtrI=" },
@@ -258,6 +266,7 @@ for (const [name, adapter] of [
   ["Binance exchange", BinanceAdapter],
   ["Gate.io exchange", GateAdapter],
   ["Backpack exchange", BackpackAdapter],
+  ["Coinbase exchange", CoinbaseAdapter],
 ] as const) {
   runAdapterContract({
     name,
@@ -270,7 +279,7 @@ for (const [name, adapter] of [
 describe("contract coverage: every registered source adapter has a case", () => {
   it("every exchange venue in the registry is covered", async () => {
     const { VENUE_KEYS } = await import("./sources/exchange/registry");
-    const covered = new Set(["kraken", "bybit", "binance", "gate", "backpack"]);
+    const covered = new Set(["kraken", "bybit", "binance", "gate", "backpack", "coinbase"]);
     for (const key of VENUE_KEYS) expect(covered.has(key)).toBe(true);
   });
 

@@ -23,8 +23,8 @@ export const entityFormSchema = z.object({
 });
 
 const watchVenue = z.enum(WATCH_VENUE_KEYS as [string, ...string[]]);
-const exchangeVenue = z.enum(["kraken", "bybit", "binance", "gate", "backpack", "exchange"]);
-const custodianVenue = z.enum(["fireblocks", "custodian"]);
+const exchangeVenue = z.enum(["kraken", "bybit", "binance", "gate", "backpack", "coinbase", "exchange"]);
+const custodianVenue = z.enum(["fireblocks", "bitgo", "custodian"]);
 
 export const connectionFormSchema = z
   .object({

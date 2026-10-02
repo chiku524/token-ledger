@@ -3,7 +3,7 @@ import { VENUES, VENUE_KEYS, venueDefinition } from "./registry";
 
 describe("exchange venue registry", () => {
   it("lists the target venues", () => {
-    expect(VENUE_KEYS).toEqual(["kraken", "bybit", "binance", "gate", "backpack"]);
+    expect(VENUE_KEYS).toEqual(["kraken", "bybit", "binance", "gate", "backpack", "coinbase"]);
   });
 
   it("gives every venue a label, a key URL, and read-only scopes", () => {
@@ -26,6 +26,6 @@ describe("exchange venue registry", () => {
   });
 
   it("returns null for an unknown venue", () => {
-    expect(venueDefinition("coinbase")).toBeNull();
+    expect(venueDefinition("not-an-exchange")).toBeNull();
   });
 });

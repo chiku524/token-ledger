@@ -25,8 +25,8 @@ export function watchVenueLabel(key: string): string {
 /** Human list for validation messages, e.g. "Ethereum, Solana, Polygon, Bitcoin, Sui". */
 export const WATCH_CHAIN_LABELS = WATCH_VENUES.map((venue) => venue.label).join(", ");
 
-const EXCHANGE_VENUES = ["kraken", "bybit", "binance", "gate", "backpack", "exchange"] as const;
-const CUSTODIAN_VENUES = ["fireblocks", "custodian"] as const;
+const EXCHANGE_VENUES = ["kraken", "bybit", "binance", "gate", "backpack", "coinbase", "exchange"] as const;
+const CUSTODIAN_VENUES = ["fireblocks", "bitgo", "custodian"] as const;
 
 export interface ConnectionDraft {
   connection: {

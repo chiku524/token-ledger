@@ -12,7 +12,8 @@ import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
 import type { NormalizedBalance, NormalizedSourceTransaction } from "@/adapters/types";
 import { venueDefinition } from "@/adapters/sources/exchange/registry";
 import { custodianDefinition } from "@/adapters/sources/custodian/registry";
-import { getConnectionCredential, openStoredCredential } from "@/db/credentials";
+import { getConnectionCredential, openStoredCredential, putConnectionCredential } from "@/db/credentials";
+import { readOauthClient, refreshCoinbaseAccessToken } from "@/auth/exchange-oauth";
 import {
   finishSyncRun,
   recentRunsForConnection,
@@ -91,6 +92,16 @@ export async function runConnectionSync(
       return result("failed", message);
     }
     exchangeCredential = await openStoredCredential(stored);
+    if (connection.venue === "coinbase") {
+      const client = readOauthClient("coinbase");
+      if (client) {
+        const refreshed = await refreshCoinbaseAccessToken(exchangeCredential.apiSecret, client);
+        if (refreshed) {
+          exchangeCredential = refreshed;
+          await putConnectionCredential(organizationId, connection.id, refreshed);
+        }
+      }
+    }
   }
 
   try {
