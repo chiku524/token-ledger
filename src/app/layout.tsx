@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Manrope, Space_Grotesk } from "next/font/google";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import "./globals.css";
 
 const grotesk = Space_Grotesk({
@@ -36,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${grotesk.variable} ${manrope.variable} ${jetbrains.variable} dark h-full`} suppressHydrationWarning>
       <body className="min-h-full bg-paper font-sans text-ink antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {children}
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   );

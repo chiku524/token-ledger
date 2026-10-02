@@ -62,6 +62,11 @@
   --color-on-lime: #0c0f1f;
   --color-seal: #c0362c;
   --color-pine: #0d7a45;
+  /* Design-system tokens (docs/adr-design-system.md). */
+  --color-brand: #2140e6;
+  --color-brand-foreground: #ffffff;
+  --color-link: #2140e6;
+  --color-success: #0d7a45;
 }
 
 :root {
@@ -94,8 +99,10 @@
   --secondary-foreground: var(--color-ink);
   --muted: var(--color-paper);
   --muted-foreground: var(--color-ink-soft);
-  --accent: var(--color-accent);
-  --accent-foreground: var(--color-on-accent);
+  /* shadcn "accent" is a hover/selected surface (menus, ghost buttons), not the
+     brand colour, so it is a neutral tint rather than cobalt. */
+  --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --accent-foreground: var(--color-ink);
   --destructive: var(--color-seal);
   --border: var(--color-line);
   --input: var(--color-line);
@@ -112,6 +119,8 @@ html.dark {
   --color-line: #2a3148;
   --color-accent: #a9b8ff;
   --color-on-accent: #ffffff;
+  --color-link: #a9b8ff;
+  --color-success: #7dcea0;
   --selection: #2a3148;
   --chart-ink: #f7f8fc;
   --chart-muted: #a7b0c4;
@@ -308,8 +317,10 @@ html.dark {
   --secondary-foreground: var(--color-ink);
   --muted: var(--color-paper);
   --muted-foreground: var(--color-ink-soft);
-  --accent: var(--color-accent);
-  --accent-foreground: var(--color-on-accent);
+  /* shadcn "accent" is a hover/selected surface (menus, ghost buttons), not the
+     brand colour, so it is a neutral tint rather than cobalt. */
+  --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --accent-foreground: var(--color-ink);
   --destructive: var(--color-seal);
   --border: var(--color-line);
   --input: var(--color-line);

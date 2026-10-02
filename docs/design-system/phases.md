@@ -4,14 +4,16 @@ One commit per phase (Phase 4 has four). Each phase must pass
 `pnpm lint && pnpm typecheck && pnpm test && pnpm build` and look right in dark and
 light before it is committed.
 
-- [ ] **0. Tooling, skills, docs** — `docs: design system ADR and phase plan`
-  - Skills installed user-level (`react-best-practices`; marketplaces added by hand)
-  - ADR, README, motion, phases, components docs
-- [ ] **1. Foundation** — `feat: shadcn foundation and brand tokens`
-  - Deps, `shadcn init`, `cn()`, `@custom-variant dark`, token mapping, `MotionProvider`
+- [x] **0. Tooling, skills, docs** (committed)
+- [x] **1. Foundation** — `feat: add motion provider and brand tokens`
+  - shadcn init, `cn()`, `@custom-variant dark` and the Button already landed in PR #128
+  - This phase adds `motion`, `MotionProvider` (mounted in the root layout), the
+    `brand`, `link` and `success` tokens, and remaps shadcn `accent` to a neutral surface
   - No visual change
 - [ ] **2. Primitives and composites** — `feat: ui primitives, app composites, motion primitives`
-  - `ui/*`, `app/*`, `Logo`, motion primitives, small tests
+  - `ui/*` (extend the existing `button.tsx` with a `brand` variant and brand sizing,
+    and fold `SubmitButton` into the new set), `app/*`, `Logo`, motion primitives,
+    small tests
 - [ ] **3. App shell** — `feat: restyle dashboard shell`
   - Sidebar, mobile Sheet nav, theme toggle, user menu, skeleton loading
 - [ ] **4a. Forms and shared components** — `record-forms`, `connector-form`, `period-form`, `example-banner`, `connection-tour` as Dialog

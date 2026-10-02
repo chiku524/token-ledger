@@ -13,8 +13,12 @@ set and no animation.
 
 ## Decision
 
-- **shadcn/ui** (new-york style, Radix primitives, CSS variables) is the component
-  layer. Components are copied into `src/components/ui/`, so we own them.
+- **shadcn/ui** (`radix-nova` style, Radix primitives, CSS variables) is the component
+  layer. It was initialised in PR #128 (issue #127), which added `components.json`,
+  `src/components/ui/button.tsx`, `SubmitButton`, and the shadcn variables in
+  `globals.css`. Components are copied into `src/components/ui/`, so we own them.
+  `cn()` comes from shadcn's `cn` package (a clsx + tailwind-merge replacement),
+  re-exported by `src/lib/utils.ts`.
 - **App composites** in `src/components/app/` (`StatusBadge`, `EmptyState`,
   `SectionHeader`, `TableCard`, `Amount`, `Field`, `SegmentedLinks`, `Flash`) hold the
   patterns that are currently copy-pasted.
@@ -58,8 +62,10 @@ set and no animation.
 ## Consequences
 
 - One-off visual drift ends, because new UI is composed from `ui/` and `app/`.
-- Adds dependencies: Radix packages (via shadcn), `motion`, `lucide-react`,
-  `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css`.
+- Adds `motion` (the other dependencies, `radix-ui`, `lucide-react`,
+  `class-variance-authority`, `cn` and `tw-animate-css`, came with PR #128).
+- shadcn's `--accent` is a neutral hover surface, not the brand colour. The legacy
+  `--color-accent` (cobalt, used by links) is unchanged.
 - The migration touches most UI files, so it is split into phases that each land as
   one commit.
 - The Cloudflare OpenNext and Vercel builds must stay green after every phase.
