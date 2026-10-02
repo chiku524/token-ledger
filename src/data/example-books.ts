@@ -6,7 +6,7 @@
  */
 import { postJournalEntry, toMinor } from "@/ledger";
 import type { JournalEntryInput, JournalLineInput, LedgerAccount } from "@/ledger";
-import type { AuditEvent, Books, BooksBalanceSnapshot, BooksConnection, StoredFxRate } from "./books";
+import type { AuditEvent, Books, BooksBalanceSnapshot, BooksConnection, StoredAssetPrice, StoredFxRate } from "./books";
 import { buildReconciliations } from "./reconciliation";
 
 export const EXAMPLE_NOTICE =
@@ -367,6 +367,32 @@ export const exampleFxRates: StoredFxRate[] = [
   },
 ];
 
+/**
+ * Illustrative example prices, in USD, as of the example period. These are
+ * made-up figures for the sample books, not a market price, and are shown as
+ * example data (origin "example") so no one mistakes them for live values.
+ */
+const EXAMPLE_PRICES: Array<{ assetCode: string; priceMinor: bigint }> = [
+  { assetCode: "ETH", priceMinor: 320000n },
+  { assetCode: "SOL", priceMinor: 15000n },
+  { assetCode: "USDC", priceMinor: 100n },
+  { assetCode: "POL", priceMinor: 45n },
+  { assetCode: "BTC", priceMinor: 6500000n },
+  { assetCode: "SUI", priceMinor: 300n },
+];
+
+export const exampleAssetPrices: StoredAssetPrice[] = EXAMPLE_PRICES.map((price) => ({
+  id: `price_example_${price.assetCode.toLowerCase()}`,
+  organizationId: ORG_ID,
+  assetCode: price.assetCode,
+  quoteCurrency: "USD",
+  priceMinor: price.priceMinor,
+  quoteScale: 2,
+  asOf: `${EXAMPLE_PERIOD.end}T00:00:00.000Z`,
+  origin: "example",
+  source: "example",
+}));
+
 export const exampleAuditEvents: AuditEvent[] = exampleJournalEntries.map((entry) => ({
   id: `audit_${entry.id}`,
   organizationId: ORG_ID,
@@ -392,6 +418,7 @@ export const exampleBooks = {
   sourceTransactions: exampleSourceTransactions,
   reconciliations: exampleReconciliations,
   fxRates: exampleFxRates,
+  assetPrices: exampleAssetPrices,
   auditEvents: exampleAuditEvents,
 } satisfies Books;
 

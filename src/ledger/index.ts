@@ -19,6 +19,15 @@ export {
   translateWithRate,
 } from "./fx";
 export type { AppliedRate, ConsolidatedTrialBalance, EntityTranslation, FxRate } from "./fx";
+export type { AssetPrice } from "./pricing";
+export {
+  DEFAULT_STALENESS_MS,
+  priceAge,
+  selectAssetPrice,
+  valueHolding,
+  valueHoldings,
+} from "./valuation";
+export type { PriceAge, PricedValue, ValuationSummary } from "./valuation";
 export { formatMinor, minorToNumber, toMinor } from "./money";
 export { reverseJournalEntry } from "./reverse";
 export { assertUniqueEntryIds, postJournalEntry } from "./post";

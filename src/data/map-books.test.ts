@@ -74,6 +74,7 @@ function snapshotFromExample(): BooksSnapshot {
     ),
     sourceTransactions: [...exampleBooks.sourceTransactions],
     fxRates: [...exampleBooks.fxRates],
+    assetPrices: [...exampleBooks.assetPrices],
     auditEvents: exampleBooks.auditEvents.map((event) => ({ ...event, occurredAt: new Date(event.occurredAt) })),
   };
 }

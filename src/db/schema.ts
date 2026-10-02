@@ -375,6 +375,37 @@ export const fxRates = pgTable(
   ],
 );
 
+/**
+ * A dated market price per asset, in a quote currency. Provenance matters: the
+ * `origin` says whether the row is example data or fetched live, and `asOf` is
+ * the instant the price was observed. A price never posts to the journal on its
+ * own; it is used to value holdings and to draft a reviewable revaluation.
+ */
+export const assetPrices = pgTable(
+  "asset_prices",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    assetCode: text("asset_code").notNull(),
+    quoteCurrency: text("quote_currency").notNull(),
+    /** Price of one whole asset unit, in minor units of the quote currency. */
+    priceMinor: numeric("price_minor", { precision: 78, scale: 0, mode: "bigint" }).notNull(),
+    /** Minor-unit scale of the quote currency (2 for fiat), so priceMinor is unambiguous. */
+    quoteScale: integer("quote_scale").notNull(),
+    asOf: timestamp("as_of", { withTimezone: true }).notNull(),
+    origin: dataOrigin("origin").notNull(),
+    /** Where the price came from, e.g. "coingecko" or "example". */
+    source: text("source").notNull(),
+  },
+  (table) => [
+    index("asset_prices_org_asset_asof_idx").on(table.organizationId, table.assetCode, table.asOf),
+    check("asset_prices_price_positive", sql`${table.priceMinor} > 0`),
+    check("asset_prices_quote_scale_range", sql`${table.quoteScale} >= 0 and ${table.quoteScale} <= 12`),
+  ],
+);
+
 /** Append-only record of who posted what. Updates and ordinary deletes are rejected by a trigger. */
 export const auditEvents = pgTable(
   "audit_events",

@@ -67,6 +67,7 @@ export interface BooksSnapshot {
   lines: SnapshotLine[];
   sourceTransactions: BooksSourceTransaction[];
   fxRates: Books["fxRates"][number][];
+  assetPrices: Books["assetPrices"][number][];
   auditEvents: Array<Omit<Books["auditEvents"][number], "occurredAt"> & { occurredAt: Date }>;
 }
 
@@ -136,6 +137,7 @@ export function mapSnapshotToBooks(snapshot: BooksSnapshot): Books {
     sourceTransactions: snapshot.sourceTransactions,
     reconciliations: buildReconciliations(snapshot.organization.id, snapshot.sourceTransactions, journalEntries, start),
     fxRates: snapshot.fxRates,
+    assetPrices: snapshot.assetPrices,
     auditEvents: snapshot.auditEvents
       .map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString() }))
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)),

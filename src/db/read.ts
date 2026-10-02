@@ -5,6 +5,7 @@ import type { Books } from "@/data/books";
 import { getDb } from "./client";
 import {
   accounts,
+  assetPrices,
   assets,
   auditEvents,
   balanceSnapshots,
@@ -39,7 +40,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
   }
 
   const organizationId = organization.id;
-  const [entityRows, assetRows, connectionRows, sourceRows, snapshotRows, accountRows, entryRows, lineRows, transactionRows, rateRows, auditRows] =
+  const [entityRows, assetRows, connectionRows, sourceRows, snapshotRows, accountRows, entryRows, lineRows, transactionRows, rateRows, priceRows, auditRows] =
     await Promise.all([
       db.select().from(entities).where(eq(entities.organizationId, organizationId)),
       db.select().from(assets).where(eq(assets.organizationId, organizationId)),
@@ -51,6 +52,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
       db.select().from(journalLines).where(eq(journalLines.organizationId, organizationId)),
       db.select().from(sourceTransactions).where(eq(sourceTransactions.organizationId, organizationId)),
       db.select().from(fxRates).where(eq(fxRates.organizationId, organizationId)),
+      db.select().from(assetPrices).where(eq(assetPrices.organizationId, organizationId)),
       db.select().from(auditEvents).where(eq(auditEvents.organizationId, organizationId)),
     ]);
 
@@ -141,6 +143,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
       };
     }),
     fxRates: rateRows,
+    assetPrices: priceRows.map((price) => ({ ...price, asOf: price.asOf.toISOString() })),
     auditEvents: auditRows,
   };
 
