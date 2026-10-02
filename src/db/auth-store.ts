@@ -4,7 +4,7 @@ import { isRole } from "@/auth/roles";
 import { authSecretConfigured, readAuthSecret } from "@/env";
 import { newSecretToken, sealToken } from "@/auth/tokens";
 import { getDb } from "./client";
-import { auditEvents, invites, sessions, signInAttempts, users } from "./schema";
+import { auditEvents, emailVerifications, invites, passwordResets, sessions, signInAttempts, users } from "./schema";
 
 export interface AccountUser {
   id: string;
@@ -16,6 +16,7 @@ export interface AccountUser {
   entityScope: string[];
   passwordHash: string | null;
   connectionTourCompletedAt: Date | null;
+  emailVerifiedAt: Date | null;
 }
 
 const SESSION_MS = 12 * 60 * 60 * 1000;
@@ -174,6 +175,84 @@ export async function consumeInvite(token: string, passwordHash: string): Promis
   return mapUser({ ...current, passwordHash, status: "active", role: invite.role, entityScope: invite.entityScope });
 }
 
+const RESET_MS = 60 * 60 * 1000;
+const VERIFY_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Create a reset token for a user. Replaces any existing one. Returns the token. */
+export async function createPasswordReset(userId: string, organizationId: string): Promise<string> {
+  const token = newSecretToken();
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx.delete(passwordResets).where(eq(passwordResets.userId, userId));
+    await tx.insert(passwordResets).values({
+      id: newId("reset"),
+      organizationId,
+      userId,
+      tokenHash: sealToken(token, readAuthSecret()),
+      expiresAt: new Date(Date.now() + RESET_MS),
+    });
+  });
+  return token;
+}
+
+/** Set a new password from a reset token and invalidate the user's sessions. */
+export async function consumePasswordReset(token: string, passwordHash: string): Promise<AccountUser | null> {
+  if (!authSecretConfigured()) return null;
+  const db = getDb();
+  const rows = await db.select().from(passwordResets).where(eq(passwordResets.tokenHash, sealToken(token, readAuthSecret()))).limit(1);
+  const reset = rows[0];
+  if (!reset || reset.expiresAt.getTime() < Date.now()) return null;
+  const userRows = await db.select().from(users).where(eq(users.id, reset.userId)).limit(1);
+  const user = userRows[0];
+  if (!user || user.status !== "active") return null;
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({ passwordHash }).where(eq(users.id, reset.userId));
+    await tx.delete(sessions).where(eq(sessions.userId, reset.userId));
+    await tx.delete(passwordResets).where(eq(passwordResets.userId, reset.userId));
+  });
+  return mapUser({ ...user, passwordHash });
+}
+
+/** Create a verification token for a user. Replaces any existing one. */
+export async function createEmailVerification(userId: string, organizationId: string): Promise<string> {
+  const token = newSecretToken();
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    await tx.delete(emailVerifications).where(eq(emailVerifications.userId, userId));
+    await tx.insert(emailVerifications).values({
+      id: newId("verify"),
+      organizationId,
+      userId,
+      tokenHash: sealToken(token, readAuthSecret()),
+      expiresAt: new Date(Date.now() + VERIFY_MS),
+    });
+  });
+  return token;
+}
+
+/** Mark a user's email verified from a token. Returns the user, or null. */
+export async function consumeEmailVerification(token: string): Promise<AccountUser | null> {
+  if (!authSecretConfigured()) return null;
+  const db = getDb();
+  const rows = await db.select().from(emailVerifications).where(eq(emailVerifications.tokenHash, sealToken(token, readAuthSecret()))).limit(1);
+  const verification = rows[0];
+  if (!verification || verification.expiresAt.getTime() < Date.now()) return null;
+  const userRows = await db.select().from(users).where(eq(users.id, verification.userId)).limit(1);
+  const user = userRows[0];
+  if (!user) return null;
+  const verifiedAt = new Date();
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({ emailVerifiedAt: verifiedAt }).where(eq(users.id, verification.userId));
+    await tx.delete(emailVerifications).where(eq(emailVerifications.userId, verification.userId));
+  });
+  return mapUser({ ...user, emailVerifiedAt: verifiedAt });
+}
+
+/** Whether a user has confirmed their email. */
+export function isEmailVerified(user: Pick<AccountUser, "emailVerifiedAt">): boolean {
+  return user.emailVerifiedAt !== null;
+}
+
 export async function completeConnectionTour(userId: string): Promise<void> {
   const db = getDb();
   await db.update(users).set({ connectionTourCompletedAt: new Date() }).where(eq(users.id, userId));
@@ -238,6 +317,7 @@ function mapUser(row: {
   status: "active" | "invited" | "inactive";
   entityScope: string;
   connectionTourCompletedAt?: Date | null;
+  emailVerifiedAt?: Date | null;
 }): AccountUser {
   if (!isRole(row.role)) throw new Error(`Unknown role ${row.role}.`);
   return {
@@ -250,6 +330,7 @@ function mapUser(row: {
     entityScope: row.entityScope.split(",").map((id) => id.trim()).filter(Boolean),
     passwordHash: row.passwordHash,
     connectionTourCompletedAt: row.connectionTourCompletedAt ?? null,
+    emailVerifiedAt: row.emailVerifiedAt ?? null,
   };
 }
 

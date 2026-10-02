@@ -88,6 +88,10 @@ export default async function SignInPage({
                 <Link href="/sign-up" className="underline">
                   Create an account
                 </Link>
+                {" · "}
+                <Link href="/reset-password" className="underline">
+                  Forgot password?
+                </Link>
               </p>
               {database ? null : (
                 <p className="text-sm text-ink-soft">Password sign-in needs a database. The sample roles on the right work without one.</p>
