@@ -1,0 +1,12 @@
+[package]
+name = "token-ledger-shared"
+version = "0.1.0"
+description = "Shared seeds, errors and helpers for the Token Ledger Solana programs"
+edition = "2021"
+
+[lib]
+name = "token_ledger_shared"
+crate-type = ["lib"]
+
+[dependencies]
+anchor-lang = { workspace = true }

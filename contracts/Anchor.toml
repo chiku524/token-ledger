@@ -1,0 +1,26 @@
+[toolchain]
+package_manager = "pnpm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+service_balance = "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb"
+treasury_payables = "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs"
+
+[programs.devnet]
+service_balance = "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb"
+treasury_payables = "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs"
+
+[provider]
+# Devnet by default. The app resolves the cluster, program IDs, mint and token
+# program from src config, never from user input.
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[workspace]
+members = ["programs/*"]

@@ -1,0 +1,22 @@
+[package]
+name = "service-balance"
+version = "0.1.0"
+description = "Token Ledger Service Balance: bounded, customer-authorized USDC subscriptions"
+edition = "2021"
+
+[lib]
+name = "service_balance"
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { workspace = true }
+anchor-spl = { workspace = true }
+token-ledger-shared = { path = "../shared" }

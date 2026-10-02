@@ -1,0 +1,24 @@
+[package]
+name = "token-ledger-contract-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+# The tests load the built .so with litesvm; disabled by default so a plain
+# `cargo test` at the workspace root only runs the fast, pure unit tests.
+litesvm = []
+
+[dependencies]
+anchor-lang = { workspace = true }
+anchor-spl = { workspace = true }
+solana-keypair = "2"
+solana-pubkey = "2"
+solana-signer = "2"
+solana-message = "2"
+solana-transaction = "2"
+solana-instruction = "2"
+
+[dev-dependencies]
+litesvm = "0.17.0"
+solana-sdk = "2"
