@@ -10,6 +10,7 @@
  */
 import { readCronSecret } from "@/env";
 import { runDueSyncsForAllOrganizations } from "@/data/run-sync";
+import { refreshAllAssetPrices, refreshAllFxRates } from "@/data/market-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,5 +25,21 @@ export async function GET(request: Request) {
   }
 
   const summary = await runDueSyncsForAllOrganizations();
-  return Response.json({ status: "ok", ...summary });
+  // Market data is best-effort; an outage must not fail the sync pass.
+  let pricesStored = 0;
+  let fxStored = 0;
+  let priceError: string | null = null;
+  try {
+    const outcomes = await refreshAllAssetPrices();
+    pricesStored = outcomes.reduce((sum, outcome) => sum + outcome.stored, 0);
+  } catch (error) {
+    priceError = error instanceof Error ? error.message : "Price refresh failed.";
+  }
+  try {
+    const outcomes = await refreshAllFxRates();
+    fxStored = outcomes.reduce((sum, outcome) => sum + outcome.stored, 0);
+  } catch (error) {
+    priceError = priceError ?? (error instanceof Error ? error.message : "FX refresh failed.");
+  }
+  return Response.json({ status: "ok", ...summary, pricesStored, fxStored, priceError });
 }

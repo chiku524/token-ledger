@@ -28,7 +28,7 @@ export {
   valueHoldings,
 } from "./valuation";
 export type { PriceAge, PricedValue, ValuationSummary } from "./valuation";
-export { formatMinor, minorToNumber, toMinor } from "./money";
+export { formatMinor, minorToNumber, toMinor, toMinorRounded } from "./money";
 export { reverseJournalEntry } from "./reverse";
 export { assertUniqueEntryIds, postJournalEntry } from "./post";
 export { ledgerQuantityMovements, reconcileMovements } from "./reconcile";

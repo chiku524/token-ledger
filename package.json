@@ -17,7 +17,8 @@
     "exchange:verify": "tsx scripts/exchange-verify.ts",
     "custodian:verify": "tsx scripts/custodian-verify.ts",
     "sync:run": "tsx scripts/sync-run.ts",
-    "webhook:send": "tsx scripts/webhook-send.ts"
+    "webhook:send": "tsx scripts/webhook-send.ts",
+    "market:refresh": "tsx scripts/market-refresh.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",
