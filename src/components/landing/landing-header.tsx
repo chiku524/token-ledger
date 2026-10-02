@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu } from "lucide-react";
-import { content, exampleHref, navigation, signupHref } from "@/components/landing/content";
+import { content, navigation, signupHref } from "@/components/landing/content";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,6 @@ export function LandingHeader() {
       </nav>
       <div className="hidden items-center gap-3 md:flex">
         <ThemeToggle />
-        <Button asChild variant="outline">
-          <Link href={exampleHref}>View demo</Link>
-        </Button>
         <Button asChild>
           <Link href={signupHref}>{content.signupLabel}</Link>
         </Button>
@@ -59,9 +56,6 @@ export function LandingHeader() {
               ))}
             </nav>
             <div className="mt-4 grid gap-2 px-4">
-              <Button asChild variant="outline">
-                <Link href={exampleHref}>View demo</Link>
-              </Button>
               <Button asChild>
                 <Link href={signupHref}>{content.signupLabel}</Link>
               </Button>

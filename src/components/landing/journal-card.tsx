@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function JournalCard({ className }: { className?: string }) {
   return (
     <section
-      aria-label="Sample balanced journal entry"
+      aria-label="Balanced journal entry"
       className={cn(
         "rounded-xl border border-white/50 bg-cloud p-4 text-night shadow-[0_16px_48px_#0003] sm:p-5",
         className,

@@ -4,7 +4,6 @@ import { exampleHref } from "@/components/landing/content";
 import { JournalCard } from "@/components/landing/journal-card";
 import { activities, money, sources, totalAccounts, totalAssets } from "@/components/landing/sample-data";
 import { LogoMark } from "@/components/logo";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -93,9 +92,6 @@ export function DashboardPreview() {
           <div className="min-w-0 flex-1 p-4 sm:p-5">
             <div className="mb-5 flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold tracking-tight sm:text-base">Harbourline Digital</h2>
-              <Badge variant="outline" className="shrink-0 px-2 py-1 text-[8px] tracking-wide">
-                SAMPLE DATA
-              </Badge>
             </div>
             <div className="mb-4 grid grid-cols-[1.7fr_1fr_1fr] gap-2">
               <div className="rounded-lg border bg-card p-3">
@@ -140,7 +136,7 @@ export function DashboardPreview() {
               href={exampleHref}
               className="mt-3 ml-auto flex w-fit items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Explore sample data <ArrowUpRight className="size-3" aria-hidden />
+              Go to app <ArrowUpRight className="size-3" aria-hidden />
             </Link>
           </div>
         </div>

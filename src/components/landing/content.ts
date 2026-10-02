@@ -3,9 +3,8 @@ export const content = {
   headline: ["Every asset.", "One clear ledger."],
   description:
     "Bring wallets, exchanges and custodians into one view. Reconcile activity, review your books and prepare accounting exports.",
-  demoLabel: "Explore the example",
+  demoLabel: "Go to app",
   signupLabel: "Create an account",
-  demoNote: "Illustrative demo · Q2 2026",
   workflowTitle: "A clearer path to your books.",
   steps: [
     {
@@ -38,8 +37,7 @@ export const content = {
     },
   ],
   ctaTitle: "See your assets come together.",
-  ctaLabel: "Open the Q2 example",
-  footerNote: "Demo uses fictional data. Live connections are planned.",
+  ctaLabel: "Go to app",
 };
 
 export const navigation = [

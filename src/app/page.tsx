@@ -54,7 +54,6 @@ export default function HomePage() {
                 </Link>
               </Button>
             </div>
-            <p className="mt-6 text-[11px] text-muted-foreground">{content.demoNote}</p>
           </FadeIn>
           <FadeIn y={16} delay={0.1}>
             <DashboardPreview />
@@ -164,7 +163,6 @@ export default function HomePage() {
         <Link href="/" aria-label="Token Ledger home">
           <Logo />
         </Link>
-        <p className="max-w-[280px] text-[11px] leading-5 text-muted-foreground">{content.footerNote}</p>
         <nav aria-label="Footer navigation" className="flex gap-5 text-[11px] text-muted-foreground">
           {navigation.map((item) => (
             <a key={item.href} className="hover:text-foreground" href={item.href}>
