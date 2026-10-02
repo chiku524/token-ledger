@@ -22,6 +22,7 @@ import {
   formatTimestamp,
   freshnessLabel,
   originLabel,
+  ownershipLabel,
   placeTypeLabel,
   scopeLabel,
   sourceName,
@@ -89,6 +90,7 @@ export default async function SourcesPage({
                 <th scope="col">Company</th>
                 <th scope="col">Connection</th>
                 <th scope="col">Access</th>
+                <th scope="col">Ownership</th>
                 <th scope="col">Status</th>
                 <th scope="col">Last checked</th>
               </tr>
@@ -110,6 +112,14 @@ export default async function SourcesPage({
                       <span className="mt-1 block text-xs text-ink-soft">
                         {venueLabel(connection.venue)} · {scopeLabel(connection.scopes)}
                       </span>
+                    </td>
+                    <td>
+                      <span className="block">{ownershipLabel(connection.ownership)}</span>
+                      {connection.ownership === "verified" && connection.verifiedAddress ? (
+                        <span className="mt-1 block font-mono text-xs text-ink-soft">{connection.verifiedAddress}</span>
+                      ) : (
+                        <span className="mt-1 block text-xs text-ink-soft">Address only</span>
+                      )}
                     </td>
                     <td>
                       <span className={connection.status === "healthy" ? "text-pine" : connection.status === "degraded" ? "text-seal" : "text-ink-soft"}>

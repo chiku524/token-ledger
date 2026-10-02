@@ -31,6 +31,7 @@ export interface BooksAsset {
 
 export type ConnectionMode = "watch" | "exchange_read" | "custodian_read";
 export type ConnectionStatus = "pending" | "healthy" | "degraded" | "revoked";
+export type ConnectionOwnership = "verified" | "watch_only";
 
 /** Read-only grant. Scopes are balances and movements. No secret is stored. */
 export interface BooksConnection {
@@ -42,6 +43,9 @@ export interface BooksConnection {
   name: string;
   status: ConnectionStatus;
   scopes: string;
+  ownership: ConnectionOwnership;
+  verifiedAddress: string | null;
+  verifiedAt: string | null;
   cursor: string | null;
   lastSyncedAt: string | null;
   lastError: string | null;

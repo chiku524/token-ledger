@@ -13,6 +13,12 @@ export function readAuthSecret(env: { AUTH_SECRET?: string } = { AUTH_SECRET: pr
   return secret;
 }
 
+/** WalletConnect / Reown is optional. Without a project id the modal stays off. */
+export function reownProjectId(env: { NEXT_PUBLIC_REOWN_PROJECT_ID?: string } = { NEXT_PUBLIC_REOWN_PROJECT_ID: process.env.NEXT_PUBLIC_REOWN_PROJECT_ID }): string | null {
+  const id = env.NEXT_PUBLIC_REOWN_PROJECT_ID?.trim() ?? "";
+  return id.length > 0 ? id : null;
+}
+
 /** DATABASE_URL is optional. When it is set, it must be a Postgres connection string. */
 export function readDatabaseUrl(env: { DATABASE_URL?: string } = { DATABASE_URL: process.env.DATABASE_URL }): string | null {
   const raw = env.DATABASE_URL;

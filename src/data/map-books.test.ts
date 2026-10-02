@@ -37,6 +37,7 @@ function snapshotFromExample(): BooksSnapshot {
       ...connection,
       lastSyncedAt: connection.lastSyncedAt ? new Date(connection.lastSyncedAt) : null,
       nextAttemptAt: connection.nextAttemptAt ? new Date(connection.nextAttemptAt) : null,
+      verifiedAt: connection.verifiedAt ? new Date(connection.verifiedAt) : null,
     })),
     sources: [...exampleBooks.sources],
     balanceSnapshots: exampleBooks.balanceSnapshots.map((snapshot) => ({

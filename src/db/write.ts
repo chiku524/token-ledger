@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { NormalizedBalance, NormalizedSourceTransaction } from "@/adapters";
 import { sealExchangeCredential, type ExchangeCredentialInput } from "@/adapters/credentials/store";
 import { READ_ONLY_SCOPES, type ConnectionDraft } from "@/data/connections";
@@ -20,6 +20,7 @@ import {
   fxRates,
   journalEntries,
   journalLines,
+  ownershipChallenges,
   sourceTransactions,
   sources,
 } from "./schema";
@@ -66,6 +67,7 @@ export async function insertConnection(
   draft: ConnectionDraft,
   actor: string,
   credential?: ExchangeCredentialInput,
+  challengeId?: string,
 ): Promise<void> {
   if (!books.entities.some((entity) => entity.id === draft.connection.entityId)) {
     throw new BooksWriteError("Choose a company in this organization.");
@@ -73,12 +75,29 @@ export async function insertConnection(
   if (draft.connection.scopes !== READ_ONLY_SCOPES) {
     throw new BooksWriteError("A connection can only read balances and movements.");
   }
+  if (draft.connection.ownership === "verified" && (!draft.connection.verifiedAddress || !draft.connection.verificationSignature)) {
+    throw new BooksWriteError("A verified wallet needs the address and the signature.");
+  }
   const connectionId = newId("conn");
   const sourceId = newId("src");
   // Seal before opening the transaction; a bad credential must not half-write.
   const sealed = credential ? await sealExchangeCredential(credential) : null;
   const db = getDb();
   await db.transaction(async (tx) => {
+    if (challengeId) {
+      const claimed = await tx
+        .update(ownershipChallenges)
+        .set({ consumedAt: new Date() })
+        .where(
+          and(
+            eq(ownershipChallenges.id, challengeId),
+            eq(ownershipChallenges.organizationId, books.organization.id),
+            isNull(ownershipChallenges.consumedAt),
+          ),
+        )
+        .returning({ id: ownershipChallenges.id });
+      if (claimed.length === 0) throw new BooksWriteError("This verification was already used.");
+    }
     await tx.insert(connections).values({
       id: connectionId,
       organizationId: books.organization.id,
@@ -88,6 +107,10 @@ export async function insertConnection(
       name: draft.connection.name,
       status: "pending",
       scopes: READ_ONLY_SCOPES,
+      ownership: draft.connection.ownership,
+      verifiedAddress: draft.connection.verifiedAddress,
+      verifiedAt: draft.connection.verifiedAt,
+      verificationSignature: draft.connection.verificationSignature,
       cursor: null,
       lastSyncedAt: null,
       lastError: null,
@@ -109,9 +132,31 @@ export async function insertConnection(
         sealedSecret: sealed.sealedSecret,
       });
     }
-    await tx.insert(auditEvents).values(
-      auditRow(books, actor, "connection.created", "connection", connectionId, `${draft.connection.name} · read-only`),
-    );
+    const audits = [
+      auditRow(
+        books,
+        actor,
+        "connection.created",
+        "connection",
+        connectionId,
+        draft.connection.ownership === "verified"
+          ? `${draft.connection.name} · verified ${draft.connection.verifiedAddress}`
+          : `${draft.connection.name} · watch-only`,
+      ),
+    ];
+    if (draft.connection.ownership === "verified") {
+      audits.push(
+        auditRow(
+          books,
+          actor,
+          "connection.verified",
+          "connection",
+          connectionId,
+          `Signed by ${draft.connection.verifiedAddress} on ${draft.connection.venue}. The signature is stored on the connection.`,
+        ),
+      );
+    }
+    await tx.insert(auditEvents).values(audits);
   });
 }
 

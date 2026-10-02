@@ -8,6 +8,7 @@ import {
   readEvmRpcUrl,
   readSolanaRpcUrl,
   readSuiGraphqlUrl,
+  reownProjectId,
   SOLANA_PUBLIC_RPC_URL,
   SUI_PUBLIC_GRAPHQL_URL,
 } from "./env";
@@ -17,6 +18,14 @@ describe("authSecretConfigured", () => {
     expect(authSecretConfigured({})).toBe(false);
     expect(authSecretConfigured({ AUTH_SECRET: "short" })).toBe(false);
     expect(authSecretConfigured({ AUTH_SECRET: "x".repeat(32) })).toBe(true);
+  });
+});
+
+describe("reownProjectId", () => {
+  it("stays off until a project id is set", () => {
+    expect(reownProjectId({})).toBeNull();
+    expect(reownProjectId({ NEXT_PUBLIC_REOWN_PROJECT_ID: "  " })).toBeNull();
+    expect(reownProjectId({ NEXT_PUBLIC_REOWN_PROJECT_ID: "project" })).toBe("project");
   });
 });
 

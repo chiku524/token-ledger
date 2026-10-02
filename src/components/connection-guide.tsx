@@ -82,6 +82,11 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         <h2 id="modes-heading" className="text-lg font-semibold tracking-tight">
           Three ways in
         </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          A wallet can be verified, by connecting it and signing a one-time message, or watched, by pasting the address.
+          Both stay read-only. Verified means the sign-in controlled the address. Watched means the address was typed,
+          which is the right path for an auditor or a cold wallet.
+        </p>
         <ul className="mt-4 grid gap-3 md:grid-cols-3">
           {MODES.map((mode) => (
             <li key={mode.title} className="panel p-4">
