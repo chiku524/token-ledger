@@ -1,5 +1,9 @@
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { StatusBadge } from "@/components/app/status-badge";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
 import { DraftApprovalControls, DraftSubmitControls, ReadOnlyNote } from "@/components/record-forms";
@@ -7,6 +11,7 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { entityName, formatMoney } from "@/data/present";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DraftRow } from "@/db/drafts";
 
 export const metadata = { title: "Approvals" };
@@ -40,55 +45,57 @@ export default async function ApprovalsPage({
 
       {!writable ? <div className="mb-6"><ReadOnlyNote demo={session.demo} /></div> : null}
       {!canPrepare ? (
-        <p className="panel px-4 py-6 text-sm text-ink-soft">
-          Approval is for an owner, admin, accountant, or approver.
-        </p>
+        <EmptyState>Approval is for an owner, admin, accountant, or approver.</EmptyState>
       ) : drafts.length === 0 ? (
-        <p className="panel px-4 py-6 text-sm text-ink-soft">Nothing is waiting for approval.</p>
+        <EmptyState>Nothing is waiting for approval.</EmptyState>
       ) : (
-        <div className="overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard className="mt-0">
+          <Table>
             <caption className="sr-only">Entries awaiting approval</caption>
-            <thead>
-              <tr>
-                <th scope="col">Company</th>
-                <th scope="col">Reference</th>
-                <th scope="col">Date</th>
-                <th scope="col">Memo</th>
-                <th scope="col">Prepared by</th>
-                <th scope="col" className="num">Amount</th>
-                <th scope="col">Status</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company</TableHead>
+                <TableHead>Reference</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Memo</TableHead>
+                <TableHead>Prepared by</TableHead>
+                <NumberHead>Amount</NumberHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {drafts.map((draft) => (
-                <tr key={draft.id}>
-                  <td>{entityName(draft.entityId, books.entities)}</td>
-                  <td>{draft.reference}</td>
-                  <td>{draft.entryDate}</td>
-                  <td>{draft.memo}</td>
-                  <td>{draft.preparedBy}</td>
-                  <td className="num">{formatMoney(draft.debitMinor, draft.currency)}</td>
-                  <td>{draft.status === "pending" ? "Awaiting approval" : "Draft"}</td>
-                  <td>
+                <TableRow key={draft.id}>
+                  <TableCell>{entityName(draft.entityId, books.entities)}</TableCell>
+                  <TableCell>{draft.reference}</TableCell>
+                  <TableCell>{draft.entryDate}</TableCell>
+                  <TableCell>{draft.memo}</TableCell>
+                  <TableCell>{draft.preparedBy}</TableCell>
+                  <NumberCell>{formatMoney(draft.debitMinor, draft.currency)}</NumberCell>
+                  <TableCell>
+                    <StatusBadge tone={draft.status === "pending" ? "warning" : "neutral"}>
+                      {draft.status === "pending" ? "Awaiting approval" : "Draft"}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell>
                     {draft.status === "draft" ? (
                       <DraftSubmitControls draftId={draft.id} csrf={csrf} />
                     ) : canApprove && writable ? (
                       <DraftApprovalControls draftId={draft.id} csrf={csrf} isOwner={session.role === "owner"} />
                     ) : (
-                      <span className="text-sm text-ink-soft">Awaiting an approver</span>
+                      <span className="text-sm text-muted-foreground">Awaiting an approver</span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       {!canApprove ? (
-        <p className="mt-6 max-w-2xl text-sm leading-relaxed text-ink-soft">
+        <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           You can prepare and submit entries. Posting them is for an approver.
         </p>
       ) : null}

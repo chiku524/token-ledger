@@ -1,5 +1,8 @@
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { StatusBadge } from "@/components/app/status-badge";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
@@ -8,6 +11,8 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, formatMoney, formatQuantity, movementLabel, sourceName } from "@/data/present";
 
@@ -47,65 +52,63 @@ export default async function LedgerPage({
         <RoleNote>You can view entries and download CSVs. Posting and corrections are hidden.</RoleNote>
       )}
       {visible.length === 0 ? (
-        <p className="panel px-4 py-6 text-sm text-ink-soft">No entries in these dates.</p>
+        <EmptyState>No entries in these dates.</EmptyState>
       ) : (
         <div className="space-y-6">
           {visible.map((entry) => (
-            <article key={entry.id} className="panel">
-              <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-4 py-3">
+            <Card key={entry.id} className="gap-0 py-0">
+              <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-4 py-3">
                 <div>
                   <h2 className="font-medium">
                     {entry.reference}
-                    <span className="ml-3 font-normal text-ink-soft">{entry.entryDate}</span>
+                    <span className="ml-3 font-normal text-muted-foreground">{entry.entryDate}</span>
                   </h2>
-                  <p className="mt-1 text-sm text-ink-soft">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {entityName(entry.entityId, books.entities)} · {entry.memo}
                   </p>
-                  <p className="mt-1 text-xs text-ink-soft">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Posted by {entry.postedBy}
                     {entry.reversesEntryId
                       ? ` · corrects ${books.journalEntries.find((item) => item.id === entry.reversesEntryId)?.reference ?? entry.reversesEntryId}`
                       : ""}
                   </p>
                 </div>
-                <p className="text-sm text-pine">Balanced {formatMoney(entry.debitMinor, entry.currency)}</p>
+                <StatusBadge tone="success">Balanced {formatMoney(entry.debitMinor, entry.currency)}</StatusBadge>
               </header>
-              <div className="overflow-x-auto">
-                <table className="ledger-table">
-                  <caption className="sr-only">{entry.reference} lines</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">Account</th>
-                      <th scope="col">Quantity</th>
-                      <th scope="col" className="num">Debit</th>
-                      <th scope="col" className="num">Credit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entry.lines.map((line) => (
-                      <tr key={line.lineNumber}>
-                        <td className="num text-left">{line.lineNumber}</td>
-                        <td>
-                          {accountLabel(entry.entityId, line.accountCode, books.accounts)}
-                          {line.sourceId ? (
-                            <span className="mt-1 block text-xs text-ink-soft">{sourceName(line.sourceId, books.sources)}</span>
-                          ) : null}
-                        </td>
-                        <td>
-                          {line.quantityMinor !== undefined && line.assetCode
-                            ? `${movementLabel(line.quantityDirection === "out" ? "out" : "in")} ${formatQuantity(line.quantityMinor, line.assetCode, books.assets)}`
-                            : "—"}
-                        </td>
-                        <td className="num">{line.side === "debit" ? formatMoney(line.amountMinor, line.currency) : ""}</td>
-                        <td className="num">{line.side === "credit" ? formatMoney(line.amountMinor, line.currency) : ""}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table>
+                <caption className="sr-only">{entry.reference} lines</caption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <NumberHead>Debit</NumberHead>
+                    <NumberHead>Credit</NumberHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {entry.lines.map((line) => (
+                    <TableRow key={line.lineNumber}>
+                      <NumberCell align="left">{line.lineNumber}</NumberCell>
+                      <TableCell>
+                        {accountLabel(entry.entityId, line.accountCode, books.accounts)}
+                        {line.sourceId ? (
+                          <span className="mt-1 block text-xs text-muted-foreground">{sourceName(line.sourceId, books.sources)}</span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        {line.quantityMinor !== undefined && line.assetCode
+                          ? `${movementLabel(line.quantityDirection === "out" ? "out" : "in")} ${formatQuantity(line.quantityMinor, line.assetCode, books.assets)}`
+                          : "—"}
+                      </TableCell>
+                      <NumberCell>{line.side === "debit" ? formatMoney(line.amountMinor, line.currency) : ""}</NumberCell>
+                      <NumberCell>{line.side === "credit" ? formatMoney(line.amountMinor, line.currency) : ""}</NumberCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
               {canReverse && !reversed.has(entry.id) ? <ReverseJournalForm csrf={csrf} entry={entry} /> : null}
-            </article>
+            </Card>
           ))}
         </div>
       )}
