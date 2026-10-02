@@ -30,6 +30,8 @@ export {
 export type { PriceAge, PricedValue, ValuationSummary } from "./valuation";
 export { proposeRevaluation } from "./revaluation";
 export type { RevaluationHolding, RevaluationLine, RevaluationProposal } from "./revaluation";
+export { translateGroupIas21 } from "./translation";
+export type { TranslatedEntity, TranslatedTrialBalance } from "./translation";
 export { formatMinor, minorToNumber, toMinor, toMinorRounded } from "./money";
 export { reverseJournalEntry } from "./reverse";
 export { assertUniqueEntryIds, postJournalEntry } from "./post";

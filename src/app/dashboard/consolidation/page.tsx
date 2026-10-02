@@ -10,7 +10,7 @@ import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { formatMoney } from "@/data/present";
-import { consolidateTrialBalances, formatFxRate, formatInverseRate } from "@/ledger";
+import { consolidateTrialBalances, formatFxRate, formatInverseRate, translateGroupIas21 } from "@/ledger";
 
 export const metadata = { title: "Combined" };
 
@@ -39,6 +39,15 @@ export default async function ConsolidationPage({
     rates: books.fxRates,
     presentationCurrency: presentation,
     asOf: range.to,
+  });
+  const ias21 = translateGroupIas21({
+    entities: books.entities,
+    entries: scoped.journalEntries,
+    accounts: books.accounts,
+    rates: books.fxRates,
+    periodStart: range.from,
+    closingDate: range.to,
+    presentationCurrency: presentation,
   });
 
   return (
@@ -162,6 +171,59 @@ export default async function ConsolidationPage({
                 ))
               )}
             </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold tracking-tight">IAS 21 translation · {presentation}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          Assets and liabilities at the closing rate ({range.to}), income and expense at the average rate ({range.from}),
+          with the difference booked to a translation reserve. The reserve is derived here, not stored.
+        </p>
+        {ias21.entities.some((entity) => !entity.included) ? (
+          <p role="alert" className="mt-3 max-w-2xl rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal">
+            {ias21.entities.filter((entity) => !entity.included).map((entity) => `${entity.entityName}: ${entity.detail}`).join(" ")}
+          </p>
+        ) : null}
+        <div className="mt-4 overflow-x-auto panel">
+          <table className="ledger-table">
+            <caption className="sr-only">IAS 21 translated balances in {presentation}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Account</th>
+                <th scope="col" className="num">Debit</th>
+                <th scope="col" className="num">Credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ias21.rows.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>Nothing to translate, or a rate is missing.</td>
+                </tr>
+              ) : (
+                ias21.rows.map((row) => (
+                  <tr key={`ias21_${row.code}`}>
+                    <td className="num text-left">{row.code}</td>
+                    <td>{row.name}</td>
+                    <td className="num">{row.debitMinor > 0n ? formatMoney(row.debitMinor, presentation) : ""}</td>
+                    <td className="num">{row.creditMinor > 0n ? formatMoney(row.creditMinor, presentation) : ""}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {ias21.rows.length > 0 ? (
+              <tfoot>
+                <tr>
+                  <th scope="row" colSpan={2}>
+                    Debits equal credits
+                  </th>
+                  <td className="num">{formatMoney(ias21.debitTotal, presentation)}</td>
+                  <td className="num">{formatMoney(ias21.creditTotal, presentation)}</td>
+                </tr>
+              </tfoot>
+            ) : null}
           </table>
         </div>
       </section>

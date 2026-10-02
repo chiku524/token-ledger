@@ -8,6 +8,7 @@ export const ENTITY_CHART: readonly Omit<BooksAccount, "id" | "organizationId" |
   { code: "1330", name: "Stablecoins", type: "asset", normalBalance: "debit", measurementBasis: "IFRS 9", ifrsNote: "IFRS 9" },
   { code: "2100", name: "Bills to pay", type: "liability", normalBalance: "credit", measurementBasis: null, ifrsNote: "IAS 1" },
   { code: "3100", name: "Owners' capital", type: "equity", normalBalance: "credit", measurementBasis: null, ifrsNote: "IAS 1" },
+  { code: "3200", name: "Translation reserve", type: "equity", normalBalance: "credit", measurementBasis: null, ifrsNote: "IAS 21" },
   { code: "4100", name: "Staking rewards", type: "income", normalBalance: "credit", measurementBasis: null, ifrsNote: "IAS 1" },
   { code: "4200", name: "Revaluation gain", type: "income", normalBalance: "credit", measurementBasis: null, ifrsNote: "IAS 38" },
   { code: "5100", name: "Fees", type: "expense", normalBalance: "debit", measurementBasis: null, ifrsNote: "IAS 1" },
