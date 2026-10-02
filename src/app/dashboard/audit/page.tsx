@@ -1,6 +1,15 @@
 import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { can } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
+import { NumberCell } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { auditSubjectTypes, filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
@@ -38,80 +47,73 @@ export default async function AuditPage({
         title="History"
         description="New companies, wallets and accounts, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. Filter by name, action, subject, or dates, then download the result."
       />
-      <form className="mb-6 grid gap-3 panel p-4 md:grid-cols-5" method="get">
-        <label className="field">
-          <span>Name</span>
-          <input name="actor" defaultValue={filter.actor} placeholder="Who" />
-        </label>
-        <label className="field">
-          <span>Action</span>
-          <input name="action" defaultValue={filter.action} placeholder="journal.posted" />
-        </label>
-        <label className="field">
-          <span>Subject</span>
-          <select name="subjectType" defaultValue={filter.subjectType}>
-            <option value="">Any</option>
+      <FormCard className="mb-6 md:grid-cols-5" method="get">
+        <Field label="Name">
+          <Input name="actor" defaultValue={filter.actor} placeholder="Who" />
+        </Field>
+        <Field label="Action">
+          <Input name="action" defaultValue={filter.action} placeholder="journal.posted" />
+        </Field>
+        <Field label="Subject">
+          <NativeSelect name="subjectType" defaultValue={filter.subjectType}>
+            <NativeSelectOption value="">Any</NativeSelectOption>
             {subjectTypes.map((type) => (
-              <option key={type} value={type}>
+              <NativeSelectOption key={type} value={type}>
                 {subjectLabel(type)}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>From</span>
-          <input name="from" type="date" defaultValue={filter.from} />
-        </label>
-        <label className="field">
-          <span>To</span>
-          <input name="to" type="date" defaultValue={filter.to} />
-        </label>
+          </NativeSelect>
+        </Field>
+        <Field label="From">
+          <Input name="from" type="date" defaultValue={filter.from} />
+        </Field>
+        <Field label="To">
+          <Input name="to" type="date" defaultValue={filter.to} />
+        </Field>
         <div className="flex flex-wrap items-center gap-3 md:col-span-5">
-          <SubmitButton>
-            Filter
-          </SubmitButton>
-          <Link href="/dashboard/audit" className="text-sm underline">
+          <SubmitButton>Filter</SubmitButton>
+          <Link href="/dashboard/audit" className="text-sm text-link underline">
             Clear
           </Link>
           {canExport ? (
-            <a className="btn-secondary" href={`/dashboard/audit/export${exportQuery ? `?${exportQuery}` : ""}`}>
-              Download CSV
-            </a>
+            <Button asChild variant="secondary">
+              <a href={`/dashboard/audit/export${exportQuery ? `?${exportQuery}` : ""}`}>Download CSV</a>
+            </Button>
           ) : null}
         </div>
-      </form>
+      </FormCard>
 
       {events.length === 0 ? (
-        <p className="panel px-4 py-6 text-sm text-ink-soft">Nothing matches these filters.</p>
+        <EmptyState>Nothing matches these filters.</EmptyState>
       ) : (
-        <div className="overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard className="mt-0">
+          <Table>
             <caption className="sr-only">History</caption>
-            <thead>
-              <tr>
-                <th scope="col">When</th>
-                <th scope="col">Name</th>
-                <th scope="col">What happened</th>
-                <th scope="col">About</th>
-                <th scope="col">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>What happened</TableHead>
+                <TableHead>About</TableHead>
+                <TableHead>Detail</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {events.map((event) => (
-                <tr key={event.id}>
-                  <td className="num text-left">{event.occurredAt.slice(0, 16).replace("T", " ")}</td>
-                  <td>{event.actor}</td>
-                  <td>{actionLabel(event.action)}</td>
-                  <td>
+                <TableRow key={event.id}>
+                  <NumberCell align="left">{event.occurredAt.slice(0, 16).replace("T", " ")}</NumberCell>
+                  <TableCell>{event.actor}</TableCell>
+                  <TableCell>{actionLabel(event.action)}</TableCell>
+                  <TableCell>
                     {subjectLabel(event.subjectType)}
-                    <span className="mt-1 block text-xs text-ink-soft">{event.subjectId}</span>
-                  </td>
-                  <td>{event.detail}</td>
-                </tr>
+                    <span className="mt-1 block text-xs text-muted-foreground">{event.subjectId}</span>
+                  </TableCell>
+                  <TableCell>{event.detail}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
     </>
   );

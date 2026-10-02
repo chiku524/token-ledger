@@ -15,12 +15,18 @@ import {
   submitDraftAction,
   unmatchReconciliationAction,
 } from "@/app/dashboard/actions";
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
 import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOptGroup as OptGroup, NativeSelectOption as Option } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import type { Books } from "@/data/books";
 
 export function ReadOnlyNote({ demo = false }: { demo?: boolean }) {
   return (
-    <p className="mb-8 max-w-2xl text-sm leading-relaxed text-ink-soft">
+    <p className="mb-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
       {demo
         ? "This demo does not save. Connect a database, then sign in with a password."
         : "This sample is read-only. Connect a database to add companies, wallets, and entries."}
@@ -29,51 +35,43 @@ export function ReadOnlyNote({ demo = false }: { demo?: boolean }) {
 }
 
 export function RoleNote({ children }: { children: string }) {
-  return <p className="mb-8 max-w-2xl text-sm leading-relaxed text-ink-soft">{children}</p>;
+  return <p className="mb-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">{children}</p>;
 }
 
 export function EntityForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
-    <form action={createEntityAction} className="mb-10 grid gap-3 panel p-4 md:grid-cols-2">
+    <FormCard action={createEntityAction} title="Add a company" className="mb-10 md:grid-cols-2">
       <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="text-lg font-semibold tracking-tight md:col-span-2">Add a company</h2>
-      <label className="field">
-        <span>Name</span>
-        <input name="name" required maxLength={200} autoComplete="organization" />
-      </label>
-      <label className="field">
-        <span>Country code</span>
-        <input name="jurisdiction" required maxLength={2} placeholder="MY" className="uppercase" />
-      </label>
-      <label className="field">
-        <span>Currency</span>
-        <select name="functionalCurrency" defaultValue="MYR">
-          <option value="MYR">MYR</option>
-          <option value="SGD">SGD</option>
-          <option value="USD">USD</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Reporting standard</span>
-        <input name="reportingFramework" required defaultValue="IFRS" maxLength={40} />
-      </label>
-      <label className="field">
-        <span>Parent company</span>
-        <select name="parentEntityId" defaultValue="">
-          <option value="">None — this is the parent</option>
+      <Field label="Name">
+        <Input name="name" required maxLength={200} autoComplete="organization" />
+      </Field>
+      <Field label="Country code">
+        <Input name="jurisdiction" required maxLength={2} placeholder="MY" className="uppercase" />
+      </Field>
+      <Field label="Currency">
+        <NativeSelect name="functionalCurrency" defaultValue="MYR">
+          <Option value="MYR">MYR</Option>
+          <Option value="SGD">SGD</Option>
+          <Option value="USD">USD</Option>
+        </NativeSelect>
+      </Field>
+      <Field label="Reporting standard">
+        <Input name="reportingFramework" required defaultValue="IFRS" maxLength={40} />
+      </Field>
+      <Field label="Parent company">
+        <NativeSelect name="parentEntityId" defaultValue="">
+          <Option value="">None — this is the parent</Option>
           {books.entities.map((entity) => (
-            <option key={entity.id} value={entity.id}>
+            <Option key={entity.id} value={entity.id}>
               {entity.name}
-            </option>
+            </Option>
           ))}
-        </select>
-      </label>
+        </NativeSelect>
+      </Field>
       <div className="md:col-span-2">
-        <SubmitButton>
-          Add company
-        </SubmitButton>
+        <SubmitButton>Add company</SubmitButton>
       </div>
-    </form>
+    </FormCard>
   );
 }
 
@@ -88,24 +86,20 @@ export function ConnectionControls({
   revoked: boolean;
   next?: string;
 }) {
-  if (revoked) return <span className="text-sm text-ink-soft">Disconnected</span>;
+  if (revoked) return <span className="text-sm text-muted-foreground">Disconnected</span>;
   return (
     <div className="flex flex-wrap gap-2">
       <form action={refreshConnectionAction}>
         <input type="hidden" name="csrf" value={csrf} />
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="connectionId" value={connectionId} />
-        <SubmitButton variant="secondary">
-          Check
-        </SubmitButton>
+        <SubmitButton variant="secondary">Check</SubmitButton>
       </form>
       <form action={revokeConnectionAction}>
         <input type="hidden" name="csrf" value={csrf} />
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="connectionId" value={connectionId} />
-        <SubmitButton variant="secondary">
-          Disconnect
-        </SubmitButton>
+        <SubmitButton variant="secondary">Disconnect</SubmitButton>
       </form>
     </div>
   );
@@ -122,37 +116,30 @@ export function PeriodCloseForm({
 }) {
   if (entities.length === 0) return null;
   return (
-    <form action={closePeriodAction} className="mt-4 grid gap-3 panel p-4 md:grid-cols-4">
+    <FormCard action={closePeriodAction} title="Close a period" headingLevel="h3" className="mt-4 md:grid-cols-4">
       <input type="hidden" name="csrf" value={csrf} />
-      <h3 className="text-sm font-semibold tracking-tight md:col-span-4">Close a period</h3>
-      <label className="field">
-        <span>Company</span>
-        <select name="entityId" required defaultValue={entities[0]?.id}>
+      <Field label="Company">
+        <NativeSelect name="entityId" required defaultValue={entities[0]?.id}>
           {entities.map((entity) => (
-            <option key={entity.id} value={entity.id}>
+            <Option key={entity.id} value={entity.id}>
               {entity.name}
-            </option>
+            </Option>
           ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>From</span>
-        <input name="periodStart" type="date" required defaultValue={defaultDate} />
-      </label>
-      <label className="field">
-        <span>To</span>
-        <input name="periodEnd" type="date" required defaultValue={defaultDate} />
-      </label>
-      <label className="field">
-        <span>Note</span>
-        <input name="note" required maxLength={200} placeholder="Why this is closed" />
-      </label>
+        </NativeSelect>
+      </Field>
+      <Field label="From">
+        <Input name="periodStart" type="date" required defaultValue={defaultDate} />
+      </Field>
+      <Field label="To">
+        <Input name="periodEnd" type="date" required defaultValue={defaultDate} />
+      </Field>
+      <Field label="Note">
+        <Input name="note" required maxLength={200} placeholder="Why this is closed" />
+      </Field>
       <div className="md:col-span-4">
-        <SubmitButton>
-          Close period
-        </SubmitButton>
+        <SubmitButton>Close period</SubmitButton>
       </div>
-    </form>
+    </FormCard>
   );
 }
 
@@ -166,34 +153,30 @@ export function MatchControls({
   csrf: string;
 }) {
   return (
-    <form action={matchReconciliationAction} className="grid gap-2">
+    <form action={matchReconciliationAction} className="grid min-w-60 gap-2">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
-      <select name="journalLine" required className="text-sm">
-        <option value="">Choose a journal line…</option>
+      <NativeSelect name="journalLine" required aria-label="Journal line">
+        <Option value="">Choose a journal line…</Option>
         {candidates.map((candidate) => (
-          <option key={candidate.id} value={candidate.id}>
+          <Option key={candidate.id} value={candidate.id}>
             {candidate.label}
-          </option>
+          </Option>
         ))}
-      </select>
-      <input name="note" required maxLength={200} placeholder="Why this match" className="text-sm" />
-      <SubmitButton variant="secondary">
-        Match
-      </SubmitButton>
+      </NativeSelect>
+      <Input name="note" required maxLength={200} placeholder="Why this match" aria-label="Note" />
+      <SubmitButton variant="secondary">Match</SubmitButton>
     </form>
   );
 }
 
 export function UnmatchControls({ sourceTransactionId, csrf }: { sourceTransactionId: string; csrf: string }) {
   return (
-    <form action={unmatchReconciliationAction} className="grid gap-2">
+    <form action={unmatchReconciliationAction} className="grid min-w-60 gap-2">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
-      <input name="note" required maxLength={200} placeholder="Why this is not a match" className="text-sm" />
-      <SubmitButton variant="secondary">
-        Unmatch
-      </SubmitButton>
+      <Input name="note" required maxLength={200} placeholder="Why this is not a match" aria-label="Note" />
+      <SubmitButton variant="secondary">Unmatch</SubmitButton>
     </form>
   );
 }
@@ -203,50 +186,44 @@ export function DraftSubmitControls({ draftId, csrf }: { draftId: string; csrf: 
     <form action={submitDraftAction}>
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="draftId" value={draftId} />
-      <SubmitButton variant="secondary">
-        Submit for approval
-      </SubmitButton>
+      <SubmitButton variant="secondary">Submit for approval</SubmitButton>
     </form>
   );
 }
 
 export function DraftApprovalControls({ draftId, csrf, isOwner }: { draftId: string; csrf: string; isOwner: boolean }) {
   return (
-    <div className="grid gap-2">
-      <form action={approveDraftAction} className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="csrf" value={csrf} />
-        <input type="hidden" name="draftId" value={draftId} />
-        {isOwner ? (
-          <input
-            name="overrideNote"
-            placeholder="Owner override note (only if you prepared it)"
-            maxLength={200}
-            className="text-sm"
-          />
-        ) : null}
-        <SubmitButton>
-          Approve and post
-        </SubmitButton>
-      </form>
-    </div>
+    <form action={approveDraftAction} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="csrf" value={csrf} />
+      <input type="hidden" name="draftId" value={draftId} />
+      {isOwner ? (
+        <Input
+          name="overrideNote"
+          placeholder="Owner override note (only if you prepared it)"
+          maxLength={200}
+          aria-label="Owner override note"
+          className="w-72"
+        />
+      ) : null}
+      <SubmitButton>Approve and post</SubmitButton>
+    </form>
   );
 }
 
 export function RevaluationForm({ entityId, asOf, csrf }: { entityId: string; asOf: string; csrf: string }) {
   return (
-    <form action={postRevaluationAction} className="mt-4 flex flex-wrap items-end gap-3 panel p-4">
+    <FormCard action={postRevaluationAction} className="mt-4 flex flex-wrap items-end">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="entityId" value={entityId} />
       <input type="hidden" name="asOf" value={asOf} />
-      <label className="field">
-        <span>Reference</span>
-        <input name="reference" required maxLength={40} placeholder="REVAL-2026-06" />
-      </label>
-      <SubmitButton>
-        Post revaluation entry
-      </SubmitButton>
-      <span className="text-sm text-ink-soft">Posts one balanced entry for the net difference. Reverse it if the price was wrong.</span>
-    </form>
+      <Field label="Reference">
+        <Input name="reference" required maxLength={40} placeholder="REVAL-2026-06" />
+      </Field>
+      <SubmitButton>Post revaluation entry</SubmitButton>
+      <span className="text-sm text-muted-foreground">
+        Posts one balanced entry for the net difference. Reverse it if the price was wrong.
+      </span>
+    </FormCard>
   );
 }
 
@@ -255,10 +232,8 @@ export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf
     <form action={refreshMarketDataAction} className="flex flex-wrap items-center gap-3">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="next" value={next} />
-      <SubmitButton variant="secondary">
-        Refresh prices and rates
-      </SubmitButton>
-      <span className="text-sm text-ink-soft">
+      <SubmitButton variant="secondary">Refresh prices and rates</SubmitButton>
+      <span className="text-sm text-muted-foreground">
         Fetches live prices and FX rates, stored with their source and date. Never posts a journal.
       </span>
     </form>
@@ -267,183 +242,170 @@ export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf
 
 export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
   return (
-    <form action={importCsvAction} className="grid gap-3 panel p-4">
+    <FormCard
+      action={importCsvAction}
+      title="Import activity"
+      description="Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian. It does not create a journal entry."
+    >
       <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="text-lg font-semibold tracking-tight">Import activity</h2>
-      <p className="max-w-2xl text-sm leading-relaxed text-ink-soft">
-        Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the
-        amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian. It does not
-        create a journal entry.
-      </p>
-      <label className="field">
-        <span>Held at</span>
-        <select name="sourceId" required defaultValue={books.sources[0]?.id}>
+      <Field label="Held at">
+        <NativeSelect name="sourceId" required defaultValue={books.sources[0]?.id}>
           {books.sources.map((source) => (
-            <option key={source.id} value={source.id}>
+            <Option key={source.id} value={source.id}>
               {source.name}
-            </option>
+            </Option>
           ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>CSV file</span>
-        <input name="file" type="file" accept=".csv,text/csv" />
-      </label>
-      <label className="field">
-        <span>Or paste CSV</span>
-        <textarea name="csv" rows={4} spellCheck={false} className="font-mono text-xs" />
-      </label>
+        </NativeSelect>
+      </Field>
+      <Field label="CSV file">
+        <Input name="file" type="file" accept=".csv,text/csv" />
+      </Field>
+      <Field label="Or paste CSV">
+        <Textarea name="csv" rows={4} spellCheck={false} className="font-mono text-xs" />
+      </Field>
       <div>
-        <SubmitButton>
-          Import activity
-        </SubmitButton>
+        <SubmitButton>Import activity</SubmitButton>
       </div>
-    </form>
+    </FormCard>
   );
 }
 
 export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
   const accounts = books.accounts;
   return (
-    <form action={postJournalAction} className="mb-10 grid gap-3 panel p-4">
+    <FormCard
+      action={postJournalAction}
+      title="Post an entry"
+      description="Debits must equal credits, in the company's currency. Leave unused lines blank. A token amount needs the asset, whether it was received or sent, and where it was held."
+      className="mb-10"
+    >
       <input type="hidden" name="csrf" value={csrf} />
-      <h2 className="text-lg font-semibold tracking-tight">Post an entry</h2>
-      <p className="max-w-2xl text-sm leading-relaxed text-ink-soft">
-        Debits must equal credits, in the company&apos;s currency. Leave unused lines blank. A token amount needs the
-        asset, whether it was received or sent, and where it was held.
-      </p>
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="field">
-          <span>Company</span>
-          <select name="entityId" required defaultValue={books.entities[0]?.id}>
+        <Field label="Company">
+          <NativeSelect name="entityId" required defaultValue={books.entities[0]?.id}>
             {books.entities.map((entity) => (
-              <option key={entity.id} value={entity.id}>
+              <Option key={entity.id} value={entity.id}>
                 {entity.name}
-              </option>
+              </Option>
             ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Reference</span>
-          <input name="reference" required maxLength={40} />
-        </label>
-        <label className="field">
-          <span>Date</span>
-          <input name="entryDate" type="date" required defaultValue={books.period.end} />
-        </label>
-        <label className="field md:col-span-2">
-          <span>Memo</span>
-          <input name="memo" required maxLength={500} />
-        </label>
+          </NativeSelect>
+        </Field>
+        <Field label="Reference">
+          <Input name="reference" required maxLength={40} />
+        </Field>
+        <Field label="Date">
+          <Input name="entryDate" type="date" required defaultValue={books.period.end} />
+        </Field>
+        <Field label="Memo" className="md:col-span-2">
+          <Input name="memo" required maxLength={500} />
+        </Field>
       </div>
-      <div className="overflow-x-auto">
-        <table className="ledger-table">
+      <div className="rounded-lg border border-border">
+        <Table>
           <caption className="sr-only">Journal lines</caption>
-          <thead>
-            <tr>
-              <th scope="col">Account</th>
-              <th scope="col">Side</th>
-              <th scope="col">Amount</th>
-              <th scope="col">Asset</th>
-              <th scope="col">Quantity</th>
-              <th scope="col">Movement</th>
-              <th scope="col">Held at</th>
-            </tr>
-          </thead>
-          <tbody>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">Account</TableHead>
+              <TableHead scope="col">Side</TableHead>
+              <TableHead scope="col">Amount</TableHead>
+              <TableHead scope="col">Asset</TableHead>
+              <TableHead scope="col">Quantity</TableHead>
+              <TableHead scope="col">Movement</TableHead>
+              <TableHead scope="col">Held at</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {[0, 1, 2, 3].map((index) => (
-              <tr key={index}>
-                <td>
+              <TableRow key={index}>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_account`}>
                     Line {index + 1} account
                   </label>
-                  <select id={`line${index}_account`} name={`line${index}_account`} defaultValue="">
-                    <option value="">—</option>
+                  <NativeSelect id={`line${index}_account`} name={`line${index}_account`} defaultValue="" className="min-w-44">
+                    <Option value="">—</Option>
                     {books.entities.map((entity) => (
-                      <optgroup key={entity.id} label={entity.name}>
+                      <OptGroup key={entity.id} label={entity.name}>
                         {accounts
                           .filter((account) => account.entityId === entity.id)
                           .map((account) => (
-                            <option key={account.id} value={account.code}>
+                            <Option key={account.id} value={account.code}>
                               {account.code} {account.name}
-                            </option>
+                            </Option>
                           ))}
-                      </optgroup>
+                      </OptGroup>
                     ))}
-                  </select>
-                </td>
-                <td>
+                  </NativeSelect>
+                </TableCell>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_side`}>
                     Line {index + 1} side
                   </label>
-                  <select id={`line${index}_side`} name={`line${index}_side`} defaultValue="debit">
-                    <option value="debit">Debit</option>
-                    <option value="credit">Credit</option>
-                  </select>
-                </td>
-                <td>
+                  <NativeSelect id={`line${index}_side`} name={`line${index}_side`} defaultValue="debit" className="min-w-28">
+                    <Option value="debit">Debit</Option>
+                    <Option value="credit">Credit</Option>
+                  </NativeSelect>
+                </TableCell>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_amount`}>
                     Line {index + 1} amount
                   </label>
-                  <input id={`line${index}_amount`} name={`line${index}_amount`} inputMode="decimal" className="w-28" />
-                </td>
-                <td>
+                  <Input id={`line${index}_amount`} name={`line${index}_amount`} inputMode="decimal" className="w-28" />
+                </TableCell>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_asset`}>
                     Line {index + 1} asset
                   </label>
-                  <select id={`line${index}_asset`} name={`line${index}_asset`} defaultValue="">
-                    <option value="">—</option>
+                  <NativeSelect id={`line${index}_asset`} name={`line${index}_asset`} defaultValue="" className="min-w-24">
+                    <Option value="">—</Option>
                     {books.assets.map((asset) => (
-                      <option key={asset.id} value={asset.code}>
+                      <Option key={asset.id} value={asset.code}>
                         {asset.code}
-                      </option>
+                      </Option>
                     ))}
-                  </select>
-                </td>
-                <td>
+                  </NativeSelect>
+                </TableCell>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_quantity`}>
                     Line {index + 1} quantity
                   </label>
-                  <input id={`line${index}_quantity`} name={`line${index}_quantity`} inputMode="decimal" className="w-24" />
-                </td>
-                <td>
+                  <Input id={`line${index}_quantity`} name={`line${index}_quantity`} inputMode="decimal" className="w-24" />
+                </TableCell>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_direction`}>
                     Line {index + 1} movement
                   </label>
-                  <select id={`line${index}_direction`} name={`line${index}_direction`} defaultValue="">
-                    <option value="">—</option>
-                    <option value="in">Received</option>
-                    <option value="out">Sent</option>
-                  </select>
-                </td>
-                <td>
+                  <NativeSelect id={`line${index}_direction`} name={`line${index}_direction`} defaultValue="" className="min-w-32">
+                    <Option value="">—</Option>
+                    <Option value="in">Received</Option>
+                    <Option value="out">Sent</Option>
+                  </NativeSelect>
+                </TableCell>
+                <TableCell className="px-2 py-2">
                   <label className="sr-only" htmlFor={`line${index}_source`}>
                     Line {index + 1} held at
                   </label>
-                  <select id={`line${index}_source`} name={`line${index}_source`} defaultValue="">
-                    <option value="">—</option>
+                  <NativeSelect id={`line${index}_source`} name={`line${index}_source`} defaultValue="" className="min-w-40">
+                    <Option value="">—</Option>
                     {books.sources.map((source) => (
-                      <option key={source.id} value={source.id}>
+                      <Option key={source.id} value={source.id}>
                         {source.name}
-                      </option>
+                      </Option>
                     ))}
-                  </select>
-                </td>
-              </tr>
+                  </NativeSelect>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <SubmitButton>
-          Post entry
-        </SubmitButton>
+        <SubmitButton>Post entry</SubmitButton>
         <SubmitButton variant="secondary" formAction={prepareJournalAction}>
           Save as draft
         </SubmitButton>
-        <span className="text-sm text-ink-soft">A draft is not in the books until an approver posts it.</span>
+        <span className="text-sm text-muted-foreground">A draft is not in the books until an approver posts it.</span>
       </div>
-    </form>
+    </FormCard>
   );
 }
 
@@ -455,25 +417,20 @@ export function ReverseJournalForm({
   entry: { id: string; reference: string; entryDate: string };
 }) {
   return (
-    <form action={reverseJournalAction} className="grid gap-3 border-t border-line px-4 py-3 md:grid-cols-3">
+    <form action={reverseJournalAction} className="grid gap-3 border-t border-border px-4 py-3 md:grid-cols-3">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="entryId" value={entry.id} />
-      <label className="field">
-        <span>Correction reference</span>
-        <input name="reference" required defaultValue={`${entry.reference}-R`} maxLength={40} />
-      </label>
-      <label className="field">
-        <span>Correction date</span>
-        <input name="entryDate" type="date" required defaultValue={entry.entryDate} />
-      </label>
-      <label className="field md:col-span-3">
-        <span>Memo</span>
-        <input name="memo" required maxLength={500} defaultValue={`Correct ${entry.reference}.`} />
-      </label>
+      <Field label="Correction reference">
+        <Input name="reference" required defaultValue={`${entry.reference}-R`} maxLength={40} />
+      </Field>
+      <Field label="Correction date">
+        <Input name="entryDate" type="date" required defaultValue={entry.entryDate} />
+      </Field>
+      <Field label="Memo" className="md:col-span-3">
+        <Input name="memo" required maxLength={500} defaultValue={`Correct ${entry.reference}.`} />
+      </Field>
       <div className="md:col-span-3">
-        <SubmitButton variant="secondary">
-          Post correction
-        </SubmitButton>
+        <SubmitButton variant="secondary">Post correction</SubmitButton>
       </div>
     </form>
   );
@@ -481,37 +438,31 @@ export function ReverseJournalForm({
 
 export function FxRateForm({ csrf, defaultDate }: { csrf: string; defaultDate: string }) {
   return (
-    <form action={createFxRateAction} className="mt-4 grid gap-3 panel p-4 md:grid-cols-2">
+    <FormCard
+      action={createFxRateAction}
+      title="Add a rate"
+      description="Save one direction. The other direction is calculated from it, so the two cannot disagree."
+      className="mt-4 md:grid-cols-2"
+    >
       <input type="hidden" name="csrf" value={csrf} />
-      <h3 className="text-lg font-semibold tracking-tight md:col-span-2">Add a rate</h3>
-      <p className="text-sm text-ink-soft md:col-span-2">
-        Save one direction. The other direction is calculated from it, so the two cannot disagree.
-      </p>
-      <label className="field">
-        <span>Base</span>
-        <input name="baseCurrency" required maxLength={3} defaultValue="MYR" className="uppercase" />
-      </label>
-      <label className="field">
-        <span>Quote</span>
-        <input name="quoteCurrency" required maxLength={3} defaultValue="SGD" className="uppercase" />
-      </label>
-      <label className="field">
-        <span>Rate (quote per 1 base)</span>
-        <input name="rate" required inputMode="decimal" placeholder="0.3000" />
-      </label>
-      <label className="field">
-        <span>As of</span>
-        <input name="asOf" type="date" required defaultValue={defaultDate} />
-      </label>
-      <label className="field md:col-span-2">
-        <span>Note</span>
-        <input name="note" required maxLength={300} />
-      </label>
+      <Field label="Base">
+        <Input name="baseCurrency" required maxLength={3} defaultValue="MYR" className="uppercase" />
+      </Field>
+      <Field label="Quote">
+        <Input name="quoteCurrency" required maxLength={3} defaultValue="SGD" className="uppercase" />
+      </Field>
+      <Field label="Rate (quote per 1 base)">
+        <Input name="rate" required inputMode="decimal" placeholder="0.3000" />
+      </Field>
+      <Field label="As of">
+        <Input name="asOf" type="date" required defaultValue={defaultDate} />
+      </Field>
+      <Field label="Note" className="md:col-span-2">
+        <Input name="note" required maxLength={300} />
+      </Field>
       <div className="md:col-span-2">
-        <SubmitButton>
-          Save rate
-        </SubmitButton>
+        <SubmitButton>Save rate</SubmitButton>
       </div>
-    </form>
+    </FormCard>
   );
 }

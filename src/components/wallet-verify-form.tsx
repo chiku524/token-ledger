@@ -2,9 +2,15 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { issueOwnershipChallenge, verifyWalletOwnershipAction } from "@/app/dashboard/wallet-actions";
 import { connectEvm, signEvm, signSolana, type Eip1193Provider, type SolanaSigner } from "@/auth/wallet-signer";
 import type { OwnershipChain } from "@/auth/wallet-ownership";
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption as Option } from "@/components/ui/native-select";
 import type { Books } from "@/data/books";
 
 const ReownConnect = dynamic(() => import("./reown-connect").then((mod) => mod.ReownConnect), { ssr: false });
@@ -51,58 +57,64 @@ export function WalletVerifyForm({
   }
 
   return (
-    <form id="verify-wallet" className="grid scroll-mt-6 gap-3 panel p-4 md:grid-cols-2">
+    <FormCard
+      id="verify-wallet"
+      title="Connect and sign"
+      description="The wallet signs a message that names this site, this organization, and this address. The message says it does not authorize a transfer. Disconnecting the wallet later does not remove the address from the books."
+      className="scroll-mt-6 md:grid-cols-2"
+    >
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="next" value={next} />
-      <h2 className="text-lg font-semibold tracking-tight md:col-span-2">Connect and sign</h2>
-      <p className="max-w-2xl text-sm leading-relaxed text-ink-soft md:col-span-2">
-        The wallet signs a message that names this site, this organization, and this address. The message says it does
-        not authorize a transfer. Disconnecting the wallet later does not remove the address from the books.
-      </p>
-      <label className="field">
-        <span>Company</span>
-        <select name="entityId" required defaultValue={books.entities[0]?.id}>
+      <Field label="Company">
+        <NativeSelect name="entityId" required defaultValue={books.entities[0]?.id}>
           {books.entities.map((entity) => (
-            <option key={entity.id} value={entity.id}>
+            <Option key={entity.id} value={entity.id}>
               {entity.name}
-            </option>
+            </Option>
           ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>Name</span>
-        <input name="name" required maxLength={200} />
-      </label>
-      <label className="field">
-        <span>Network</span>
-        <select name="chain" value={chain} onChange={(event) => setChain(event.target.value as OwnershipChain)}>
-          <option value="ethereum">Ethereum</option>
-          <option value="solana">Solana</option>
-          <option value="polygon">Polygon</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Wallet type</span>
-        <select name="role" defaultValue="hot">
-          <option value="hot">Hot wallet</option>
-          <option value="cold">Cold wallet</option>
-          <option value="staking">Staking</option>
-        </select>
-      </label>
+        </NativeSelect>
+      </Field>
+      <Field label="Name">
+        <Input name="name" required maxLength={200} />
+      </Field>
+      <Field label="Network">
+        <NativeSelect name="chain" value={chain} onChange={(event) => setChain(event.target.value as OwnershipChain)}>
+          <Option value="ethereum">Ethereum</Option>
+          <Option value="solana">Solana</Option>
+          <Option value="polygon">Polygon</Option>
+        </NativeSelect>
+      </Field>
+      <Field label="Wallet type">
+        <NativeSelect name="role" defaultValue="hot">
+          <Option value="hot">Hot wallet</Option>
+          <Option value="cold">Cold wallet</Option>
+          <Option value="staking">Staking</Option>
+        </NativeSelect>
+      </Field>
       <div className="flex flex-wrap gap-3 md:col-span-2">
-        <button type="button" className="btn" disabled={busy} onClick={() => void installed(chain, prove, setError)}>
+        <Button
+          type="button"
+          disabled={busy}
+          aria-busy={busy}
+          onClick={() => void installed(chain, prove, setError)}
+        >
+          {busy ? <Loader2 className="animate-spin" aria-hidden /> : null}
           {busy ? "Waiting for the wallet" : "Sign with installed wallet"}
-        </button>
+        </Button>
         {projectId ? (
           <ReownConnect projectId={projectId} chain={chain} disabled={busy} onProve={prove} />
         ) : (
-          <button type="button" className="btn" disabled>
+          <Button type="button" variant="secondary" disabled>
             WalletConnect is not configured
-          </button>
+          </Button>
         )}
       </div>
-      {error ? <p className="text-sm text-seal md:col-span-2">{error}</p> : null}
-    </form>
+      {error ? (
+        <p role="alert" className="text-sm text-danger md:col-span-2">
+          {error}
+        </p>
+      ) : null}
+    </FormCard>
   );
 }
 

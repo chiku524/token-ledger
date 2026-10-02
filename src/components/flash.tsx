@@ -1,16 +1,18 @@
+import { Alert } from "@/components/ui/alert";
+
 export function Flash({ error, saved }: { error?: string; saved?: string }) {
   if (error) {
     return (
-      <p role="alert" className="mb-6 rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal">
+      <Alert variant="destructive" className="mb-6">
         {error}
-      </p>
+      </Alert>
     );
   }
   if (saved) {
     return (
-      <p role="status" className="mb-6 rounded-xl border border-pine/30 bg-paper-raised px-4 py-3 text-sm text-pine">
+      <Alert variant="success" role="status" className="mb-6">
         {saved}
-      </p>
+      </Alert>
     );
   }
   return null;

@@ -1,3 +1,11 @@
+import { GitCompare } from "lucide-react";
+import { EmptyState } from "@/components/app/empty-state";
+import { SectionHeader } from "@/components/app/section-header";
+import { StatusBadge } from "@/components/app/status-badge";
+import { NumberCell } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
+import { Flash } from "@/components/flash";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SubmitButton } from "@/components/submit-button";
 import { StatusBars, StatusDonut } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
@@ -56,11 +64,7 @@ export default async function ReconciliationPage({
         title="Matching"
         description="Activity from each wallet, exchange, and custodian is compared with the journal. Same company, place, asset, direction, and amount. Anything left over is unmatched."
       />
-      {!parsed.ok ? (
-        <p role="alert" className="mb-6 text-sm text-seal">
-          {parsed.message}
-        </p>
-      ) : null}
+      <Flash error={parsed.ok ? undefined : parsed.message} />
       <PeriodForm path="/dashboard/reconciliation" range={range} />
       {!writable ? <div className="mb-4"><ReadOnlyNote demo={session.demo} /></div> : null}
       {!canMatch ? (
@@ -69,7 +73,7 @@ export default async function ReconciliationPage({
         </div>
       ) : null}
       {ordered.length === 0 ? (
-        <p className="panel px-4 py-6 text-sm text-ink-soft">Nothing to match in these dates.</p>
+        <EmptyState icon={GitCompare}>Nothing to match in these dates.</EmptyState>
       ) : (
         <>
           <div className="mb-8 grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -91,105 +95,104 @@ export default async function ReconciliationPage({
               <StatusBars rows={bySource} />
             </ChartFrame>
           </div>
-          <div className="overflow-x-auto panel">
-            <table className="ledger-table">
+          <TableCard className="mt-0">
+            <Table>
               <caption className="sr-only">Matching for {range.from} to {range.to}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Status</th>
-                  <th scope="col">Date</th>
-                  <th scope="col">Held at</th>
-                  <th scope="col">Reference</th>
-                  <th scope="col">Entry</th>
-                  <th scope="col">Amount</th>
-                  <th scope="col">Note</th>
-                  {canMatch && writable ? <th scope="col">Action</th> : null}
-                </tr>
-              </thead>
-              <tbody>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Held at</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Entry</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Note</TableHead>
+                  {canMatch && writable ? <TableHead>Action</TableHead> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {ordered.map((record) => {
                   const transaction = record.sourceTransactionId ? transactionById.get(record.sourceTransactionId) : undefined;
                   const candidates = transaction ? candidateJournalLines(transaction, movements, referenceOf) : [];
                   return (
-                    <tr key={record.id}>
-                      <td className={record.status === "exception" ? "font-medium text-seal" : "text-pine"}>
-                        {record.status === "exception" ? "Unmatched" : "Matched"}
-                      </td>
-                      <td className="num text-left">{record.periodStart}</td>
-                      <td>{sourceName(record.sourceId, books.sources)}</td>
-                      <td className="num text-left">{record.sourceTransactionId ? externalId.get(record.sourceTransactionId) : "—"}</td>
-                      <td>
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <StatusBadge tone={record.status === "exception" ? "danger" : "success"}>
+                          {record.status === "exception" ? "Unmatched" : "Matched"}
+                        </StatusBadge>
+                      </TableCell>
+                      <NumberCell align="left">{record.periodStart}</NumberCell>
+                      <TableCell>{sourceName(record.sourceId, books.sources)}</TableCell>
+                      <NumberCell align="left">{record.sourceTransactionId ? externalId.get(record.sourceTransactionId) : "—"}</NumberCell>
+                      <TableCell>
                         {record.journalEntryId
                           ? `${books.journalEntries.find((entry) => entry.id === record.journalEntryId)?.reference ?? record.journalEntryId}:${record.journalLineNumber}`
                           : "—"}
-                      </td>
-                      <td className="num">
+                      </TableCell>
+                      <NumberCell align="left">
                         {movementLabel(record.direction)} {formatQuantity(record.quantityMinor, record.assetCode, books.assets)}
-                      </td>
-                      <td>{record.note}</td>
+                      </NumberCell>
+                      <TableCell>{record.note}</TableCell>
                       {canMatch && writable ? (
-                        <td>
+                        <TableCell>
                           {record.status === "exception" && transaction ? (
                             <MatchControls sourceTransactionId={transaction.id} candidates={candidates} csrf={csrf} />
                           ) : record.sourceTransactionId ? (
                             <UnmatchControls sourceTransactionId={record.sourceTransactionId} csrf={csrf} />
                           ) : null}
-                        </td>
+                        </TableCell>
                       ) : null}
-                    </tr>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </TableCard>
         </>
       )}
 
       {writable && canMatch ? (
         <section className="mt-10">
-          <h2 className="text-lg font-semibold tracking-tight">Period close</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-            A closed period cannot be posted to, reversed, or re-matched until it is reopened. Closing is for an owner or
-            admin.
-          </p>
+          <SectionHeader
+            title="Period close"
+            description="A closed period cannot be posted to, reversed, or re-matched until it is reopened. Closing is for an owner or admin."
+          />
           {locks.length > 0 ? (
-            <div className="mt-4 overflow-x-auto panel">
-              <table className="ledger-table">
+            <TableCard>
+              <Table>
                 <caption className="sr-only">Closed periods</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Company</th>
-                    <th scope="col">From</th>
-                    <th scope="col">To</th>
-                    <th scope="col">Note</th>
-                    {canClose ? <th scope="col">Action</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
+                    <TableHead>Note</TableHead>
+                    {canClose ? <TableHead>Action</TableHead> : null}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {locks.map((lock) => (
-                    <tr key={lock.id}>
-                      <td>{entityName(lock.entityId, books.entities)}</td>
-                      <td>{lock.periodStart}</td>
-                      <td>{lock.periodEnd}</td>
-                      <td>{lock.note}</td>
+                    <TableRow key={lock.id}>
+                      <TableCell>{entityName(lock.entityId, books.entities)}</TableCell>
+                      <TableCell>{lock.periodStart}</TableCell>
+                      <TableCell>{lock.periodEnd}</TableCell>
+                      <TableCell>{lock.note}</TableCell>
                       {canClose ? (
-                        <td>
+                        <TableCell>
                           <form action={reopenPeriodAction}>
                             <input type="hidden" name="csrf" value={csrf} />
                             <input type="hidden" name="lockId" value={lock.id} />
-                            <SubmitButton variant="secondary">
-                              Reopen
-                            </SubmitButton>
+                            <SubmitButton variant="secondary">Reopen</SubmitButton>
                           </form>
-                        </td>
+                        </TableCell>
                       ) : null}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </TableCard>
           ) : (
-            <p className="mt-4 panel px-4 py-6 text-sm text-ink-soft">No periods are closed.</p>
+            <EmptyState className="mt-4">No periods are closed.</EmptyState>
           )}
           {canClose ? <PeriodCloseForm entities={books.entities} csrf={csrf} defaultDate={range.to} /> : null}
         </section>

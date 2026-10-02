@@ -10,14 +10,30 @@ vi.mock("@/app/dashboard/tour-actions", () => ({
   completeConnectionTourAction: async () => undefined,
 }));
 
-import { ConnectionTour } from "./connection-tour";
+import { Dialog } from "@/components/ui/dialog";
+import { ConnectionTourStep } from "./connection-tour";
 
-describe("ConnectionTour", () => {
+function render(step: number) {
+  return renderToStaticMarkup(
+    <Dialog open>
+      <ConnectionTourStep step={step} error={null} onBack={() => undefined} onNext={() => undefined} onFinish={() => undefined} />
+    </Dialog>,
+  );
+}
+
+describe("ConnectionTourStep", () => {
   it("opens on the read-only explanation", () => {
-    const html = renderToStaticMarkup(<ConnectionTour csrf="csrf" />);
+    const html = render(0);
     expect(html).toContain("Connection tour");
     expect(html).toContain("A connection only reads");
     expect(html).toContain("1 of 5");
     expect(html).toContain("does not store an API key");
+    expect(html).not.toContain("Back");
+  });
+
+  it("offers the guide on the last step", () => {
+    const html = render(4);
+    expect(html).toContain("Finish");
+    expect(html).toContain("Open the guide");
   });
 });

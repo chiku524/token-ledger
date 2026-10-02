@@ -4,7 +4,16 @@ import { changeAccessAction, deactivateUserAction, inviteUserAction } from "@/ap
 import { ensureCsrf } from "@/auth/current";
 import { EXAMPLE_USERS } from "@/auth/example-users";
 import { can, canAssignRole, canDeactivate, removesLastOwner, roleLabel, ROLES } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
+import { StatusBadge } from "@/components/app/status-badge";
+import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
+import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { one } from "@/data/query";
@@ -31,9 +40,7 @@ export default async function UsersPage({
           title="Users"
           description="Owners and admins decide who can sign in. You can view the books and download CSVs."
         />
-        <p className="panel px-4 py-6 text-sm text-ink-soft">
-          You do not have permission to manage users.
-        </p>
+        <EmptyState>You do not have permission to manage users.</EmptyState>
       </>
     );
   }
@@ -72,44 +79,39 @@ export default async function UsersPage({
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       {inviteLink ? (
-        <p role="status" className="mb-6 border border-pine/40 bg-paper-raised px-4 py-3 text-sm text-pine">
+        <Alert variant="success" role="status" className="mb-6">
           {emailed
             ? `Invite emailed to ${invite?.email}. You can also share the link below.`
             : `Invite link for ${invite?.email}. ${emailConfigured ? "The email could not be sent." : "Email is not configured, so it is shown here."} Copy it now.`}{" "}
           It expires in 7 days.
-          <span className="mt-2 block font-mono text-xs break-all text-ink">{inviteLink}</span>
-        </p>
+          <span className="mt-2 block font-mono text-xs break-all text-foreground">{inviteLink}</span>
+        </Alert>
       ) : null}
       {session.demo ? (
-        <p className="mb-6 text-sm leading-relaxed text-ink-soft">
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           This demo lists the sample Harbourline staff and shows the invite form. Adding a person needs a database.
         </p>
       ) : null}
-      <form action={inviteUserAction} className="mb-10 grid gap-3 panel p-4 md:grid-cols-2">
-        <h2 className="text-lg font-semibold tracking-tight md:col-span-2">Invite someone</h2>
+      <FormCard action={inviteUserAction} title="Invite someone" className="mb-10 md:grid-cols-2">
         <input type="hidden" name="csrf" value={csrf} />
-        <label className="field">
-          <span>Name</span>
-          <input name="name" required maxLength={80} autoComplete="name" />
-        </label>
-        <label className="field">
-          <span>Email</span>
-          <input name="email" type="email" required maxLength={200} autoComplete="off" />
-        </label>
-        <label className="field">
-          <span>Role</span>
-          <select name="role" defaultValue={assignable.includes("accountant") ? "accountant" : assignable[0]}>
+        <Field label="Name">
+          <Input name="name" required maxLength={80} autoComplete="name" />
+        </Field>
+        <Field label="Email">
+          <Input name="email" type="email" required maxLength={200} autoComplete="off" />
+        </Field>
+        <Field label="Role">
+          <NativeSelect name="role" defaultValue={assignable.includes("accountant") ? "accountant" : assignable[0]}>
             {assignable.map((role) => (
-              <option key={role} value={role}>
+              <NativeSelectOption key={role} value={role}>
                 {roleLabel(role)}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Companies</span>
-          <input name="entityScope" placeholder="Blank for every company" list="entity-ids" />
-        </label>
+          </NativeSelect>
+        </Field>
+        <Field label="Companies">
+          <Input name="entityScope" placeholder="Blank for every company" list="entity-ids" />
+        </Field>
         <datalist id="entity-ids">
           {books.entities.map((entity) => (
             <option key={entity.id} value={entity.id}>
@@ -117,41 +119,43 @@ export default async function UsersPage({
             </option>
           ))}
         </datalist>
-        <p className="text-sm text-ink-soft md:col-span-2">
+        <p className="text-sm text-muted-foreground md:col-span-2">
           Leave this blank for every company. A comma-separated list limits an accountant or viewer to those companies. Owners and admins always see every company.
         </p>
         <div className="md:col-span-2">
-          <SubmitButton>
-            Create invite link
-          </SubmitButton>
+          <SubmitButton>Create invite link</SubmitButton>
         </div>
-      </form>
-      <div className="overflow-x-auto panel">
-        <table className="ledger-table">
+      </FormCard>
+      <TableCard className="mt-0">
+        <Table>
           <caption className="sr-only">Organization users</caption>
-          <thead>
-            <tr>
-              <th scope="col">Person</th>
-              <th scope="col">Role</th>
-              <th scope="col">Status</th>
-                <th scope="col">Companies</th>
-              <th scope="col">Access</th>
-            </tr>
-          </thead>
-          <tbody>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Person</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Companies</TableHead>
+              <TableHead>Access</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {people.map((person) => {
               const lastOwner = removesLastOwner(owners, person.id, "inactive");
               const roleChoices = ROLES.filter((role) => canAssignRole(session, role, person) || role === person.role);
               return (
-                <tr key={person.id}>
-                  <td>
+                <TableRow key={person.id}>
+                  <TableCell>
                     {person.name}
-                    <span className="mt-1 block text-xs text-ink-soft">{person.email}</span>
-                  </td>
-                  <td>{roleLabel(person.role)}</td>
-                  <td className="capitalize">{person.status}</td>
-                  <td>{person.entityScope.length === 0 ? "All companies" : person.entityScope.join(", ")}</td>
-                  <td>
+                    <span className="mt-1 block text-xs text-muted-foreground">{person.email}</span>
+                  </TableCell>
+                  <TableCell>{roleLabel(person.role)}</TableCell>
+                  <TableCell>
+                    <StatusBadge tone={person.status === "active" ? "success" : "neutral"} className="capitalize">
+                      {person.status}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell>{person.entityScope.length === 0 ? "All companies" : person.entityScope.join(", ")}</TableCell>
+                  <TableCell>
                     {database && person.status !== "inactive" ? (
                       <div className="grid gap-2">
                         <form action={changeAccessAction} className="grid gap-2">
@@ -160,41 +164,37 @@ export default async function UsersPage({
                           <label className="sr-only" htmlFor={`role-${person.id}`}>
                             Role for {person.name}
                           </label>
-                          <select id={`role-${person.id}`} name="role" defaultValue={person.role}>
+                          <NativeSelect id={`role-${person.id}`} name="role" defaultValue={person.role}>
                             {roleChoices.map((role) => (
-                              <option key={role} value={role}>
+                              <NativeSelectOption key={role} value={role}>
                                 {roleLabel(role)}
-                              </option>
+                              </NativeSelectOption>
                             ))}
-                          </select>
+                          </NativeSelect>
                           <label className="sr-only" htmlFor={`scope-${person.id}`}>
                             Companies for {person.name}
                           </label>
-                          <input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
-                          <SubmitButton variant="secondary">
-                            Save access
-                          </SubmitButton>
+                          <Input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
+                          <SubmitButton variant="secondary">Save access</SubmitButton>
                         </form>
                         {canDeactivate(session, person) && !lastOwner ? (
                           <form action={deactivateUserAction}>
                             <input type="hidden" name="csrf" value={csrf} />
                             <input type="hidden" name="userId" value={person.id} />
-                            <SubmitButton variant="secondary">
-                              Deactivate
-                            </SubmitButton>
+                            <SubmitButton variant="secondary">Deactivate</SubmitButton>
                           </form>
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-xs text-ink-soft">{database ? "Turned off" : "Sample only"}</span>
+                      <span className="text-xs text-muted-foreground">{database ? "Turned off" : "Sample only"}</span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableCard>
     </>
   );
 }

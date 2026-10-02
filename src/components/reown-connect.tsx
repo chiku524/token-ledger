@@ -9,6 +9,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WagmiProvider, type Config } from "wagmi";
 import type { OwnershipChain } from "@/auth/wallet-ownership";
 import { signEvm, signSolana, type Eip1193Provider, type SolanaSigner } from "@/auth/wallet-signer";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 let wagmiConfig: Config | undefined;
 let queryClient: QueryClient | undefined;
@@ -43,7 +45,7 @@ function ensureReown(projectId: string): Config {
       receive: false,
       history: false,
     },
-    themeMode: "light",
+    themeMode: document.documentElement.classList.contains("dark") ? "dark" : "light",
   });
   wagmiConfig = wagmi.wagmiConfig;
   startedFor = projectId;
@@ -124,8 +126,9 @@ function ReownButton({
   }
 
   return (
-    <button type="button" className="btn" disabled={disabled || waiting} onClick={() => void connect()}>
+    <Button type="button" variant="secondary" disabled={disabled || waiting} aria-busy={waiting} onClick={() => void connect()}>
+      {waiting ? <Loader2 className="animate-spin" aria-hidden /> : null}
       {waiting ? "Waiting for WalletConnect" : "WalletConnect"}
-    </button>
+    </Button>
   );
 }
