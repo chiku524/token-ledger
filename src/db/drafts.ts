@@ -172,17 +172,23 @@ export async function approveDraft(input: {
   overrideNote?: string | null;
 }): Promise<string> {
   const db = getDb();
+  // Read the draft and check the period before opening a transaction: the lock
+  // check queries the database and would deadlock on the single-connection pool
+  // if it ran inside one.
+  const draft = (await db.select().from(journalDrafts).where(and(eq(journalDrafts.id, input.draftId), eq(journalDrafts.organizationId, input.organizationId))).limit(1))[0];
+  if (!draft) throw new DraftError("That draft does not exist.");
+  if (draft.status !== "pending") throw new DraftError("Only a pending draft can be approved.");
+  if (draft.postedEntryId) throw new DraftError("That draft is already posted.");
+  await assertPeriodOpen(input.organizationId, draft.entityId, draft.entryDate);
+  const selfApproval = blocksSelfApproval(draft.preparedBy, input.approverActor, input.overrideNote ?? null);
+  if (selfApproval) throw new DraftError("The preparer cannot approve their own entry without an owner's override note.");
+  if (input.overrideNote && input.approverRole !== "owner") {
+    throw new DraftError("Only an owner can override segregation of duties.");
+  }
+
   return db.transaction(async (tx) => {
-    const draft = (await tx.select().from(journalDrafts).where(and(eq(journalDrafts.id, input.draftId), eq(journalDrafts.organizationId, input.organizationId))).limit(1))[0];
-    if (!draft) throw new DraftError("That draft does not exist.");
-    if (draft.status !== "pending") throw new DraftError("Only a pending draft can be approved.");
-    if (draft.postedEntryId) throw new DraftError("That draft is already posted.");
-    await assertPeriodOpen(input.organizationId, draft.entityId, draft.entryDate);
-    const selfApproval = blocksSelfApproval(draft.preparedBy, input.approverActor, input.overrideNote ?? null);
-    if (selfApproval) throw new DraftError("The preparer cannot approve their own entry without an owner's override note.");
-    if (input.overrideNote && input.approverRole !== "owner") {
-      throw new DraftError("Only an owner can override segregation of duties.");
-    }
+    const fresh = (await tx.select().from(journalDrafts).where(eq(journalDrafts.id, draft.id)).limit(1))[0];
+    if (!fresh || fresh.status !== "pending") throw new DraftError("That draft is no longer pending.");
 
     const lines = await tx.select().from(journalDraftLines).where(eq(journalDraftLines.draftId, draft.id)).orderBy(journalDraftLines.lineNumber);
     const entryId = newId("je");
