@@ -28,6 +28,8 @@ pub enum BillingError {
     InsufficientFunds,
     #[msg("The mint or token program does not match the merchant config.")]
     WrongMint,
+    #[msg("The mint decimals do not match the configured USDC decimals.")]
+    WrongMintDecimals,
     #[msg("An arithmetic overflow occurred.")]
     MathOverflow,
     #[msg("The vault is not associated with this merchant.")]

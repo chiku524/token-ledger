@@ -1,5 +1,8 @@
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
+import { EmptyState } from "@/components/app/empty-state";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
 import { EntityForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
@@ -7,6 +10,7 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { entityName } from "@/data/present";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const metadata = { title: "Companies" };
 
@@ -37,39 +41,39 @@ export default async function EntitiesPage({
         <RoleNote>You can view companies. Adding one is for owners and admins.</RoleNote>
       )}
       {books.entities.length === 0 ? (
-        <p className="panel px-4 py-6 text-sm text-ink-soft">No companies yet.</p>
+        <EmptyState>No companies yet.</EmptyState>
       ) : (
-        <div className="overflow-x-auto panel">
-          <table className="ledger-table">
+        <TableCard className="mt-0">
+          <Table>
             <caption className="sr-only">Companies</caption>
-            <thead>
-              <tr>
-                <th scope="col">Company</th>
-                <th scope="col">Country</th>
-                <th scope="col">Currency</th>
-                <th scope="col">Standard</th>
-                <th scope="col">Parent</th>
-                <th scope="col" className="num">Accounts</th>
-                <th scope="col" className="num">Places</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Company</TableHead>
+                <TableHead scope="col">Country</TableHead>
+                <TableHead scope="col">Currency</TableHead>
+                <TableHead scope="col">Standard</TableHead>
+                <TableHead scope="col">Parent</TableHead>
+                <NumberHead scope="col">Accounts</NumberHead>
+                <NumberHead scope="col">Places</NumberHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {books.entities.map((entity) => (
-                <tr key={entity.id}>
-                  <td>{entity.name}</td>
-                  <td>{entity.jurisdiction}</td>
-                  <td>{entity.functionalCurrency}</td>
-                  <td>{entity.reportingFramework}</td>
-                  <td>{entity.parentEntityId ? entityName(entity.parentEntityId, books.entities) : "—"}</td>
-                  <td className="num">{books.accounts.filter((account) => account.entityId === entity.id).length}</td>
-                  <td className="num">{books.sources.filter((source) => source.entityId === entity.id).length}</td>
-                </tr>
+                <TableRow key={entity.id}>
+                  <TableCell>{entity.name}</TableCell>
+                  <TableCell>{entity.jurisdiction}</TableCell>
+                  <TableCell>{entity.functionalCurrency}</TableCell>
+                  <TableCell>{entity.reportingFramework}</TableCell>
+                  <TableCell>{entity.parentEntityId ? entityName(entity.parentEntityId, books.entities) : "—"}</TableCell>
+                  <NumberCell>{books.accounts.filter((account) => account.entityId === entity.id).length}</NumberCell>
+                  <NumberCell>{books.sources.filter((source) => source.entityId === entity.id).length}</NumberCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
-      <p className="mt-4 text-sm text-ink-soft">
+      <p className="mt-4 text-sm text-muted-foreground">
         {books.organization.name} · {books.organization.origin === "live" ? "Live" : "Example"}
       </p>
     </>

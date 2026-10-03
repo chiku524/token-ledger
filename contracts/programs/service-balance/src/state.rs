@@ -63,6 +63,22 @@ pub struct BillingVault {
     pub generation: u64,
 }
 
+/// A durable, addressable record of one collected cycle. Seeded by the mandate
+/// and the cycle number, so a cycle can never be recorded twice even if the
+/// emitted event is missed. Version one collects one cycle per instruction.
+#[account]
+#[derive(InitSpace)]
+pub struct ChargeReceipt {
+    pub bump: u8,
+    pub mandate: Pubkey,
+    pub vault: Pubkey,
+    pub cycle: u64,
+    pub amount: u64,
+    pub coverage_start: i64,
+    pub coverage_end: i64,
+    pub collected_at: i64,
+}
+
 /// A signed, bounded authorization. Its terms are fixed at signing; a replacement
 /// is a new mandate with a higher generation.
 #[account]
@@ -88,18 +104,4 @@ pub struct Mandate {
     pub paid_through: i64,
     pub revoked: bool,
     pub generation: u64,
-}
-
-/// A receipt for one collected cycle. Kept as a durable, addressable record so
-/// a missed event log does not lose the fact of a charge.
-#[account]
-#[derive(InitSpace)]
-pub struct ChargeReceipt {
-    pub bump: u8,
-    pub mandate: Pubkey,
-    pub cycle: u64,
-    pub amount: u64,
-    pub coverage_start: i64,
-    pub coverage_end: i64,
-    pub collected_at: i64,
 }

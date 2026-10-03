@@ -1129,31 +1129,36 @@
     },
     {
       "code": 6014,
+      "name": "WrongMintDecimals",
+      "msg": "The mint decimals do not match the configured USDC decimals."
+    },
+    {
+      "code": 6015,
       "name": "InsufficientFunds",
       "msg": "Insufficient treasury balance."
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "InvoiceAlreadyPaid",
       "msg": "The invoice has already settled."
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "MathOverflow",
       "msg": "An arithmetic overflow occurred."
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "TreasuryClosed",
       "msg": "The treasury is closed."
     },
     {
-      "code": 6018,
+      "code": 6019,
       "name": "NotEnoughApprovals",
       "msg": "Not enough approvals."
     },
     {
-      "code": 6019,
+      "code": 6020,
       "name": "NotPaused",
       "msg": "The treasury is not paused."
     }

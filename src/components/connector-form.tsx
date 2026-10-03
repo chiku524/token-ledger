@@ -1,4 +1,9 @@
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
 import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption as Option } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import { createConnectionAction } from "@/app/dashboard/actions";
 import type { Books, ConnectionMode } from "@/data/books";
 import { listVenues } from "@/adapters";
@@ -23,99 +28,91 @@ export function ConnectorForm({
   intro: string;
 }) {
   return (
-    <form id={id} action={createConnectionAction} className="grid scroll-mt-6 gap-3 panel p-4 md:grid-cols-2">
+    <FormCard id={id} action={createConnectionAction} title={title} description={intro} className="scroll-mt-6 md:grid-cols-2">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="next" value={next} />
       {mode === "exchange_read" ? <input type="hidden" name="role" value="" /> : null}
       {mode === "exchange_read" ? <input type="hidden" name="chain" value="" /> : null}
       {mode === "custodian_read" ? <input type="hidden" name="role" value="" /> : null}
-      <h2 className="text-lg font-semibold tracking-tight md:col-span-2">{title}</h2>
-      <p className="max-w-2xl text-sm leading-relaxed text-ink-soft md:col-span-2">{intro}</p>
-      <label className="field">
-        <span>Company</span>
-        <select name="entityId" required defaultValue={books.entities[0]?.id}>
+      <Field label="Company">
+        <NativeSelect name="entityId" required defaultValue={books.entities[0]?.id}>
           {books.entities.map((entity) => (
-            <option key={entity.id} value={entity.id}>
+            <Option key={entity.id} value={entity.id}>
               {entity.name}
-            </option>
+            </Option>
           ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>Name</span>
-        <input name="name" required maxLength={200} />
-      </label>
+        </NativeSelect>
+      </Field>
+      <Field label="Name">
+        <Input name="name" required maxLength={200} />
+      </Field>
       {mode === "watch" ? (
         <>
-          <label className="field">
-            <span>Network</span>
-            <select name="chain" defaultValue="ethereum">
+          <Field label="Network">
+            <NativeSelect name="chain" defaultValue="ethereum">
               {WATCH_VENUES.map((venue) => (
-                <option key={venue.key} value={venue.key}>
+                <Option key={venue.key} value={venue.key}>
                   {venue.label}
-                </option>
+                </Option>
               ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Wallet type</span>
-            <select name="role" defaultValue="hot">
-              <option value="hot">Hot wallet</option>
-              <option value="cold">Cold wallet</option>
-              <option value="staking">Staking</option>
-            </select>
-          </label>
+            </NativeSelect>
+          </Field>
+          <Field label="Wallet type">
+            <NativeSelect name="role" defaultValue="hot">
+              <Option value="hot">Hot wallet</Option>
+              <Option value="cold">Cold wallet</Option>
+              <Option value="staking">Staking</Option>
+            </NativeSelect>
+          </Field>
         </>
       ) : null}
       {mode === "exchange_read" ? (
-        <label className="field md:col-span-2">
-          <span>Exchange</span>
-          <select name="exchangeVenue" defaultValue="kraken">
+        <Field label="Exchange" className="md:col-span-2">
+          <NativeSelect name="exchangeVenue" defaultValue="kraken">
             {listVenues().map((venue) => (
-              <option key={venue.key} value={venue.key}>
+              <Option key={venue.key} value={venue.key}>
                 {venue.label}
-              </option>
+              </Option>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Field>
       ) : null}
       {mode === "custodian_read" ? (
-        <label className="field md:col-span-2">
-          <span>Custodian</span>
-          <select name="custodianVenue" defaultValue="fireblocks">
+        <Field label="Custodian" className="md:col-span-2">
+          <NativeSelect name="custodianVenue" defaultValue="fireblocks">
             {Object.values(CUSTODIANS).map((custodian) => (
-              <option key={custodian.key} value={custodian.key}>
+              <Option key={custodian.key} value={custodian.key}>
                 {custodian.label}
-              </option>
+              </Option>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Field>
       ) : null}
-      <label className="field md:col-span-2">
-        <span>{mode === "watch" ? "Address" : mode === "exchange_read" ? "Account label" : "Vault account id"}</span>
-        <input name="identifier" required maxLength={200} className="font-mono text-sm" />
-      </label>
+      <Field
+        label={mode === "watch" ? "Address" : mode === "exchange_read" ? "Account label" : "Vault account id"}
+        className="md:col-span-2"
+      >
+        <Input name="identifier" required maxLength={200} className="font-mono" />
+      </Field>
       {mode === "custodian_read" ? (
         <>
-          <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">
+          <p className="text-sm leading-relaxed text-muted-foreground md:col-span-2">
             Enter a read-only credential. <strong>BitGo:</strong> a view-only access token in the API key field (leave
             the secret blank). <strong>Fireblocks:</strong> a Viewer API user id as the key and its RSA private key
             (PEM) as the secret. Both are checked, then sealed, and cannot sign or move funds.
           </p>
-          <label className="field">
-            <span>API user id</span>
-            <input name="apiKey" autoComplete="off" maxLength={200} className="font-mono text-sm" />
-          </label>
-          <label className="field">
-            <span>RSA private key (PEM)</span>
-            <textarea name="apiSecret" rows={4} autoComplete="off" maxLength={4000} className="font-mono text-sm" />
-          </label>
+          <Field label="API user id">
+            <Input name="apiKey" autoComplete="off" maxLength={200} className="font-mono" />
+          </Field>
+          <Field label="RSA private key (PEM)">
+            <Textarea name="apiSecret" rows={4} autoComplete="off" maxLength={4000} className="font-mono" />
+          </Field>
         </>
       ) : null}
       {mode === "exchange_read" ? (
         <>
-          <p className="text-sm leading-relaxed text-ink-soft md:col-span-2">
+          <p className="text-sm leading-relaxed text-muted-foreground md:col-span-2">
             Create a <strong>read-only</strong> API key with the exchange that can read balances, ledger entries, and
             trade history only. Leave trading and withdrawal <strong>off</strong>. The key is checked, then sealed; it
             cannot trade or withdraw. Read-only scopes per exchange:{" "}
@@ -124,21 +121,17 @@ export function ConnectorForm({
               .join(" · ")}
             .
           </p>
-          <label className="field">
-            <span>API key</span>
-            <input name="apiKey" autoComplete="off" maxLength={200} className="font-mono text-sm" />
-          </label>
-          <label className="field">
-            <span>API secret</span>
-            <input name="apiSecret" type="password" autoComplete="off" maxLength={400} className="font-mono text-sm" />
-          </label>
+          <Field label="API key">
+            <Input name="apiKey" autoComplete="off" maxLength={200} className="font-mono" />
+          </Field>
+          <Field label="API secret">
+            <Input name="apiSecret" type="password" autoComplete="off" maxLength={400} className="font-mono" />
+          </Field>
         </>
       ) : null}
       <div className="md:col-span-2">
-        <SubmitButton>
-          Add connection
-        </SubmitButton>
+        <SubmitButton>Add connection</SubmitButton>
       </div>
-    </form>
+    </FormCard>
   );
 }

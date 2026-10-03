@@ -5,6 +5,8 @@ import { can } from "@/auth/roles";
 import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
 import { ConnectModal } from "@/components/connect-modal";
 import { Flash } from "@/components/flash";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
@@ -38,7 +40,7 @@ export default async function SetupPage({
         description="Open Connect, pick a wallet or an exchange, and approve read-only access. Nothing here can move funds."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
-      <p className="kicker">
+      <p className="eyebrow">
         {current.id === "done" ? "Done" : `Step ${current.index + 1} of ${SETUP_FLOW.length}`}
       </p>
       {!writable ? (
@@ -60,34 +62,36 @@ export default async function SetupPage({
           />
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             {current.index > 0 ? (
-              <Link href={`/dashboard/setup?step=${SETUP_FLOW[current.index - 1]?.id ?? "wallet"}`} className="btn-secondary">
-                Back
-              </Link>
+              <Button asChild variant="secondary">
+                <Link href={`/dashboard/setup?step=${SETUP_FLOW[current.index - 1]?.id ?? "wallet"}`}>Back</Link>
+              </Button>
             ) : null}
-            <Link href={step.next} className="btn-secondary">
-              {step.skip}
-            </Link>
+            <Button asChild variant="secondary">
+              <Link href={step.next}>{step.skip}</Link>
+            </Button>
           </div>
         </div>
       ) : null}
       {step && writable && books.entities.length === 0 ? (
-        <p className="mt-4 text-sm text-ink-soft">Add a company before connecting a wallet, exchange, or custodian.</p>
+        <p className="mt-4 text-sm text-muted-foreground">Add a company before connecting a wallet, exchange, or custodian.</p>
       ) : null}
       {current.id === "done" ? (
-        <div className="mt-4 max-w-2xl panel p-4">
-          <p className="text-sm leading-relaxed text-ink-soft">
-            Skipped steps stay empty. Holdings shows what was observed. Settings is where you add another connection,
-            check one, or disconnect it.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/dashboard/settings" className="btn">
-              Open settings
-            </Link>
-            <Link href="/dashboard/sources" className="btn-secondary">
-              View holdings
-            </Link>
-          </div>
-        </div>
+        <Card className="mt-4 max-w-2xl">
+          <CardContent>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Skipped steps stay empty. Holdings shows what was observed. Settings is where you add another connection,
+              check one, or disconnect it.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button asChild>
+                <Link href="/dashboard/settings">Open settings</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/dashboard/sources">View holdings</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
     </>
   );

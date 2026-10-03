@@ -69,7 +69,7 @@ async function main() {
   const destination = await getOrCreateAssociatedTokenAccount(connection, payer, mint, merchantAdmin.publicKey);
   await program.methods
     .initializeMerchant(mint, TOKEN_PROGRAM_ID, destination.address)
-    .accounts({ admin: merchantAdmin.publicKey, collector: collector.publicKey, merchant })
+    .accounts({ admin: merchantAdmin.publicKey, collector: collector.publicKey, merchant, mintAccount: mint })
     .signers([merchantAdmin])
     .rpc();
 
@@ -100,12 +100,16 @@ async function main() {
     .rpc();
 
   const expiry = Math.floor(Date.now() / 1000) + 200 * 24 * 60 * 60;
-  const generation = Buffer.from([0, 0, 0, 0, 0, 0, 0, 0]);
-  const [mandate] = PublicKey.findProgramAddressSync([Buffer.from("mandate"), vault.toBuffer(), generation], programId);
+  const [mandate] = PublicKey.findProgramAddressSync([Buffer.from("mandate"), vault.toBuffer()], programId);
+  const receiptFor = (cycle: number) =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("charge_receipt"), mandate.toBuffer(), Buffer.from(new BN(cycle).toArray("le", 8))],
+      programId,
+    )[0];
   await program.methods
     .activateMandateAndCharge(new BN(100 * USDC), new BN(expiry))
     .accounts({
-      controller: controller.publicKey, vault, plan, mandate, merchant, vaultAuthority, vaultToken,
+      controller: controller.publicKey, vault, plan, mandate, receipt: receiptFor(0), merchant, vaultAuthority, vaultToken,
       destinationToken: destination.address, tokenProgram: TOKEN_PROGRAM_ID,
     })
     .rpc();
@@ -126,10 +130,10 @@ async function main() {
     "collect a revoked mandate",
     () =>
       program.methods
-        .collectCycle()
+        .collectCycle(new BN(1))
         .accounts({
           collector: collector.publicKey, merchant, vault, mandate,
-          vaultAuthorityPlaceholder: vaultAuthorityCheck, vaultAuthority: vaultAuthorityCheck,
+          receipt: receiptFor(1), vaultAuthority: vaultAuthorityCheck,
           vaultToken, destinationToken: destination.address, tokenProgram: TOKEN_PROGRAM_ID,
         })
         .signers([merchantAdmin])

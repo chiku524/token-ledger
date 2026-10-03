@@ -12,7 +12,7 @@ pub mod instructions;
 pub mod state;
 
 use instructions::*;
-use state::{GovernanceKind, InvoiceKey};
+use state::GovernanceKind;
 
 declare_id!("33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs");
 

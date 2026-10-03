@@ -66,6 +66,54 @@ export type ServiceBalance = {
           }
         },
         {
+          "name": "receipt",
+          "docs": [
+            "The receipt for the atomic first charge (cycle 0), seeded by mandate and",
+            "cycle so it cannot be created or collected twice."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  114,
+                  103,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant"
         },
         {
@@ -148,8 +196,10 @@ export type ServiceBalance = {
           "name": "collector",
           "docs": [
             "The collector triggers the charge; any caller could, but only to the",
-            "fixed destination, so this is an operational role, not an authority."
+            "fixed destination, so this is an operational role, not an authority.",
+            "It pays rent for the receipt PDA."
           ],
+          "writable": true,
           "signer": true
         },
         {
@@ -164,11 +214,44 @@ export type ServiceBalance = {
           "writable": true
         },
         {
-          "name": "vaultAuthorityPlaceholder",
+          "name": "receipt",
           "docs": [
-            "event are the durable record. Left for a later revision."
+            "The receipt for this cycle, seeded by mandate and cycle. `init_if_needed`",
+            "lets the instruction require `cycle == mandate.next_cycle` first, so a",
+            "replay of a collected cycle fails with `WrongCycle` before any transfer."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  104,
+                  97,
+                  114,
+                  103,
+                  101,
+                  95,
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              },
+              {
+                "kind": "arg",
+                "path": "cycle"
+              }
+            ]
+          }
         },
         {
           "name": "vaultAuthority",
@@ -216,9 +299,18 @@ export type ServiceBalance = {
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "cycle",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "createBillingVault",
@@ -572,6 +664,12 @@ export type ServiceBalance = {
           }
         },
         {
+          "name": "mintAccount",
+          "docs": [
+            "The configured USDC mint; its decimals are verified at initialization."
+          ]
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -849,6 +947,19 @@ export type ServiceBalance = {
       ]
     },
     {
+      "name": "chargeReceipt",
+      "discriminator": [
+        12,
+        170,
+        183,
+        40,
+        252,
+        214,
+        217,
+        237
+      ]
+    },
+    {
       "name": "mandate",
       "discriminator": [
         113,
@@ -1075,16 +1186,21 @@ export type ServiceBalance = {
     },
     {
       "code": 6013,
+      "name": "wrongMintDecimals",
+      "msg": "The mint decimals do not match the configured USDC decimals."
+    },
+    {
+      "code": 6014,
       "name": "mathOverflow",
       "msg": "An arithmetic overflow occurred."
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "wrongMerchant",
       "msg": "The vault is not associated with this merchant."
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "wrongTokenAccount",
       "msg": "The token account is not owned by the vault authority."
     }
@@ -1156,6 +1272,51 @@ export type ServiceBalance = {
           {
             "name": "controller",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "chargeReceipt",
+      "docs": [
+        "A durable, addressable record of one collected cycle. Seeded by the mandate",
+        "and the cycle number, so a cycle can never be recorded twice even if the",
+        "emitted event is missed. Version one collects one cycle per instruction."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "mandate",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "cycle",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "coverageStart",
+            "type": "i64"
+          },
+          {
+            "name": "coverageEnd",
+            "type": "i64"
+          },
+          {
+            "name": "collectedAt",
+            "type": "i64"
           }
         ]
       }

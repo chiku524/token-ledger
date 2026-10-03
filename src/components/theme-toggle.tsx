@@ -1,6 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "tl-theme";
 
@@ -29,13 +31,16 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
+    <Button
       type="button"
-      className="rounded-full border border-line bg-paper px-3 py-1 text-xs font-medium text-ink-soft hover:text-ink"
+      variant="outline"
+      size="icon"
       onClick={toggle}
       aria-pressed={dark ?? undefined}
+      aria-label={dark === null ? "Toggle theme" : dark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {dark === null ? "Theme" : dark ? "Light mode" : "Dark mode"}
-    </button>
+      <Sun className="hidden dark:block" aria-hidden />
+      <Moon className="dark:hidden" aria-hidden />
+    </Button>
   );
 }

@@ -103,7 +103,7 @@ export function StatusDonut({ rows, total }: { rows: StatusRow[]; total: number 
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-2xl font-semibold tracking-tight leading-none">{total}</p>
-          <p className="mt-1 text-[0.68rem] tracking-[0.14em] text-ink-soft uppercase">Rows</p>
+          <p className="mt-1 text-[0.68rem] tracking-[0.14em] text-muted-foreground uppercase">Rows</p>
         </div>
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -111,7 +111,7 @@ export function StatusDonut({ rows, total }: { rows: StatusRow[]; total: number 
           <li key={row.id} className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-full" style={{ background: row.fill }} aria-hidden />
             <span>
-              {row.label} <span className="num text-ink-soft">{row.formatted}</span>
+              {row.label} <span className="font-mono tabular-nums text-muted-foreground">{row.formatted}</span>
             </span>
           </li>
         ))}
@@ -190,9 +190,9 @@ function MoneyTip({
   const row = payload?.[0]?.payload;
   if (!active || !row) return null;
   return (
-    <div className="panel px-3 py-2 text-sm text-ink">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
       <p>{row.label}</p>
-      <p className="num mt-1 text-left">{row.formatted}</p>
+      <p className="mt-1 font-mono tabular-nums">{row.formatted}</p>
     </div>
   );
 }
@@ -207,9 +207,9 @@ function CountTip({
   const row = payload?.[0]?.payload;
   if (!active || !row) return null;
   return (
-    <div className="panel px-3 py-2 text-sm">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
       <p>{row.label}</p>
-      <p className="num mt-1 text-left">{row.formatted}</p>
+      <p className="mt-1 font-mono tabular-nums">{row.formatted}</p>
     </div>
   );
 }
@@ -224,10 +224,10 @@ function StatusTip({
   const row = payload?.[0]?.payload;
   if (!active || !row) return null;
   return (
-    <div className="panel px-3 py-2 text-sm">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
       <p>{row.label}</p>
-      <p className="mt-1 text-pine">Matched {row.matched}</p>
-      <p className="text-seal">Unmatched {row.exception}</p>
+      <p className="mt-1 text-success">Matched {row.matched}</p>
+      <p className="text-danger">Unmatched {row.exception}</p>
     </div>
   );
 }
@@ -244,12 +244,12 @@ function ActivityTip({
   if (!active || !payload?.length) return null;
   const title = payload[0]?.payload?.fullLabel;
   return (
-    <div className="panel px-3 py-2 text-sm">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
       {title ? <p>{title}</p> : null}
       {payload.map((item) => (
         <p key={String(item.name)} className="mt-1" style={{ color: INK }}>
-          <span className="text-ink-soft">{series.find((entry) => entry.label === item.name)?.label ?? item.name}</span>{" "}
-          <span className="num">{item.value}</span>
+          <span className="text-muted-foreground">{series.find((entry) => entry.label === item.name)?.label ?? item.name}</span>{" "}
+          <span className="font-mono tabular-nums">{item.value}</span>
         </p>
       ))}
     </div>

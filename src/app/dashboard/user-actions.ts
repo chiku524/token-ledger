@@ -3,15 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
+import { actorName, assertCsrf, AuthError, requirePermission, requireSession, type SessionUser } from "@/auth/current";
 import { absoluteLink, deliver } from "@/email/links";
-import { inviteEmail } from "@/email/messages";
+import { inviteEmail, verifyEmail } from "@/email/messages";
 import { canAssignRole, canDeactivate, isRole, removesLastOwner } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
 import { loadBooks } from "@/data/load-books";
 import { firstIssue, userFormSchema } from "@/data/validate";
 import {
   activeOwnerIds,
+  createEmailVerification,
   createInvite,
   deactivateUser,
   deleteUserSessions,
@@ -21,7 +22,7 @@ import {
   setUserAccess,
   writeAudit,
 } from "@/db/auth-store";
-import { fail, safeMessage } from "./form-state";
+import { fail, finish, safeMessage } from "./form-state";
 
 const PATH = "/dashboard/users";
 const READ_ONLY = "Connect a database to add people. This demo does not save them.";
@@ -160,6 +161,41 @@ export async function deactivateUserAction(formData: FormData) {
   }
   revalidatePath("/dashboard", "layout");
   redirect(`${PATH}?saved=${encodeURIComponent(`Deactivated ${target.email}.`)}`);
+}
+
+/**
+ * Resend the signed-in user's own email-confirmation link. Any signed-in user
+ * may trigger their own verification, so this needs no permission beyond a
+ * session; it sends to the account's own address only.
+ */
+export async function resendVerificationAction(formData: FormData): Promise<void> {
+  const path = "/dashboard/settings";
+  try {
+    await assertCsrf(formData);
+  } catch (error) {
+    fail(path, error instanceof AuthError ? error.message : "The form expired. Refresh and try again.");
+  }
+  const session = await requireSession();
+  if (session.demo) fail(path, "This sample is read-only. Verify a real account after connecting a database.");
+
+  const books = await loadBooks(session.organizationId);
+  const token = await createEmailVerification(session.id, session.organizationId);
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  const proto = headerList.get("x-forwarded-proto");
+  const link = absoluteLink(`/verify-email?token=${token}`, host, proto);
+  if (!link) fail(path, "Could not build a confirmation link. Set APP_URL.");
+  const delivery = await deliver(verifyEmail({ to: session.email, link, organizationName: books.organization.name }));
+  await writeAudit({
+    organizationId: session.organizationId,
+    actor: actorName(session),
+    action: "user.verification_resent",
+    subjectType: "user",
+    subjectId: session.id,
+    detail: delivery.sent ? "Confirmation email resent." : `Confirmation email not sent (${delivery.reason}).`,
+  });
+  if (!delivery.sent) fail(path, delivery.reason ?? "The confirmation email could not be sent.");
+  finish(path, `Confirmation email sent to ${session.email}.`);
 }
 
 async function guard(permission: "users.manage", formData: FormData): Promise<SessionUser> {

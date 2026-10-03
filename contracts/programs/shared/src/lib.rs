@@ -5,7 +5,7 @@
 //! moves funds or holds authority; each program keeps its own fund-moving
 //! authority and vault.
 
-use anchor_lang::prelude::*;
+
 
 /// Seed prefixes. Opaque, fixed-size, and domain-separated so a seed from one
 /// account type can never collide with another.
@@ -20,7 +20,7 @@ pub mod seeds {
     pub const BILLING_VAULT_TOKEN: &[u8] = b"billing_vault_token";
     /// A mandate for a billing vault generation.
     pub const MANDATE: &[u8] = b"mandate";
-    /// A receipt for a collected cycle.
+    /// A durable record of one collected cycle, under a mandate.
     pub const CHARGE_RECEIPT: &[u8] = b"charge_receipt";
 
     /// Treasury configuration for a company.
@@ -42,6 +42,11 @@ pub mod seeds {
 /// The fixed 30-day billing period, in seconds. Version-one plans are 30-day
 /// periods; calendar-month plans are a later, explicitly scheduled addition.
 pub const THIRTY_DAYS_SECONDS: i64 = 30 * 24 * 60 * 60;
+
+/// USDC base-unit decimals. Version one accepts exactly one configured USDC
+/// mint, and its decimals are checked at initialization so amounts are read and
+/// compared in the same scale. No on-chain arithmetic uses floating point.
+pub const USDC_DECIMALS: u8 = 6;
 
 /// The number of seconds in a UTC day, used for the fixed daily spend window.
 pub const SECONDS_PER_DAY: i64 = 86_400;

@@ -1,16 +1,25 @@
+"use client";
+
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { Alert } from "@/components/ui/alert";
+
 export function Flash({ error, saved }: { error?: string; saved?: string }) {
+  useEffect(() => {
+    if (!saved) return;
+    toast.success(saved, { id: saved });
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("saved") === saved) {
+      url.searchParams.delete("saved");
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, [saved]);
+
   if (error) {
     return (
-      <p role="alert" className="mb-6 rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal">
+      <Alert variant="destructive" className="mb-6">
         {error}
-      </p>
-    );
-  }
-  if (saved) {
-    return (
-      <p role="status" className="mb-6 rounded-xl border border-pine/30 bg-paper-raised px-4 py-3 text-sm text-pine">
-        {saved}
-      </p>
+      </Alert>
     );
   }
   return null;

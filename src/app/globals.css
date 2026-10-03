@@ -8,6 +8,7 @@
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-logo: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -62,6 +63,16 @@
   --color-on-lime: #0c0f1f;
   --color-seal: #c0362c;
   --color-pine: #0d7a45;
+  /* Design-system tokens (docs/adr-design-system.md). */
+  --color-brand: #2140e6;
+  --color-brand-foreground: #ffffff;
+  --color-link: #2140e6;
+  --color-success: #0d7a45;
+  --color-danger: #c0362c;
+  --color-warning: #a15c00;
+  /* Brand constants: do not change with the theme (logo, documents). */
+  --color-cloud: #f7f8fc;
+  --color-night: #0c0f1f;
 }
 
 :root {
@@ -94,8 +105,10 @@
   --secondary-foreground: var(--color-ink);
   --muted: var(--color-paper);
   --muted-foreground: var(--color-ink-soft);
-  --accent: var(--color-accent);
-  --accent-foreground: var(--color-on-accent);
+  /* shadcn "accent" is a hover/selected surface (menus, ghost buttons), not the
+     brand colour, so it is a neutral tint rather than cobalt. */
+  --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --accent-foreground: var(--color-ink);
   --destructive: var(--color-seal);
   --border: var(--color-line);
   --input: var(--color-line);
@@ -112,6 +125,10 @@ html.dark {
   --color-line: #2a3148;
   --color-accent: #a9b8ff;
   --color-on-accent: #ffffff;
+  --color-link: #a9b8ff;
+  --color-success: #7dcea0;
+  --color-danger: #f0a8a2;
+  --color-warning: #f0c36a;
   --selection: #2a3148;
   --chart-ink: #f7f8fc;
   --chart-muted: #a7b0c4;
@@ -145,153 +162,22 @@ h4 {
   background: var(--selection);
 }
 
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-summary:focus-visible,
-figure:focus-visible {
-  outline: 2px solid var(--color-lime);
-  outline-offset: 2px;
-}
-
-.skip-link {
-  position: absolute;
-  left: 0.75rem;
-  top: 0.75rem;
-  z-index: 20;
-  transform: translateY(-150%);
-  border-radius: 0.7rem;
-  background: var(--color-lime);
-  color: var(--color-on-lime);
-  padding: 0.4rem 0.7rem;
-}
-
-.skip-link:focus {
-  transform: none;
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  figure:focus-visible {
+    outline: 2px solid var(--color-lime);
+    outline-offset: 2px;
+  }
 }
 
 a.underline {
   color: var(--color-accent);
   text-underline-offset: 0.18em;
-}
-
-.kicker {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-ink-soft);
-}
-
-.panel {
-  border: 1px solid var(--color-line);
-  border-radius: 1.15rem;
-  background: var(--color-paper-raised);
-  box-shadow: 0 1px 2px rgba(12, 15, 31, 0.04);
-}
-
-html.dark .panel {
-  box-shadow: none;
-}
-
-.field {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-}
-
-.field > span {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-ink-soft);
-}
-
-.field input,
-.field select,
-.field textarea,
-.ledger-table input,
-.ledger-table select {
-  border: 1px solid var(--color-line);
-  border-radius: 0.7rem;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  padding: 0.55rem 0.7rem;
-}
-
-.btn,
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.btn {
-  border: 1px solid transparent;
-  background: var(--color-lime);
-  color: var(--color-on-lime);
-  padding: 0.6rem 1rem;
-}
-
-.btn:hover {
-  background: color-mix(in srgb, var(--color-lime) 86%, #0c0f1f);
-}
-
-.btn-secondary {
-  border: 1px solid var(--color-line);
-  background: var(--color-paper-raised);
-  color: var(--color-ink);
-  padding: 0.55rem 0.9rem;
-}
-
-.btn-secondary:hover {
-  border-color: var(--color-cobalt);
-}
-
-.ledger-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.ledger-table th {
-  padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid var(--color-line);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-align: left;
-  text-transform: uppercase;
-  color: var(--color-ink-soft);
-}
-
-.ledger-table td {
-  padding: 0.8rem 0.9rem;
-  border-bottom: 1px solid var(--color-line);
-  vertical-align: top;
-}
-
-.ledger-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.ledger-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--color-lime) 8%, transparent);
-}
-
-.num {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
 }
 
 /* shadcn tokens in dark mode, mapped to the brand dark palette set by html.dark. */
@@ -308,8 +194,10 @@ html.dark {
   --secondary-foreground: var(--color-ink);
   --muted: var(--color-paper);
   --muted-foreground: var(--color-ink-soft);
-  --accent: var(--color-accent);
-  --accent-foreground: var(--color-on-accent);
+  /* shadcn "accent" is a hover/selected surface (menus, ghost buttons), not the
+     brand colour, so it is a neutral tint rather than cobalt. */
+  --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --accent-foreground: var(--color-ink);
   --destructive: var(--color-seal);
   --border: var(--color-line);
   --input: var(--color-line);
@@ -325,5 +213,124 @@ html.dark {
   }
   html {
     @apply font-sans;
+  }
+}
+@layer components {
+  .page-width {
+    @apply mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12;
+  }
+  .eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.23em] text-muted-foreground sm:text-[11px];
+  }
+  .section-title {
+    @apply text-3xl font-semibold leading-[1.12] tracking-[-0.045em] sm:text-4xl lg:text-[46px];
+  }
+  .rise-in,
+  .stagger > * {
+    animation: rise-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > :nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .stagger > :nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .stagger > :nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .stagger > :nth-child(5) {
+    animation-delay: 160ms;
+  }
+  .stagger > :nth-child(6) {
+    animation-delay: 200ms;
+  }
+  .stagger > :nth-child(7) {
+    animation-delay: 240ms;
+  }
+  .stagger > :nth-child(n + 8) {
+    animation-delay: 280ms;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-y, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise-in-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .stagger > * {
+    animation-name: rise-in-fade;
+  }
+}
+
+@media print {
+  html,
+  html.dark {
+    color-scheme: light;
+    --color-paper: #fff;
+    --color-paper-raised: #fff;
+    --color-ink: #0c0f1f;
+    --color-ink-soft: #4b5368;
+    --color-line: #d6dae6;
+    --color-link: #0c0f1f;
+    --color-success: #1f6b3a;
+    --color-danger: #b3261e;
+    --color-warning: #8a5a00;
+    --chart-ink: #0c0f1f;
+    --chart-muted: #4b5368;
+    --chart-line: #d6dae6;
+  }
+
+  body {
+    background: #fff !important;
+    color: #0c0f1f !important;
+  }
+
+  aside,
+  header nav,
+  [data-print="hide"],
+  form,
+  button {
+    display: none !important;
+  }
+
+  [data-print="shell"] {
+    display: block !important;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  * {
+    box-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

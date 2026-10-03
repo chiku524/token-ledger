@@ -82,7 +82,7 @@ async function main() {
   if (!(await connection.getAccountInfo(merchant))) {
     const sig = await program.methods
       .initializeMerchant(mint, TOKEN_PROGRAM_ID, destination.address)
-      .accounts({ admin: admin.publicKey, collector: admin.publicKey, merchant })
+      .accounts({ admin: admin.publicKey, collector: admin.publicKey, merchant, mintAccount: mint })
       .signers([admin])
       .rpc();
     console.log("merchant  :", merchant.toBase58(), "tx", sig.slice(0, 12) + "…");
@@ -155,6 +155,11 @@ async function main() {
     [Buffer.from("mandate"), vault.toBuffer(), Buffer.from([0, 0, 0, 0, 0, 0, 0, 0])],
     programId,
   );
+  const receiptFor = (cycle: number) =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("charge_receipt"), mandate.toBuffer(), Buffer.from(new BN(cycle).toArray("le", 8))],
+      programId,
+    )[0];
   console.log("\nactivate  : cap 100 USDC, expiry +200d");
   await program.methods
     .activateMandateAndCharge(new BN(100 * USDC), new BN(expiry))
@@ -163,6 +168,7 @@ async function main() {
       vault,
       plan,
       mandate,
+      receipt: receiptFor(0),
       merchant,
       vaultAuthority,
       vaultToken,
@@ -179,13 +185,13 @@ async function main() {
   //    ~now, so the next charge covers a fresh period).
   console.log("\ncollecting next cycle…");
   await program.methods
-    .collectCycle()
+    .collectCycle(new BN(1))
     .accounts({
       collector: admin.publicKey,
       merchant,
       vault,
       mandate,
-      vaultAuthorityPlaceholder: vaultAuthority,
+      receipt: receiptFor(1),
       vaultAuthority,
       vaultToken,
       destinationToken: destination.address,

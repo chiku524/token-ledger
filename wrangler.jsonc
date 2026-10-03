@@ -25,7 +25,10 @@
   // WalletConnect/Reown modal; without it an installed wallet can still sign.
   // Safe to commit (it is exposed to the browser by design).
   "vars": {
-    "NEXT_PUBLIC_REOWN_PROJECT_ID": "840841f806a3e3d48403f5a51478e358"
+    "NEXT_PUBLIC_REOWN_PROJECT_ID": "840841f806a3e3d48403f5a51478e358",
+    // Absolute base for links in emails. Must be the production domain so a
+    // verification or reset link never depends on the request host.
+    "APP_URL": "https://app.tokenledger.win"
   },
   // The scheduled sync pass. The free plan permits a daily cron; use */15 on a
   // paid plan to match DEFAULT_SYNC_INTERVAL_MS.

@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/charts";
 import { ChartFrame } from "@/components/charts/frame";
+import { SectionHeader } from "@/components/app/section-header";
+import { StatCard } from "@/components/app/stat-card";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { TableCard } from "@/components/app/table-card";
+import { Stagger } from "@/components/motion/stagger";
 import { PageHeader } from "@/components/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   assetAllocationPanels,
   carryingSeries,
@@ -46,12 +53,12 @@ export default async function DashboardPage() {
         }
       />
 
-      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Companies" value={String(books.entities.length)} />
-        <Stat label="Wallets and accounts" value={String(books.sources.length)} />
-        <Stat label="Unmatched" value={String(exceptions.length)} tone={exceptions.length ? "seal" : "pine"} />
-        <Stat label="Books" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "pine" : "seal"} />
-      </dl>
+      <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Companies" value={books.entities.length} />
+        <StatCard label="Wallets and accounts" value={books.sources.length} />
+        <StatCard label="Unmatched" value={exceptions.length} tone={exceptions.length ? "danger" : "success"} />
+        <StatCard label="Books" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "success" : "danger"} />
+      </Stagger>
 
       <section className="mt-8 grid gap-4 xl:grid-cols-2">
         {allocation.map((panel) => (
@@ -113,76 +120,72 @@ export default async function DashboardPage() {
 
       <section className="mt-10 grid gap-4 md:grid-cols-2">
         {balances.map(({ entity, report }) => (
-          <article key={entity.id} className="panel p-5">
-            <p className="text-xs tracking-[0.14em] text-ink-soft uppercase">{entity.jurisdiction} · {entity.functionalCurrency}</p>
-            <h2 className="mt-2 text-lg font-semibold tracking-tight">{entity.name}</h2>
-            <p className="mt-3 text-sm text-ink-soft">
-              {entity.reportingFramework}
-              {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId)}` : " · parent company"}
-            </p>
-            <p className="mt-4 text-sm">
-              Debits {report.currency ? formatMoney(report.debitTotal, report.currency) : "—"}
-              <span className="text-ink-soft"> = </span>
-              credits {report.currency ? formatMoney(report.creditTotal, report.currency) : "—"}
-            </p>
-          </article>
+          <Card key={entity.id}>
+            <CardContent>
+              <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
+                {entity.jurisdiction} · {entity.functionalCurrency}
+              </p>
+              <h2 className="mt-2 text-lg font-semibold tracking-tight">{entity.name}</h2>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {entity.reportingFramework}
+                {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId)}` : " · parent company"}
+              </p>
+              <p className="mt-4 text-sm">
+                Debits {report.currency ? formatMoney(report.debitTotal, report.currency) : "—"}
+                <span className="text-muted-foreground"> = </span>
+                credits {report.currency ? formatMoney(report.creditTotal, report.currency) : "—"}
+              </p>
+            </CardContent>
+          </Card>
         ))}
       </section>
 
       {exceptions[0] ? (
-        <section className="mt-8 border border-seal/40 bg-paper-raised p-5">
-          <h2 className="font-medium text-seal">Unmatched activity</h2>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
-            <Link href="/dashboard/reconciliation" className="text-ink underline">
-              See what did not match
-            </Link>
-          </p>
-        </section>
+        <Card className="mt-8 border-danger/40">
+          <CardContent>
+            <h2 className="font-medium text-danger">Unmatched activity</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
+              <Link href="/dashboard/reconciliation" className="text-foreground underline">
+                See what did not match
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       ) : null}
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold tracking-tight">Recent entries</h2>
-        <div className="mt-4 overflow-x-auto panel">
-          <table className="ledger-table">
+        <SectionHeader title="Recent entries" />
+        <TableCard>
+          <Table>
             <caption className="sr-only">Recent journal entries</caption>
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Reference</th>
-                <th scope="col">Company</th>
-                <th scope="col">Memo</th>
-                <th scope="col" className="num">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Date</TableHead>
+                <TableHead scope="col">Reference</TableHead>
+                <TableHead scope="col">Company</TableHead>
+                <TableHead scope="col">Memo</TableHead>
+                <NumberHead scope="col">Amount</NumberHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {recent.map((entry) => (
-                <tr key={entry.id}>
-                  <td className="num text-left">{entry.entryDate}</td>
-                  <td>
+                <TableRow key={entry.id}>
+                  <NumberCell align="left">{entry.entryDate}</NumberCell>
+                  <TableCell>
                     <Link href="/dashboard/ledger" className="underline">
                       {entry.reference}
                     </Link>
-                  </td>
-                  <td>{entityName(entry.entityId, books.entities)}</td>
-                  <td>{entry.memo}</td>
-                  <td className="num">{formatMoney(entry.debitMinor, entry.currency)}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell>{entityName(entry.entityId, books.entities)}</TableCell>
+                  <TableCell>{entry.memo}</TableCell>
+                  <NumberCell>{formatMoney(entry.debitMinor, entry.currency)}</NumberCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       </section>
     </>
-  );
-}
-
-function Stat({ label, value, tone = "ink" }: { label: string; value: string; tone?: "ink" | "seal" | "pine" }) {
-  const color = tone === "seal" ? "text-seal" : tone === "pine" ? "text-pine" : "text-ink";
-  return (
-    <div className="panel px-4 py-3">
-      <dt className="text-xs font-medium text-ink-soft">{label}</dt>
-      <dd className={`mt-1 text-2xl font-semibold tracking-tight ${color}`}>{value}</dd>
-    </div>
   );
 }

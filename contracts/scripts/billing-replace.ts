@@ -58,7 +58,7 @@ async function main() {
   const destination = await getOrCreateAssociatedTokenAccount(connection, payer, mint, merchantAdmin.publicKey);
   await program.methods
     .initializeMerchant(mint, TOKEN_PROGRAM_ID, destination.address)
-    .accounts({ admin: merchantAdmin.publicKey, collector: merchantAdmin.publicKey, merchant })
+    .accounts({ admin: merchantAdmin.publicKey, collector: merchantAdmin.publicKey, merchant, mintAccount: mint })
     .signers([merchantAdmin])
     .rpc();
 
@@ -87,10 +87,15 @@ async function main() {
 
   const expiry = Math.floor(Date.now() / 1000) + 200 * 24 * 60 * 60;
   const [mandate] = PublicKey.findProgramAddressSync([Buffer.from("mandate"), vault.toBuffer()], programId);
+  const receiptFor = (cycle: number) =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("charge_receipt"), mandate.toBuffer(), Buffer.from(new BN(cycle).toArray("le", 8))],
+      programId,
+    )[0];
   await program.methods
     .activateMandateAndCharge(new BN(100 * USDC), new BN(expiry))
     .accounts({
-      controller: controller.publicKey, vault, plan, mandate, merchant, vaultAuthority, vaultToken,
+      controller: controller.publicKey, vault, plan, mandate, receipt: receiptFor(0), merchant, vaultAuthority, vaultToken,
       destinationToken: destination.address, tokenProgram: TOKEN_PROGRAM_ID,
     })
     .rpc();
@@ -113,10 +118,10 @@ async function main() {
   // A collect continues from the carried cycle, debiting only the new period.
   console.log("\ncollecting after replace…");
   await program.methods
-    .collectCycle()
+    .collectCycle(new BN(1))
     .accounts({
       collector: merchantAdmin.publicKey, merchant, vault, mandate,
-      vaultAuthorityPlaceholder: vaultAuthority, vaultAuthority,
+      receipt: receiptFor(1), vaultAuthority,
       vaultToken, destinationToken: destination.address, tokenProgram: TOKEN_PROGRAM_ID,
     })
     .signers([merchantAdmin])

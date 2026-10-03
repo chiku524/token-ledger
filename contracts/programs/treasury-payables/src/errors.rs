@@ -30,6 +30,8 @@ pub enum TreasuryError {
     WrongRecipient,
     #[msg("The mint or token program does not match the treasury.")]
     WrongMint,
+    #[msg("The mint decimals do not match the configured USDC decimals.")]
+    WrongMintDecimals,
     #[msg("Insufficient treasury balance.")]
     InsufficientFunds,
     #[msg("The invoice has already settled.")]

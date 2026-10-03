@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const previewToolbar = process.env.VERCEL_ENV === "preview";
+
 const nextConfig: NextConfig = {
   // A self-contained server image is only needed for a container host (see
   // docs/adr-container-deployment.md). Left off unless DEPLOY_TARGET=container,
@@ -20,12 +22,15 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data:",
+              previewToolbar
+                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live"
+                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              previewToolbar ? "style-src 'self' 'unsafe-inline' https://vercel.live" : "style-src 'self' 'unsafe-inline'",
+              previewToolbar ? "img-src 'self' data: blob: https://vercel.com https://vercel.live" : "img-src 'self' data:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              previewToolbar ? "connect-src 'self' https://vercel.live wss://ws-us3.pusher.com" : "connect-src 'self'",
               "frame-ancestors 'none'",
+              ...(previewToolbar ? ["frame-src https://vercel.live"] : []),
               "base-uri 'self'",
               "form-action 'self'",
             ].join("; "),

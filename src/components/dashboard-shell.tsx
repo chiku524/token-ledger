@@ -1,13 +1,16 @@
-import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
-import { signOutAction } from "@/app/sign-in/actions";
+import { TriangleAlert } from "lucide-react";
+import { resendVerificationAction } from "@/app/dashboard/user-actions";
 import type { SessionUser } from "@/auth/current";
-import { roleLabel } from "@/auth/roles";
-import { ThemeToggle } from "./theme-toggle";
-import { DashboardNav } from "./dashboard-nav";
+import { SubmitButton } from "@/components/submit-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConnectionTour } from "./connection-tour";
+import { DashboardNav } from "./dashboard-nav";
 import { ExampleBanner } from "./example-banner";
-import { Wordmark } from "./wordmark";
+import { Logo } from "./logo";
+import { MobileNav } from "./mobile-nav";
+import { ThemeToggle } from "./theme-toggle";
+import { UserMenu } from "./user-menu";
 
 export function DashboardShell({
   children,
@@ -30,45 +33,59 @@ export function DashboardShell({
   scopeLabel: string | null;
   showConnectionTour: boolean;
 }) {
+  const userMenu = <UserMenu session={session} csrf={csrf} scopeLabel={scopeLabel} />;
+
   return (
-    <div className="min-h-full bg-paper md:grid md:grid-cols-[16.75rem_minmax(0,1fr)]">
-      <a href="#content" className="skip-link">
+    <div data-print="shell" className="min-h-full bg-background md:grid md:grid-cols-[16.75rem_minmax(0,1fr)]">
+      <a
+        href="#content"
+        data-print="hide"
+        className="fixed top-3 left-3 z-50 -translate-y-20 rounded-lg bg-primary px-3 py-1.5 text-primary-foreground transition-transform focus:translate-y-0"
+      >
         Skip to content
       </a>
-      <aside className="flex flex-col border-b border-line bg-paper-raised md:sticky md:top-0 md:h-screen md:border-r md:border-b-0">
-        <div className="flex items-center justify-between gap-3 px-4 py-4 md:block">
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:hidden">
+        <div className="min-w-0">
           <Link href="/">
-            <Wordmark />
+            <Logo size="sm" />
           </Link>
-          <p className="text-xs text-ink-soft md:mt-1">{subtitle}</p>
-          <div className="md:mt-3">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <MobileNav showUsers={showUsers} footer={userMenu} />
+        </div>
+      </header>
+      <aside className="hidden flex-col border-r border-border bg-card md:sticky md:top-0 md:flex md:h-screen">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/">
+              <Logo size="sm" />
+            </Link>
             <ThemeToggle />
           </div>
+          <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
         </div>
-        <div className="px-3 pb-3 md:min-h-0 md:flex-1 md:overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           <DashboardNav showUsers={showUsers} />
         </div>
-        <div className="border-t border-line px-4 py-4 text-sm">
-          <p className="font-medium">{session.name}</p>
-          <p className="mt-1 text-xs text-ink-soft">
-            {roleLabel(session.role)} · {session.email}
-          </p>
-          {session.demo ? <p className="mt-1 text-xs text-seal">Sample preview · not saved</p> : null}
-          {scopeLabel ? <p className="mt-1 text-xs text-ink-soft">{scopeLabel}</p> : null}
-          <form action={signOutAction} className="mt-3">
-            <input type="hidden" name="csrf" value={csrf} />
-            <SubmitButton variant="secondary">
-              Sign out
-            </SubmitButton>
-          </form>
-        </div>
+        <div className="border-t border-border p-3">{userMenu}</div>
       </aside>
       <div className="min-w-0">
         <ExampleBanner origin={origin} notice={notice} />
         {!session.emailVerified && !session.demo ? (
-          <p role="alert" className="mx-4 mt-4 max-w-3xl rounded-xl border border-seal/30 bg-paper-raised px-4 py-3 text-sm text-seal md:mx-8">
-            Confirm your email address. Check your inbox for the confirmation link; if it is missing, an owner can resend it.
-          </p>
+          <Alert variant="warning" className="mx-4 mt-4 max-w-3xl md:mx-8">
+            <TriangleAlert aria-hidden />
+            <AlertDescription>
+              <span>Confirm your email address. Check your inbox for the confirmation link.</span>
+              <form action={resendVerificationAction} className="mt-2">
+                <input type="hidden" name="csrf" value={csrf} />
+                <SubmitButton variant="secondary" size="sm" pendingLabel="Sending…">
+                  Resend confirmation email
+                </SubmitButton>
+              </form>
+            </AlertDescription>
+          </Alert>
         ) : null}
         <main id="content" className="px-4 py-6 md:px-8 md:py-8">
           {children}

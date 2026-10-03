@@ -1135,31 +1135,36 @@ export type TreasuryPayables = {
     },
     {
       "code": 6014,
+      "name": "wrongMintDecimals",
+      "msg": "The mint decimals do not match the configured USDC decimals."
+    },
+    {
+      "code": 6015,
       "name": "insufficientFunds",
       "msg": "Insufficient treasury balance."
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "invoiceAlreadyPaid",
       "msg": "The invoice has already settled."
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "mathOverflow",
       "msg": "An arithmetic overflow occurred."
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "treasuryClosed",
       "msg": "The treasury is closed."
     },
     {
-      "code": 6018,
+      "code": 6019,
       "name": "notEnoughApprovals",
       "msg": "Not enough approvals."
     },
     {
-      "code": 6019,
+      "code": 6020,
       "name": "notPaused",
       "msg": "The treasury is not paused."
     }
