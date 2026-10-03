@@ -4,14 +4,18 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupOrbit } from "@/components/auth/signup-orbit";
 
 describe("SignupOrbit", () => {
-  it("renders looping marks that stay visible without motion", () => {
+  it("renders marks with burst and float hooks, visible without motion", () => {
     const html = renderToStaticMarkup(<SignupOrbit />);
     expect(html).toContain("👛");
     expect(html).toContain("🏦");
     expect(html).toContain("🔐");
+    expect(html).toContain("auth-orbit");
+    expect(html).toContain("auth-burst");
     expect(html).toContain("auth-float");
+    expect(html).toContain("--burst-x");
     expect(html).not.toContain("opacity:0");
   });
+
 
   it("mounts only when the auth shell is given an ornament", () => {
     const withOrbit = renderToStaticMarkup(

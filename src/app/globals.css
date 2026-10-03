@@ -278,8 +278,42 @@ html.dark {
   }
 }
 
+/* Sign-up panel: gather into a circle, burst to rest spots, then drift. */
+.auth-orbit {
+  container-type: size;
+}
+
+.auth-burst {
+  animation: auth-burst 1.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .auth-float {
-  animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 0s) infinite;
+  animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 1.7s) infinite;
+}
+
+@keyframes auth-burst {
+  0% {
+    transform: translate3d(calc(var(--burst-x, 0) * 1cqw), calc(var(--burst-y, 0) * 1cqh), 0) scale(0.72);
+    opacity: 0;
+  }
+  16% {
+    opacity: 1;
+    transform: translate3d(calc(var(--burst-x, 0) * 1cqw), calc(var(--burst-y, 0) * 1cqh), 0) scale(1);
+  }
+  /* Hold the circle long enough to read the formation. */
+  42% {
+    transform: translate3d(calc(var(--burst-x, 0) * 1cqw), calc(var(--burst-y, 0) * 1cqh), 0) scale(1);
+  }
+  /* Slight overshoot past the rest spot, then settle. */
+  78% {
+    opacity: 1;
+    transform: translate3d(calc(var(--burst-x, 0) * -0.1 * 1cqw), calc(var(--burst-y, 0) * -0.1 * 1cqh), 0)
+      scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 @keyframes auth-float {
@@ -305,6 +339,7 @@ html.dark {
     animation-name: rise-in-fade;
   }
 
+  .auth-burst,
   .auth-float {
     animation: none;
   }
