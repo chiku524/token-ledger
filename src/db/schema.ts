@@ -900,6 +900,42 @@ export const chainDeployments = pgTable(
 );
 
 /**
+ * A one-use, expiring proof that a signed-in user controls an address on a
+ * cluster, for a specific entity. Separate from `ownership_challenges`, which
+ * proves control for a read-only connection: a binding names the cluster and the
+ * contract intent. Consumed when the binding is written; a replay cannot consume
+ * it again.
+ */
+export const bindingChallenges = pgTable(
+  "binding_challenges",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    sessionId: text("session_id").notNull(),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    cluster: text("cluster").notNull(),
+    address: text("address").notNull(),
+    domain: text("domain").notNull(),
+    nonce: text("nonce").notNull(),
+    message: text("message").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("binding_challenges_nonce_unique").on(table.nonce),
+    index("binding_challenges_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/**
  * A verified wallet bound to a user and entity: proof that the user controls
  * an address for financial actions. A binding is a verification, not a signing
  * key — the app never stores a key. Revoked bindings stay for audit.
@@ -918,7 +954,7 @@ export const walletBindings = pgTable(
       .notNull()
       .references(() => users.id),
     /** The one-use challenge that was consumed to prove control. */
-    challengeId: text("challenge_id"),
+    challengeId: text("challenge_id").references(() => bindingChallenges.id, { onDelete: "set null" }),
     cluster: text("cluster").notNull(),
     walletAddress: text("wallet_address").notNull(),
     verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
