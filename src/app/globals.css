@@ -291,6 +291,12 @@ html.dark {
   animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 0s) infinite;
 }
 
+/* Same 11s clock as auth-gather. Fades in after the last mark arrives, out before release. */
+.auth-brand {
+  opacity: 0;
+  animation: auth-brand 11s ease-in-out infinite;
+}
+
 @keyframes auth-gather {
   /* Scattered layout (rest spots). */
   0%,
@@ -306,6 +312,25 @@ html.dark {
   60%,
   100% {
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes auth-brand {
+  0%,
+  34% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  38%,
+  45% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  /* Gone before the first mark peels back out at 50%. */
+  49%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
   }
 }
 
@@ -333,8 +358,13 @@ html.dark {
   }
 
   .auth-gather,
-  .auth-float {
+  .auth-float,
+  .auth-brand {
     animation: none;
+  }
+
+  .auth-brand {
+    opacity: 0;
   }
 }
 

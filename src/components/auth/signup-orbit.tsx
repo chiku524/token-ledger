@@ -1,9 +1,13 @@
 /**
  * Marks for the empty blue panel beside the sign-up wizard.
  * They float in the scattered layout, peel into a circle in order, hold,
- * then peel back out to the same layout — looping. CSS transform only;
- * motion stops under prefers-reduced-motion. See docs/design-system/motion.md.
+ * then peel back out to the same layout — looping. While the circle is held,
+ * the Token Ledger wordmark fades in below it, then out before the release.
+ * CSS transform/opacity only; motion stops under prefers-reduced-motion.
+ * See docs/design-system/motion.md.
  */
+
+import { LogoMark } from "@/components/logo";
 
 const REST = [
   { glyph: "👛", top: 13, left: 14, size: "size-20 text-4xl", duration: "9s", floatDelay: "-1.4s", x: "14px", y: "-18px", rot: "6deg" },
@@ -71,6 +75,13 @@ export function SignupOrbit() {
           </span>
         </span>
       ))}
+      {/* Sits in the open band under the circle; timed to the gather hold. */}
+      <span className="auth-brand absolute left-1/2 top-[62%] flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 text-white">
+        <LogoMark className="h-8 w-auto drop-shadow-none" />
+        <span className="font-logo text-2xl font-semibold leading-none tracking-tight whitespace-nowrap sm:text-3xl">
+          Token Ledger
+        </span>
+      </span>
     </div>
   );
 }

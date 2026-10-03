@@ -12,10 +12,13 @@ describe("SignupOrbit", () => {
     expect(html).toContain("auth-orbit");
     expect(html).toContain("auth-gather");
     expect(html).toContain("auth-float");
+    expect(html).toContain("auth-brand");
+    expect(html).toContain("Token Ledger");
     expect(html).toContain("--to-x");
     expect(html).toContain("--orbit-delay");
     expect(html).not.toContain("opacity:0");
   });
+
 
   it("staggers marks so the gather reads as an ordered sweep", () => {
     const html = renderToStaticMarkup(<SignupOrbit />);
