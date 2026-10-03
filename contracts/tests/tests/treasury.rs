@@ -758,3 +758,61 @@ fn emergency_exit_pays_the_changed_recovery_after_governance() {
     assert_eq!(token_amount(&s.h.svm, new_recovery_token), 5000 * USDC, "new recovery paid");
     assert_eq!(token_amount(&s.h.svm, s.recovery_token), 0, "old recovery paid nothing");
 }
+
+#[test]
+fn initialize_treasury_refuses_wrong_decimals() {
+    let Some(mut h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let program_id = h.program_id;
+    let payer = h.payer_pk();
+    // A 9-decimal mint is not the configured 6-decimal USDC scale.
+    let mint = Address::new_unique();
+    h.set_mint(mint, payer, 9);
+    let entity = Address::new_unique();
+    let (treasury, _) = Address::find_program_address(&[b"treasury_config", entity.as_ref()], &program_id);
+    let (treasury_authority, _) =
+        Address::find_program_address(&[b"treasury_authority", treasury.as_ref()], &program_id);
+    let (treasury_token, _) =
+        Address::find_program_address(&[b"treasury_token", treasury.as_ref()], &program_id);
+
+    let mut data = discriminator("initialize_treasury").to_vec();
+    data.extend_from_slice(entity.as_ref());
+    data.extend_from_slice(mint.as_ref());
+    data.extend_from_slice(&token_ledger_contract_tests::token_program().to_bytes());
+    data.push(2u8);
+    data.extend_from_slice(&3u32.to_le_bytes());
+    for _ in 0..3 {
+        data.extend_from_slice(payer.as_ref());
+    }
+    data.extend_from_slice(&1u32.to_le_bytes());
+    data.extend_from_slice(payer.as_ref());
+    data.extend_from_slice(&(500 * USDC).to_le_bytes());
+    data.extend_from_slice(&(1000 * USDC).to_le_bytes());
+    data.extend_from_slice(&3600i64.to_le_bytes());
+    data.extend_from_slice(payer.as_ref());
+
+    let err = h
+        .send(Instruction {
+            program_id,
+            accounts: vec![
+                AccountMeta::new(payer, true),
+                AccountMeta::new_readonly(entity, false),
+                AccountMeta::new(treasury, false),
+                AccountMeta::new_readonly(treasury_authority, false),
+                AccountMeta::new_readonly(mint, false),
+                AccountMeta::new(treasury_token, false),
+                AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+                AccountMeta::new_readonly(token_ledger_contract_tests::system_program(), false),
+                AccountMeta::new_readonly(
+                    Address::from_str_const("SysvarRent111111111111111111111111111111111"),
+                    false,
+                ),
+            ],
+            data,
+        })
+        .expect_err("wrong decimals must be refused");
+    assert!(err.contains("WrongMintDecimals") || err.contains("custom program error"), "got {err}");
+    assert!(h.svm.get_account(&treasury).is_none(), "no treasury created");
+}

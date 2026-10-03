@@ -168,6 +168,7 @@ pub fn initialize_merchant_ix(
             AccountMeta::new(admin, true),
             AccountMeta::new_readonly(collector, false),
             AccountMeta::new(merchant, false),
+            AccountMeta::new_readonly(mint, false),
             AccountMeta::new_readonly(system_program(), false),
         ],
         data,

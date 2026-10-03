@@ -359,6 +359,7 @@ fn initialize_merchant_creates_the_config() {
     let mint = Address::new_unique();
     let destination = Address::new_unique();
     let collector = Address::new_unique();
+    h.set_mint(mint, admin, 6);
     let (merchant, _) = Address::find_program_address(&[b"merchant", admin.as_ref()], &program_id);
 
     h.send(initialize_merchant_ix(program_id, admin, merchant, collector, mint, destination))
@@ -368,6 +369,27 @@ fn initialize_merchant_creates_the_config() {
     assert_eq!(account.owner, program_id);
     assert_eq!(&account.data[9..41], admin.as_ref(), "admin stored");
     assert_eq!(&account.data[73..105], mint.as_ref(), "mint stored");
+}
+
+#[test]
+fn initialize_merchant_refuses_wrong_decimals() {
+    let Some(mut h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let program_id = h.program_id;
+    let admin = h.payer_pk();
+    let mint = Address::new_unique();
+    let destination = Address::new_unique();
+    // A 9-decimal mint is not the configured 6-decimal USDC scale.
+    h.set_mint(mint, admin, 9);
+    let (merchant, _) = Address::find_program_address(&[b"merchant", admin.as_ref()], &program_id);
+
+    let err = h
+        .send(initialize_merchant_ix(program_id, admin, merchant, admin, mint, destination))
+        .expect_err("wrong decimals must be refused");
+    assert!(err.contains("WrongMintDecimals") || err.contains("custom program error"), "got {err}");
+    assert!(h.svm.get_account(&merchant).is_none(), "no merchant created");
 }
 
 #[test]
