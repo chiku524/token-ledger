@@ -45,4 +45,4 @@ Library: `motion` (`import { m } from "motion/react"`). Subtle, product-led.
 
 ## Not doing
 
-Scroll-jacking, parallax, looping decorative animation, chart draw-in.
+Scroll-jacking, parallax, chart draw-in. The sign-up panel is the one looping decoration: `SignupOrbit` drifts with transform only and stops under `prefers-reduced-motion`.

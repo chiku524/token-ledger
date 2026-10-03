@@ -278,10 +278,35 @@ html.dark {
   }
 }
 
+.auth-float {
+  animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 0s) infinite;
+}
+
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(var(--drift-x, 12px), calc(var(--drift-y, -18px) * 0.45), 0) rotate(var(--drift-rot, 6deg));
+  }
+  50% {
+    transform: translate3d(0, var(--drift-y, -18px), 0) rotate(0deg);
+  }
+  75% {
+    transform: translate3d(calc(var(--drift-x, 12px) * -1), calc(var(--drift-y, -18px) * 0.55), 0)
+      rotate(calc(var(--drift-rot, 6deg) * -1));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise-in,
   .stagger > * {
     animation-name: rise-in-fade;
+  }
+
+  .auth-float {
+    animation: none;
   }
 }
 
