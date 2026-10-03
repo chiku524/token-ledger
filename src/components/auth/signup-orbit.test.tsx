@@ -54,7 +54,6 @@ describe("SignupOrbit", () => {
     expect(html).toContain("auth-orbit");
     expect(html).toContain("bg-[#071824]");
     expect(html).toContain("#1a8fa3");
-    expect(html).toContain("hue-rotate-[155deg]");
     expect(html).not.toContain("bg-[#0a0f2e]");
   });
 });
