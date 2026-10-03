@@ -23,6 +23,9 @@ const REST = [
 /** Circle sits in the open middle of the panel, above the copyright strip. */
 const CIRCLE = { top: 36, left: 42, radius: 15 };
 
+/** Open band between the circle (plus icon overhang) and the copyright strip. */
+const BRAND_BAND_TOP = `${CIRCLE.top + CIRCLE.radius + 6}%`;
+
 /** Clockwise from the top so the gather and release read as one ordered sweep. */
 const MARKS = REST.map((mark, index) => {
   const angle = (index / REST.length) * Math.PI * 2 - Math.PI / 2;
@@ -75,11 +78,16 @@ export function SignupOrbit() {
           </span>
         </span>
       ))}
-      {/* Sits in the open band under the circle; timed to the gather hold. */}
-      <span className="auth-brand absolute left-1/2 top-[63%] flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 text-white">
-        <LogoMark className="h-12 w-auto drop-shadow-none sm:h-14" />
-        <span className="font-logo text-3xl font-semibold leading-none tracking-tight whitespace-nowrap sm:text-4xl">
-          Token Ledger
+      {/* Centered in the band between the circle and the copyright strip. */}
+      <span
+        className="absolute inset-x-0 bottom-32 flex items-center justify-center"
+        style={{ top: BRAND_BAND_TOP }}
+      >
+        <span className="auth-brand flex items-center gap-4 text-white">
+          <LogoMark className="h-12 w-auto drop-shadow-none sm:h-14" />
+          <span className="font-logo text-3xl font-semibold leading-none tracking-tight whitespace-nowrap sm:text-4xl">
+            Token Ledger
+          </span>
         </span>
       </span>
     </div>
