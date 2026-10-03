@@ -278,41 +278,34 @@ html.dark {
   }
 }
 
-/* Sign-up panel: gather into a circle, burst to rest spots, then drift. */
+/* Sign-up panel: float scattered, peel into a circle, peel back out, loop. */
 .auth-orbit {
   container-type: size;
 }
 
-.auth-burst {
-  animation: auth-burst 2.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+.auth-gather {
+  animation: auth-gather 10s cubic-bezier(0.45, 0.05, 0.2, 1) var(--orbit-delay, 0s) infinite;
 }
 
 .auth-float {
-  animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 2.9s) infinite;
+  animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 0s) infinite;
 }
 
-@keyframes auth-burst {
-  0% {
-    transform: translate3d(calc(var(--burst-x, 0) * 1cqw), calc(var(--burst-y, 0) * 1cqh), 0) scale(0.55);
-    opacity: 0;
+@keyframes auth-gather {
+  /* Scattered layout (rest spots). */
+  0%,
+  10% {
+    transform: translate3d(0, 0, 0);
   }
-  12% {
-    opacity: 1;
-    transform: translate3d(calc(var(--burst-x, 0) * 1cqw), calc(var(--burst-y, 0) * 1cqh), 0) scale(1);
+  /* Orderly travel into the circle. */
+  28%,
+  48% {
+    transform: translate3d(calc(var(--to-x, 0) * 1cqw), calc(var(--to-y, 0) * 1cqh), 0);
   }
-  /* Hold the circle long enough to read the formation. */
-  52% {
-    transform: translate3d(calc(var(--burst-x, 0) * 1cqw), calc(var(--burst-y, 0) * 1cqh), 0) scale(1);
-  }
-  /* Burst outward with a short overshoot, then settle. */
-  80% {
-    opacity: 1;
-    transform: translate3d(calc(var(--burst-x, 0) * -0.14 * 1cqw), calc(var(--burst-y, 0) * -0.14 * 1cqh), 0)
-      scale(1.06);
-  }
+  /* Orderly return to the scattered layout. */
+  66%,
   100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -339,7 +332,7 @@ html.dark {
     animation-name: rise-in-fade;
   }
 
-  .auth-burst,
+  .auth-gather,
   .auth-float {
     animation: none;
   }

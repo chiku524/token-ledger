@@ -4,18 +4,25 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupOrbit } from "@/components/auth/signup-orbit";
 
 describe("SignupOrbit", () => {
-  it("renders marks with burst and float hooks, visible without motion", () => {
+  it("renders marks with gather and float hooks, visible without motion", () => {
     const html = renderToStaticMarkup(<SignupOrbit />);
     expect(html).toContain("👛");
     expect(html).toContain("🏦");
     expect(html).toContain("🔐");
     expect(html).toContain("auth-orbit");
-    expect(html).toContain("auth-burst");
+    expect(html).toContain("auth-gather");
     expect(html).toContain("auth-float");
-    expect(html).toContain("--burst-x");
+    expect(html).toContain("--to-x");
+    expect(html).toContain("--orbit-delay");
     expect(html).not.toContain("opacity:0");
   });
 
+  it("staggers marks so the gather reads as an ordered sweep", () => {
+    const html = renderToStaticMarkup(<SignupOrbit />);
+    expect(html).toContain("--orbit-delay:0.00s");
+    expect(html).toContain("--orbit-delay:0.14s");
+    expect(html).toContain("--orbit-delay:0.98s");
+  });
 
   it("mounts only when the auth shell is given an ornament", () => {
     const withOrbit = renderToStaticMarkup(

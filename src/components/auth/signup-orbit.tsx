@@ -1,33 +1,37 @@
 /**
  * Marks for the empty blue panel beside the sign-up wizard.
- * They gather into a circle, burst to their rest spots, then drift on a loop.
- * CSS only (transform), so the marks stay painted without JavaScript. The
+ * They float in the scattered layout, peel into a circle in order, hold,
+ * then peel back out to the same layout — looping. CSS transform only;
  * motion stops under prefers-reduced-motion. See docs/design-system/motion.md.
  */
 
 const REST = [
-  { glyph: "👛", top: 13, left: 14, size: "size-20 text-4xl", duration: "9s", floatDelay: "2.9s", x: "18px", y: "-26px", rot: "8deg" },
-  { glyph: "🏦", top: 28, left: 52, size: "size-[4.5rem] text-3xl", duration: "11s", floatDelay: "3.15s", x: "-16px", y: "-20px", rot: "-6deg" },
-  { glyph: "🪙", top: 16, left: 72, size: "size-14 text-2xl", duration: "7.5s", floatDelay: "3.3s", x: "-12px", y: "-18px", rot: "14deg" },
-  { glyph: "🔐", top: 46, left: 18, size: "size-20 text-4xl", duration: "12s", floatDelay: "3.05s", x: "14px", y: "-28px", rot: "5deg" },
-  { glyph: "🛡️", top: 42, left: 64, size: "size-16 text-3xl", duration: "10s", floatDelay: "3.45s", x: "-18px", y: "-22px", rot: "-8deg" },
-  { glyph: "📒", top: 62, left: 40, size: "size-[4.25rem] text-3xl", duration: "13s", floatDelay: "3.25s", x: "20px", y: "-16px", rot: "-4deg" },
-  { glyph: "🔗", top: 68, left: 16, size: "size-14 text-2xl", duration: "8.5s", floatDelay: "3.55s", x: "12px", y: "-18px", rot: "6deg" },
-  { glyph: "📊", top: 70, left: 66, size: "size-12 text-xl", duration: "9.5s", floatDelay: "3.65s", x: "-10px", y: "-14px", rot: "4deg" },
+  { glyph: "👛", top: 13, left: 14, size: "size-20 text-4xl", duration: "9s", floatDelay: "-1.4s", x: "14px", y: "-18px", rot: "6deg" },
+  { glyph: "🏦", top: 28, left: 52, size: "size-[4.5rem] text-3xl", duration: "11s", floatDelay: "-3.2s", x: "-12px", y: "-16px", rot: "-5deg" },
+  { glyph: "🪙", top: 16, left: 72, size: "size-14 text-2xl", duration: "7.5s", floatDelay: "-2.1s", x: "-10px", y: "-14px", rot: "10deg" },
+  { glyph: "🔐", top: 46, left: 18, size: "size-20 text-4xl", duration: "12s", floatDelay: "-5.5s", x: "12px", y: "-20px", rot: "4deg" },
+  { glyph: "🛡️", top: 42, left: 64, size: "size-16 text-3xl", duration: "10s", floatDelay: "-4s", x: "-14px", y: "-16px", rot: "-6deg" },
+  { glyph: "📒", top: 62, left: 40, size: "size-[4.25rem] text-3xl", duration: "13s", floatDelay: "-6.8s", x: "16px", y: "-12px", rot: "-3deg" },
+  { glyph: "🔗", top: 68, left: 16, size: "size-14 text-2xl", duration: "8.5s", floatDelay: "-2.8s", x: "10px", y: "-14px", rot: "5deg" },
+  { glyph: "📊", top: 70, left: 66, size: "size-12 text-xl", duration: "9.5s", floatDelay: "-5s", x: "-8px", y: "-12px", rot: "3deg" },
 ] as const;
 
 /** Circle sits in the open middle of the panel, above the copyright strip. */
 const CIRCLE = { top: 36, left: 42, radius: 15 };
 
+/** Clockwise from the top so the gather and release read as one ordered sweep. */
 const MARKS = REST.map((mark, index) => {
   const angle = (index / REST.length) * Math.PI * 2 - Math.PI / 2;
   const circleTop = CIRCLE.top + Math.sin(angle) * CIRCLE.radius;
   const circleLeft = CIRCLE.left + Math.cos(angle) * CIRCLE.radius;
   return {
     ...mark,
-    /** Distance from the rest spot back to the circle slot, in container %. */
-    burstX: (circleLeft - mark.left).toFixed(2),
-    burstY: (circleTop - mark.top).toFixed(2),
+    index,
+    /** Offset from the rest spot to the circle slot, in container %. */
+    toX: (circleLeft - mark.left).toFixed(2),
+    toY: (circleTop - mark.top).toFixed(2),
+    /** Stagger so marks peel in and out one after another. */
+    orbitDelay: `${(index * 0.14).toFixed(2)}s`,
   };
 });
 
@@ -41,11 +45,12 @@ export function SignupOrbit() {
           style={{ top: `${mark.top}%`, left: `${mark.left}%` }}
         >
           <span
-            className="auth-burst block"
+            className="auth-gather block"
             style={
               {
-                "--burst-x": mark.burstX,
-                "--burst-y": mark.burstY,
+                "--to-x": mark.toX,
+                "--to-y": mark.toY,
+                "--orbit-delay": mark.orbitDelay,
               } as React.CSSProperties
             }
           >
