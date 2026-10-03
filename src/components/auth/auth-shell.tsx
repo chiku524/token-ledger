@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthVisual } from "@/components/auth/auth-visual";
+import { AUTH_VISUAL_TONES, AuthVisual, type AuthVisualTone } from "@/components/auth/auth-visual";
 import { Logo } from "@/components/logo";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -9,20 +9,23 @@ export function AuthShell({
   kicker,
   title,
   width = "narrow",
+  tone = "signup",
   ornament,
   children,
 }: {
   kicker: string;
   title: string;
   width?: "narrow" | "wide";
+  /** Left-panel atmosphere. Sign-in uses a teal-navy cast; sign-up keeps the blue. */
+  tone?: AuthVisualTone;
   /** Decorative content for the left panel. Hidden below the `lg` breakpoint. */
   ornament?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid min-h-dvh bg-[#0a0f2e] lg:grid-cols-2">
+    <div className={cn("grid min-h-dvh lg:grid-cols-2", AUTH_VISUAL_TONES[tone].base)}>
       <div className="sticky top-0 hidden h-dvh lg:block">
-        <AuthVisual>{ornament}</AuthVisual>
+        <AuthVisual tone={tone}>{ornament}</AuthVisual>
       </div>
       <main className="relative z-10 flex min-h-dvh flex-col bg-background px-6 py-6 lg:-ml-10 lg:rounded-l-[2rem] lg:px-12">
         <div className="flex justify-end">
