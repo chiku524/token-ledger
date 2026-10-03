@@ -20,8 +20,6 @@ pub mod seeds {
     pub const BILLING_VAULT_TOKEN: &[u8] = b"billing_vault_token";
     /// A mandate for a billing vault generation.
     pub const MANDATE: &[u8] = b"mandate";
-    /// A receipt for a collected cycle.
-    pub const CHARGE_RECEIPT: &[u8] = b"charge_receipt";
 
     /// Treasury configuration for a company.
     pub const TREASURY_CONFIG: &[u8] = b"treasury_config";

@@ -89,17 +89,3 @@ pub struct Mandate {
     pub revoked: bool,
     pub generation: u64,
 }
-
-/// A receipt for one collected cycle. Kept as a durable, addressable record so
-/// a missed event log does not lose the fact of a charge.
-#[account]
-#[derive(InitSpace)]
-pub struct ChargeReceipt {
-    pub bump: u8,
-    pub mandate: Pubkey,
-    pub cycle: u64,
-    pub amount: u64,
-    pub coverage_start: i64,
-    pub coverage_end: i64,
-    pub collected_at: i64,
-}

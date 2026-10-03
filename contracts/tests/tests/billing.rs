@@ -8,6 +8,7 @@ use litesvm::LiteSVM;
 use solana_account::Account;
 use solana_address::Address;
 use solana_instruction::{account_meta::AccountMeta, Instruction};
+use solana_signer::Signer;
 use token_ledger_contract_tests::{discriminator, initialize_merchant_ix, Harness};
 
 const SERVICE_BALANCE: &str = "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb";
@@ -31,6 +32,7 @@ struct Setup {
     destination: Address,
     controller: Address,
     controller_token: Address,
+    mint: Address,
 }
 
 fn set_up(mut h: Harness) -> Setup {
@@ -135,6 +137,7 @@ fn set_up(mut h: Harness) -> Setup {
         destination,
         controller,
         controller_token,
+        mint,
     }
 }
 
@@ -242,6 +245,42 @@ fn pause_collection(s: &mut Setup, paused: bool) -> Result<(), String> {
             AccountMeta::new(s.merchant, false),
         ],
         data,
+    })
+}
+
+/// Admin rotates the operational collector key.
+fn rotate_collector(s: &mut Setup, new_collector: Address) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    let mut data = discriminator("rotate_collector").to_vec();
+    data.extend_from_slice(new_collector.as_ref());
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new(s.merchant, false),
+        ],
+        data,
+    })
+}
+
+/// Trigger a collection that pays a caller-supplied destination account, so a
+/// test can try to substitute the merchant's fixed destination.
+fn collect_to(s: &mut Setup, destination: Address) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new_readonly(s.merchant, false),
+            AccountMeta::new(s.vault, false),
+            AccountMeta::new(s.mandate, false),
+            AccountMeta::new(s.vault_authority, false),
+            AccountMeta::new_readonly(s.vault_authority, false),
+            AccountMeta::new(s.vault_token, false),
+            AccountMeta::new(destination, false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+        ],
+        data: discriminator("collect_cycle").to_vec(),
     })
 }
 
@@ -431,4 +470,60 @@ fn collection_pause_stops_charges_but_not_withdrawal() {
     // The customer's exit is never blocked by a pause.
     withdraw(&mut s, 180 * USDC).expect("withdraw while paused");
     assert_eq!(token_amount(&s.h.svm, s.controller_token), 180 * USDC, "exit honoured");
+}
+
+#[test]
+fn a_substituted_destination_is_refused() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let now = s.h.now();
+    activate(&mut s, 100 * USDC, now + 200 * 24 * 60 * 60).expect("activate");
+
+    // An attacker supplies their own token account as the destination; the
+    // program must require the merchant's fixed destination.
+    let attacker = Address::new_unique();
+    s.h.set_token_account(attacker, s.mint, s.h.payer_pk(), 0);
+    let err = collect_to(&mut s, attacker).expect_err("substituted destination");
+    assert!(err.contains("WrongMint") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, attacker), 0, "attacker received nothing");
+    assert_eq!(token_amount(&s.h.svm, s.destination), 20 * USDC, "merchant unchanged");
+}
+
+#[test]
+fn rotated_collector_replaces_the_old_key() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 100 * USDC, expiry).expect("activate");
+
+    // A new collector key is a funded signer that can drive collection.
+    let new_collector = solana_keypair::Keypair::new();
+    s.h.fund(new_collector.pubkey(), 100_000_000);
+    rotate_collector(&mut s, new_collector.pubkey()).expect("rotate");
+
+    // Drive collection signed by the new collector, not the payer.
+    let program_id = s.h.program_id;
+    let ix = Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(new_collector.pubkey(), true),
+            AccountMeta::new_readonly(s.merchant, false),
+            AccountMeta::new(s.vault, false),
+            AccountMeta::new(s.mandate, false),
+            AccountMeta::new(s.vault_authority, false),
+            AccountMeta::new_readonly(s.vault_authority, false),
+            AccountMeta::new(s.vault_token, false),
+            AccountMeta::new(s.destination, false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+        ],
+        data: discriminator("collect_cycle").to_vec(),
+    };
+    s.h.send_signed(ix, &[&new_collector]).expect("new collector collects");
+    assert_eq!(token_amount(&s.h.svm, s.destination), 40 * USDC, "new collector charged cycle 2");
 }

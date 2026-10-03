@@ -220,13 +220,77 @@ fn pause(s: &mut Setup, approver: usize) -> Result<(), String> {
     )
 }
 
-/// GovernanceKind seed bytes: PolicyChange=0, Unpause=1, EmergencyExit=2.
+fn revoke_approval(s: &mut Setup, invoice_key: [u8; 32], revision: u32, approver: usize) -> Result<(), String> {
+    let kp = s.approvers[approver].insecure_clone();
+    let proposal = proposal_pda(s, &invoice_key, revision);
+    s.h.send_signed(
+        Instruction {
+            program_id: s.h.program_id,
+            accounts: vec![
+                AccountMeta::new_readonly(kp.pubkey(), true),
+                AccountMeta::new_readonly(s.treasury, false),
+                AccountMeta::new(proposal, false),
+            ],
+            data: discriminator("revoke_approval").to_vec(),
+        },
+        &[&kp],
+    )
+}
+
+fn cancel_payment(s: &mut Setup, invoice_key: [u8; 32], revision: u32, actor: usize) -> Result<(), String> {
+    let kp = s.approvers[actor].insecure_clone();
+    let proposal = proposal_pda(s, &invoice_key, revision);
+    s.h.send_signed(
+        Instruction {
+            program_id: s.h.program_id,
+            accounts: vec![
+                AccountMeta::new_readonly(kp.pubkey(), true),
+                AccountMeta::new_readonly(s.treasury, false),
+                AccountMeta::new(proposal, false),
+            ],
+            data: discriminator("cancel_payment").to_vec(),
+        },
+        &[&kp],
+    )
+}
+
+/// Execute a payment paying a caller-supplied recipient token account, so a test
+/// can try to substitute the approved recipient.
+fn execute_to(s: &mut Setup, invoice_key: [u8; 32], revision: u32, recipient_token: Address) -> Result<(), String> {
+    let proposal = proposal_pda(s, &invoice_key, revision);
+    s.h.send(Instruction {
+        program_id: s.h.program_id,
+        accounts: vec![
+            AccountMeta::new(s.h.payer_pk(), true),
+            AccountMeta::new(s.treasury, false),
+            AccountMeta::new(proposal, false),
+            AccountMeta::new(settlement_pda(s, &invoice_key), false),
+            AccountMeta::new_readonly(s.treasury_authority, false),
+            AccountMeta::new(s.treasury_token, false),
+            AccountMeta::new(recipient_token, false),
+            AccountMeta::new(daily_spend_pda(s), false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::system_program(), false),
+        ],
+        data: discriminator("execute_payment").to_vec(),
+    })
+}
+
+/// The policy version stored in the treasury config (offset 106..114).
+fn policy_version(s: &Setup) -> u64 {
+    let account = s.h.svm.get_account(&s.treasury).expect("treasury");
+    u64::from_le_bytes(account.data[106..114].try_into().unwrap())
+}
+
+/// GovernanceKind seed bytes: PolicyChange=0, Unpause=1, EmergencyExit=2. The
+/// PDA is seeded by the treasury's current policy version, so a proposal made
+/// after a policy change lives at the new version.
 fn governance_pda(s: &Setup, kind: u8) -> Address {
     Address::find_program_address(
         &[
             b"governance_proposal",
             s.treasury.as_ref(),
-            &1u64.to_le_bytes(),
+            &policy_version(s).to_le_bytes(),
             &[kind],
         ],
         &s.h.program_id,
@@ -536,8 +600,7 @@ fn policy_change_rotates_the_signers_and_bumps_the_version() {
 
     // The policy version incremented and the old approvers are no longer valid:
     // a former approver can no longer pause execution.
-    let account = s.h.svm.get_account(&s.treasury).expect("treasury");
-    assert_eq!(u64::from_le_bytes(account.data[106..114].try_into().unwrap()), 2, "policy v2");
+    assert_eq!(policy_version(&s), 2, "policy v2");
     s.h.advance_blockhash();
     let err = pause(&mut s, 0).expect_err("old approver cannot act");
     assert!(err.contains("NotAuthorized") || err.contains("custom program error"), "got {err}");
@@ -558,4 +621,140 @@ fn expired_proposal_cannot_execute() {
     s.h.warp_clock(s.h.now() + 3601);
     let err = execute(&mut s, invoice, 1).expect_err("expired proposal");
     assert!(err.contains("Expired") || err.contains("custom program error"), "got {err}");
+}
+
+#[test]
+fn revoked_approval_lowers_the_count_below_quorum() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let invoice = [15u8; 32];
+    propose(&mut s, invoice, 1, 500 * USDC).expect("propose");
+    approve(&mut s, invoice, 1, 0).expect("approve a0");
+    approve(&mut s, invoice, 1, 1).expect("approve a1");
+    // One approver withdraws: back below the 2-of-3 threshold.
+    revoke_approval(&mut s, invoice, 1, 0).expect("revoke a0");
+    s.h.advance_blockhash();
+    let err = execute(&mut s, invoice, 1).expect_err("below quorum after revoke");
+    assert!(err.contains("NotEnoughApprovals") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, s.recipient_token), 0, "nothing paid");
+}
+
+#[test]
+fn cancelled_payment_cannot_execute() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let invoice = [16u8; 32];
+    propose(&mut s, invoice, 1, 500 * USDC).expect("propose");
+    approve(&mut s, invoice, 1, 0).expect("approve a0");
+    approve(&mut s, invoice, 1, 1).expect("approve a1");
+    cancel_payment(&mut s, invoice, 1, 0).expect("cancel by approver");
+    s.h.advance_blockhash();
+    let err = execute(&mut s, invoice, 1).expect_err("cancelled proposal");
+    assert!(err.contains("Cancelled") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, s.recipient_token), 0, "cancelled payment paid nothing");
+}
+
+#[test]
+fn a_substituted_recipient_is_refused() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let invoice = [17u8; 32];
+    propose(&mut s, invoice, 1, 500 * USDC).expect("propose");
+    approve(&mut s, invoice, 1, 0).expect("approve a0");
+    approve(&mut s, invoice, 1, 1).expect("approve a1");
+    // An attacker's token account, owned by someone other than the approved
+    // recipient owner, must not receive the payment.
+    let attacker = Address::new_unique();
+    let attacker_owner = Keypair::new();
+    s.h.set_token_account(attacker, s.mint, attacker_owner.pubkey(), 0);
+    s.h.advance_blockhash();
+    let err = execute_to(&mut s, invoice, 1, attacker).expect_err("substituted recipient");
+    assert!(err.contains("WrongRecipient") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, attacker), 0, "attacker received nothing");
+    assert_eq!(token_amount(&s.h.svm, s.recipient_token), 0, "approved recipient not paid either");
+}
+
+#[test]
+fn a_stale_policy_approval_cannot_execute() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let invoice = [18u8; 32];
+    propose(&mut s, invoice, 1, 500 * USDC).expect("propose");
+    approve(&mut s, invoice, 1, 0).expect("approve a0");
+
+    // A policy change bumps the version, so the old proposal is stale.
+    let mut set = [Address::default(); 10];
+    set[0] = s.approvers[0].pubkey();
+    set[1] = s.approvers[1].pubkey();
+    let recovery = s.h.payer_pk();
+    propose_governance(&mut s, 0, 0, 2, 2, set, 500 * USDC, 1000 * USDC, recovery)
+        .expect("propose policy change");
+    approve_governance(&mut s, 0, 0).expect("approve g0");
+    approve_governance(&mut s, 1, 0).expect("approve g1");
+    execute_policy_change(&mut s, 0).expect("execute policy change");
+
+    s.h.advance_blockhash();
+    let err = execute(&mut s, invoice, 1).expect_err("stale policy proposal");
+    assert!(err.contains("StalePolicy") || err.contains("custom program error"), "got {err}");
+}
+
+#[test]
+fn emergency_exit_pays_the_changed_recovery_after_governance() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    // Change the recovery wallet to a fresh key with its own token account.
+    let new_recovery = Keypair::new();
+    s.h.fund(new_recovery.pubkey(), 100_000_000);
+    let new_recovery_token = Address::new_unique();
+    s.h.set_token_account(new_recovery_token, s.mint, new_recovery.pubkey(), 0);
+    let mut set = [Address::default(); 10];
+    set[0] = s.approvers[0].pubkey();
+    set[1] = s.approvers[1].pubkey();
+    set[2] = s.approvers[2].pubkey();
+    propose_governance(&mut s, 0, 0, 2, 3, set, 500 * USDC, 1000 * USDC, new_recovery.pubkey())
+        .expect("propose recovery change");
+    approve_governance(&mut s, 0, 0).expect("approve g0");
+    approve_governance(&mut s, 1, 0).expect("approve g1");
+    execute_policy_change(&mut s, 0).expect("execute recovery change");
+
+    // Pause, then exit to the new recovery wallet under the new policy version.
+    assert_eq!(policy_version(&s), 2, "policy advanced");
+    pause(&mut s, 0).expect("pause");
+    let zero = [Address::default(); 10];
+    propose_governance(&mut s, 0, 2, 0, 0, zero, 0, 0, Address::default()).expect("propose exit");
+    approve_governance(&mut s, 0, 2).expect("approve exit g0");
+    approve_governance(&mut s, 1, 2).expect("approve exit g1");
+    // execute_emergency_exit reads the same governance PDA for the live version.
+    s.h.send(Instruction {
+        program_id: s.h.program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new(s.treasury, false),
+            AccountMeta::new(governance_pda(&s, 2), false),
+            AccountMeta::new_readonly(s.treasury_authority, false),
+            AccountMeta::new(s.treasury_token, false),
+            AccountMeta::new(new_recovery_token, false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+        ],
+        data: discriminator("execute_emergency_exit").to_vec(),
+    })
+    .expect("execute exit");
+
+    assert_eq!(token_amount(&s.h.svm, new_recovery_token), 5000 * USDC, "new recovery paid");
+    assert_eq!(token_amount(&s.h.svm, s.recovery_token), 0, "old recovery paid nothing");
 }
