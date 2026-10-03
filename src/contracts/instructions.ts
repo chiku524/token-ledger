@@ -168,3 +168,139 @@ export function encodeReplaceMandate(args: {
 export function dataBase64(data: Uint8Array): string {
   return toBase64(data);
 }
+
+/** The 8-byte discriminators, pinned to `contracts/idl/treasury_payables.json`. */
+export const TREASURY_PAYABLES_DISCRIMINATORS = {
+  initialize_treasury: [124, 186, 211, 195, 85, 165, 129, 166],
+  deposit: [242, 35, 198, 137, 82, 225, 242, 182],
+  propose_payment: [102, 219, 97, 51, 201, 219, 247, 27],
+  approve_payment: [21, 123, 195, 139, 107, 141, 34, 187],
+  revoke_approval: [44, 51, 184, 108, 182, 202, 20, 53],
+  cancel_payment: [217, 129, 71, 37, 216, 193, 38, 33],
+  execute_payment: [86, 4, 7, 7, 120, 139, 232, 139],
+  pause_execution: [254, 15, 49, 32, 131, 119, 85, 196],
+  propose_governance: [129, 138, 213, 117, 56, 242, 208, 54],
+  approve_governance: [90, 116, 1, 180, 176, 79, 244, 224],
+  execute_policy_change: [127, 42, 199, 98, 79, 199, 181, 102],
+  execute_emergency_exit: [100, 185, 247, 167, 47, 188, 16, 11],
+} as const satisfies Record<string, readonly number[]>;
+
+/** GovernanceKind variant order, matching the IDL enum. */
+export const GOVERNANCE_KINDS = ["PolicyChange", "Unpause", "EmergencyExit"] as const;
+export type GovernanceKind = (typeof GOVERNANCE_KINDS)[number];
+
+/** The maximum approver set the programs accept; an array argument is padded to it. */
+export const MAX_APPROVERS = 10;
+
+function vecPubkeys(addresses: string[]): Uint8Array {
+  return concat([u32(addresses.length), ...addresses.map(pubkeyBytes)]);
+}
+
+function fixedPubkeys10(addresses: string[]): Uint8Array {
+  if (addresses.length > MAX_APPROVERS) throw new Error(`At most ${MAX_APPROVERS} approvers.`);
+  const padded = [...addresses];
+  while (padded.length < MAX_APPROVERS) padded.push("11111111111111111111111111111111");
+  return concat(padded.map(pubkeyBytes));
+}
+
+export function encodeInitializeTreasury(args: {
+  entity: string;
+  mint: string;
+  tokenProgram: string;
+  threshold: number;
+  approvers: string[];
+  proposers: string[];
+  perPaymentLimit: bigint;
+  dailyLimit: bigint;
+  maxProposalLifetime: bigint;
+  recovery: string;
+}): Uint8Array {
+  return concat([
+    Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.initialize_treasury),
+    pubkeyBytes(args.entity),
+    pubkeyBytes(args.mint),
+    pubkeyBytes(args.tokenProgram),
+    u8(args.threshold),
+    vecPubkeys(args.approvers),
+    vecPubkeys(args.proposers),
+    u64(args.perPaymentLimit),
+    u64(args.dailyLimit),
+    i64(args.maxProposalLifetime),
+    pubkeyBytes(args.recovery),
+  ]);
+}
+
+export function encodeTreasuryDeposit(amount: bigint): Uint8Array {
+  return concat([Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.deposit), u64(amount)]);
+}
+
+export function encodeProposePayment(args: {
+  invoiceKey: Uint8Array;
+  revision: number;
+  recipientOwner: string;
+  grossAmount: bigint;
+}): Uint8Array {
+  if (args.invoiceKey.length !== 32) throw new Error("An invoice key is 32 bytes.");
+  return concat([
+    Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.propose_payment),
+    args.invoiceKey,
+    u32(args.revision),
+    pubkeyBytes(args.recipientOwner),
+    u64(args.grossAmount),
+  ]);
+}
+
+export function encodeApprovePayment(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.approve_payment);
+}
+
+export function encodeRevokeApproval(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.revoke_approval);
+}
+
+export function encodeCancelPayment(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.cancel_payment);
+}
+
+export function encodeExecutePayment(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.execute_payment);
+}
+
+export function encodePauseExecution(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.pause_execution);
+}
+
+export function encodeProposeGovernance(args: {
+  kind: GovernanceKind;
+  newThreshold: number;
+  newApproverCount: number;
+  newApprovers: string[];
+  newPerPaymentLimit: bigint;
+  newDailyLimit: bigint;
+  newRecovery: string;
+}): Uint8Array {
+  const kindIndex = GOVERNANCE_KINDS.indexOf(args.kind);
+  if (kindIndex < 0) throw new Error(`Unknown governance kind ${args.kind}.`);
+  return concat([
+    Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.propose_governance),
+    u8(kindIndex),
+    u8(args.newThreshold),
+    u8(args.newApproverCount),
+    fixedPubkeys10(args.newApprovers),
+    u64(args.newPerPaymentLimit),
+    u64(args.newDailyLimit),
+    pubkeyBytes(args.newRecovery),
+  ]);
+}
+
+export function encodeApproveGovernance(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.approve_governance);
+}
+
+export function encodeExecutePolicyChange(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.execute_policy_change);
+}
+
+export function encodeExecuteEmergencyExit(): Uint8Array {
+  return Uint8Array.from(TREASURY_PAYABLES_DISCRIMINATORS.execute_emergency_exit);
+}

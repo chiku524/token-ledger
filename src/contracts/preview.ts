@@ -82,14 +82,27 @@ export function previewIsComplete(preview: TransactionPreview): { ok: true } | {
   return missing.length === 0 ? { ok: true } : { ok: false, missing };
 }
 
-/** Whether an action moves a token amount. */
+/**
+ * Actions that move or commit a specific token amount, and so must show it
+ * before a signature. Setup, approval and cancellation actions carry no amount.
+ */
+const MONEY_ACTIONS: ReadonlySet<PreviewAction> = new Set([
+  "billing.deposit",
+  "billing.withdraw",
+  "billing.activate",
+  "billing.collect",
+  "billing.replace",
+  "treasury.deposit",
+  "treasury.propose",
+  "treasury.execute",
+  "treasury.exit",
+]);
+// treasury.initialize, treasury.pause, treasury.approve, treasury.revoke_approval,
+// treasury.cancel, treasury.governance: no amount is committed by the signature.
+
+/** Whether an action moves or commits a token amount. */
 export function moneyMoves(action: PreviewAction): boolean {
-  return (
-    action !== "billing.revoke" &&
-    action !== "billing.create_vault" &&
-    action !== "billing.create_plan" &&
-    action !== "treasury.pause"
-  );
+  return MONEY_ACTIONS.has(action);
 }
 
 /** Whether an action pays a recipient (needs an owner address shown). */
