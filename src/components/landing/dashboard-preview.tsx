@@ -20,7 +20,7 @@ function Balances() {
     <div>
       <div className="mb-4 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[.14em] text-muted-foreground">
         <span>Source</span>
-        <span>Amount (MYR)</span>
+        <span>Amount (USD)</span>
       </div>
       <div className="space-y-4">
         {sources.map((source) => (
@@ -96,7 +96,7 @@ export function DashboardPreview() {
             <div className="mb-4 grid grid-cols-[1.7fr_1fr_1fr] gap-2">
               <div className="rounded-lg border bg-card p-3">
                 <p className="text-[9px] text-muted-foreground">Total asset value</p>
-                <p className="mt-2 font-heading text-sm font-semibold tracking-tight sm:text-lg">MYR {money(totalAssets)}</p>
+                <p className="mt-2 font-heading text-sm font-semibold tracking-tight sm:text-lg">USD {money(totalAssets)}</p>
                 <div
                   role="img"
                   aria-label="Wallets 53.3%, exchanges 35%, custodians 11.7%"

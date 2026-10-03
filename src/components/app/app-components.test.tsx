@@ -73,11 +73,10 @@ describe("EmptyState and SectionHeader", () => {
 });
 
 describe("Logo", () => {
-  it("renders the name and uses tokens rather than hex", () => {
-    const html = renderToStaticMarkup(<Logo variant="onLime" />);
+  it("renders the name and the logo file", () => {
+    const html = renderToStaticMarkup(<Logo />);
     expect(html).toContain("Token Ledger");
-    expect(html).toContain("fill-primary");
-    expect(html).not.toMatch(/#[0-9a-f]{6}/i);
+    expect(html).toContain("token-ledger-logo.svg");
   });
 });
 

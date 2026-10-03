@@ -52,8 +52,9 @@ page that already used it.
 
 ## Brand (`src/components/logo.tsx`)
 
-`LogoMark` and `Logo`, variants `brand` (default), `onLight`, `onLime`, `mono`. Colours
-come from tokens (`brand`, `primary`, `cloud`, `night`), not hex. `wordmark.tsx` re-exports
+`LogoMark` renders `public/token-ledger-logo.svg` (the three-bar mark) and `Logo` adds the
+wordmark text. The file is a fixed raster image inside an SVG, so it has no colour variants.
+`wordmark.tsx` re-exports
 them under the old names (`BrandMark`, `Wordmark`) and is **live** in the shell and
 public pages; it goes away in the cleanup phase. `src/app/icon.svg` still uses hex (a
 favicon file cannot read CSS variables) and already matches the brand mark.

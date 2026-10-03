@@ -1,31 +1,30 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-export type LogoVariant = "brand" | "onLight" | "onLime" | "mono";
-
-const parts: Record<LogoVariant, { tile: string; top: string; rows: string }> = {
-  brand: { tile: "fill-brand", top: "fill-primary", rows: "fill-cloud" },
-  onLight: { tile: "fill-white stroke-border", top: "fill-primary", rows: "fill-brand" },
-  onLime: { tile: "fill-primary", top: "fill-night", rows: "fill-night" },
-  mono: { tile: "fill-none stroke-current", top: "fill-current", rows: "fill-current" },
-};
-
-export function LogoMark({ variant = "brand", className = "h-8 w-8" }: { variant?: LogoVariant; className?: string }) {
-  const p = parts[variant];
+export function LogoMark({ className = "h-[22px] w-auto" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" className={p.tile} />
-      <rect x="7" y="8" width="10" height="3.2" rx="1" className={p.top} />
-      <rect x="7" y="14.4" width="18" height="3.2" rx="1" className={p.rows} />
-      <rect x="7" y="20.8" width="14" height="3.2" rx="1" className={p.rows} />
-    </svg>
+    <Image
+      src="/token-ledger-logo.svg"
+      alt=""
+      width={745}
+      height={598}
+      priority
+      className={cn("object-contain drop-shadow-[0_1px_1px_rgb(70_80_140/0.45)] dark:drop-shadow-none", className)}
+    />
   );
 }
 
-export function Logo({ variant = "brand", className }: { variant?: LogoVariant; className?: string }) {
+const sizes = {
+  md: { gap: "gap-2.5", mark: "h-[22px] w-auto", text: "text-base" },
+  sm: { gap: "gap-2", mark: "h-[17px] w-auto", text: "text-[13px]" },
+};
+
+export function Logo({ size = "md", className }: { size?: keyof typeof sizes; className?: string }) {
+  const s = sizes[size];
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark variant={variant} />
-      <span className="font-display text-base font-bold tracking-tight whitespace-nowrap">Token Ledger</span>
+    <span className={cn("inline-flex items-center", s.gap, className)}>
+      <LogoMark className={s.mark} />
+      <span className={cn("font-logo leading-none font-semibold whitespace-nowrap", s.text)}>Token Ledger</span>
     </span>
   );
 }
