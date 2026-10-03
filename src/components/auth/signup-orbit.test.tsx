@@ -20,8 +20,8 @@ describe("SignupOrbit", () => {
   it("staggers marks so the gather reads as an ordered sweep", () => {
     const html = renderToStaticMarkup(<SignupOrbit />);
     expect(html).toContain("--orbit-delay:0.00s");
-    expect(html).toContain("--orbit-delay:0.14s");
-    expect(html).toContain("--orbit-delay:0.98s");
+    expect(html).toContain("--orbit-delay:0.22s");
+    expect(html).toContain("--orbit-delay:1.54s");
   });
 
   it("mounts only when the auth shell is given an ornament", () => {

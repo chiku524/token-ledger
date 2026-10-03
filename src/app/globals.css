@@ -284,7 +284,7 @@ html.dark {
 }
 
 .auth-gather {
-  animation: auth-gather 10s cubic-bezier(0.45, 0.05, 0.2, 1) var(--orbit-delay, 0s) infinite;
+  animation: auth-gather 11s cubic-bezier(0.4, 0, 0.2, 1) var(--orbit-delay, 0s) infinite;
 }
 
 .auth-float {
@@ -294,16 +294,16 @@ html.dark {
 @keyframes auth-gather {
   /* Scattered layout (rest spots). */
   0%,
-  10% {
+  14% {
     transform: translate3d(0, 0, 0);
   }
-  /* Orderly travel into the circle. */
-  28%,
-  48% {
+  /* Short travel into the circle — stagger makes this read as a peel. */
+  24%,
+  50% {
     transform: translate3d(calc(var(--to-x, 0) * 1cqw), calc(var(--to-y, 0) * 1cqh), 0);
   }
-  /* Orderly return to the scattered layout. */
-  66%,
+  /* Short travel back to the scattered layout. */
+  60%,
   100% {
     transform: translate3d(0, 0, 0);
   }

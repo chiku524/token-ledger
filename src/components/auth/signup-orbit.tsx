@@ -31,7 +31,7 @@ const MARKS = REST.map((mark, index) => {
     toX: (circleLeft - mark.left).toFixed(2),
     toY: (circleTop - mark.top).toFixed(2),
     /** Stagger so marks peel in and out one after another. */
-    orbitDelay: `${(index * 0.14).toFixed(2)}s`,
+    orbitDelay: `${(index * 0.22).toFixed(2)}s`,
   };
 });
 
