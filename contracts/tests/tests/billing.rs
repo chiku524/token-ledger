@@ -141,12 +141,22 @@ fn set_up(mut h: Harness) -> Setup {
     }
 }
 
+/// The receipt PDA for a mandate and cycle.
+fn receipt_pda(s: &Setup, cycle: u64) -> Address {
+    Address::find_program_address(
+        &[b"charge_receipt", s.mandate.as_ref(), &cycle.to_le_bytes()],
+        &s.h.program_id,
+    )
+    .0
+}
+
 /// Activate a mandate and take the first charge atomically.
 fn activate(s: &mut Setup, cap: u64, expiry: i64) -> Result<(), String> {
     let program_id = s.h.program_id;
     let mut data = discriminator("activate_mandate_and_charge").to_vec();
     data.extend_from_slice(&cap.to_le_bytes());
     data.extend_from_slice(&expiry.to_le_bytes());
+    let receipt = receipt_pda(s, 0);
     s.h.send(Instruction {
         program_id,
         accounts: vec![
@@ -154,6 +164,7 @@ fn activate(s: &mut Setup, cap: u64, expiry: i64) -> Result<(), String> {
             AccountMeta::new(s.vault, false),
             AccountMeta::new_readonly(s.plan, false),
             AccountMeta::new(s.mandate, false),
+            AccountMeta::new(receipt, false),
             AccountMeta::new_readonly(s.merchant, false),
             AccountMeta::new_readonly(s.vault_authority, false),
             AccountMeta::new(s.vault_token, false),
@@ -167,21 +178,31 @@ fn activate(s: &mut Setup, cap: u64, expiry: i64) -> Result<(), String> {
 
 /// The collector triggers the next cycle. The collector is the payer here.
 fn collect(s: &mut Setup) -> Result<(), String> {
+    let cycle = mandate_next_cycle(&s.h.svm, s.mandate);
+    collect_cycle(s, cycle)
+}
+
+/// Collect a specific cycle number, so a test can also send a stale one.
+fn collect_cycle(s: &mut Setup, cycle: u64) -> Result<(), String> {
     let program_id = s.h.program_id;
+    let receipt = receipt_pda(s, cycle);
+    let mut data = discriminator("collect_cycle").to_vec();
+    data.extend_from_slice(&cycle.to_le_bytes());
     s.h.send(Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new(s.h.payer_pk(), true),
             AccountMeta::new_readonly(s.merchant, false),
             AccountMeta::new(s.vault, false),
             AccountMeta::new(s.mandate, false),
-            AccountMeta::new(s.vault_authority, false),
+            AccountMeta::new(receipt, false),
             AccountMeta::new_readonly(s.vault_authority, false),
             AccountMeta::new(s.vault_token, false),
             AccountMeta::new(s.destination, false),
             AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::system_program(), false),
         ],
-        data: discriminator("collect_cycle").to_vec(),
+        data,
     })
 }
 
@@ -267,20 +288,25 @@ fn rotate_collector(s: &mut Setup, new_collector: Address) -> Result<(), String>
 /// test can try to substitute the merchant's fixed destination.
 fn collect_to(s: &mut Setup, destination: Address) -> Result<(), String> {
     let program_id = s.h.program_id;
+    let cycle = mandate_next_cycle(&s.h.svm, s.mandate);
+    let receipt = receipt_pda(s, cycle);
+    let mut data = discriminator("collect_cycle").to_vec();
+    data.extend_from_slice(&cycle.to_le_bytes());
     s.h.send(Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new(s.h.payer_pk(), true),
             AccountMeta::new_readonly(s.merchant, false),
             AccountMeta::new(s.vault, false),
             AccountMeta::new(s.mandate, false),
-            AccountMeta::new(s.vault_authority, false),
+            AccountMeta::new(receipt, false),
             AccountMeta::new_readonly(s.vault_authority, false),
             AccountMeta::new(s.vault_token, false),
             AccountMeta::new(destination, false),
             AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::system_program(), false),
         ],
-        data: discriminator("collect_cycle").to_vec(),
+        data,
     })
 }
 
@@ -307,6 +333,19 @@ fn mandate_total_debited(svm: &LiteSVM, mandate: Address) -> u64 {
 fn mandate_next_cycle(svm: &LiteSVM, mandate: Address) -> u64 {
     let account = svm.get_account(&mandate).expect("mandate");
     u64::from_le_bytes(account.data[153..161].try_into().unwrap())
+}
+
+/// The receipt account layout: 8 discriminator + bump 1 + mandate 32 + vault 32
+/// + cycle 8 + amount 8 + coverage_start 8 + coverage_end 8 + collected_at 8,
+/// so `amount` is a u64 at offset 81.
+fn receipt_amount(svm: &LiteSVM, mandate: Address, cycle: u64, program_id: Address) -> Option<u64> {
+    let receipt = Address::find_program_address(
+        &[b"charge_receipt", mandate.as_ref(), &cycle.to_le_bytes()],
+        &program_id,
+    )
+    .0;
+    svm.get_account(&receipt)
+        .map(|a| u64::from_le_bytes(a.data[81..89].try_into().unwrap()))
 }
 
 #[test]
@@ -509,21 +548,58 @@ fn rotated_collector_replaces_the_old_key() {
 
     // Drive collection signed by the new collector, not the payer.
     let program_id = s.h.program_id;
+    let cycle = mandate_next_cycle(&s.h.svm, s.mandate);
+    let receipt = receipt_pda(&s, cycle);
+    let mut data = discriminator("collect_cycle").to_vec();
+    data.extend_from_slice(&cycle.to_le_bytes());
     let ix = Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new_readonly(new_collector.pubkey(), true),
+            AccountMeta::new(new_collector.pubkey(), true),
             AccountMeta::new_readonly(s.merchant, false),
             AccountMeta::new(s.vault, false),
             AccountMeta::new(s.mandate, false),
-            AccountMeta::new(s.vault_authority, false),
+            AccountMeta::new(receipt, false),
             AccountMeta::new_readonly(s.vault_authority, false),
             AccountMeta::new(s.vault_token, false),
             AccountMeta::new(s.destination, false),
             AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::system_program(), false),
         ],
-        data: discriminator("collect_cycle").to_vec(),
+        data,
     };
     s.h.send_signed(ix, &[&new_collector]).expect("new collector collects");
     assert_eq!(token_amount(&s.h.svm, s.destination), 40 * USDC, "new collector charged cycle 2");
+}
+
+#[test]
+fn a_replayed_cycle_is_refused_by_the_receipt_seed() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 100 * USDC, expiry).expect("activate");
+    collect(&mut s).expect("cycle 1");
+
+    // The receipt for cycle 1 is a durable record with the charged amount.
+    assert_eq!(
+        receipt_amount(&s.h.svm, s.mandate, 0, s.h.program_id),
+        Some(20 * USDC),
+        "cycle 0 receipt written"
+    );
+    assert_eq!(
+        receipt_amount(&s.h.svm, s.mandate, 1, s.h.program_id),
+        Some(20 * USDC),
+        "cycle 1 receipt written"
+    );
+
+    // Replaying a cycle the mandate has already advanced past is refused by the
+    // counter before any transfer, even with a distinct receipt PDA.
+    s.h.advance_blockhash();
+    let err = collect_cycle(&mut s, 1).expect_err("replayed cycle");
+    assert!(err.contains("WrongCycle") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, s.destination), 40 * USDC, "no extra charge from replay");
+    assert_eq!(token_amount(&s.h.svm, s.vault_token), 160 * USDC, "vault unchanged by replay");
 }
