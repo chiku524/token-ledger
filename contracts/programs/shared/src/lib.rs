@@ -43,6 +43,11 @@ pub mod seeds {
 /// periods; calendar-month plans are a later, explicitly scheduled addition.
 pub const THIRTY_DAYS_SECONDS: i64 = 30 * 24 * 60 * 60;
 
+/// USDC base-unit decimals. Version one accepts exactly one configured USDC
+/// mint, and its decimals are checked at initialization so amounts are read and
+/// compared in the same scale. No on-chain arithmetic uses floating point.
+pub const USDC_DECIMALS: u8 = 6;
+
 /// The number of seconds in a UTC day, used for the fixed daily spend window.
 pub const SECONDS_PER_DAY: i64 = 86_400;
 

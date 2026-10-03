@@ -658,6 +658,12 @@
           }
         },
         {
+          "name": "mint_account",
+          "docs": [
+            "The configured USDC mint; its decimals are verified at initialization."
+          ]
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -1174,16 +1180,21 @@
     },
     {
       "code": 6013,
+      "name": "WrongMintDecimals",
+      "msg": "The mint decimals do not match the configured USDC decimals."
+    },
+    {
+      "code": 6014,
       "name": "MathOverflow",
       "msg": "An arithmetic overflow occurred."
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "WrongMerchant",
       "msg": "The vault is not associated with this merchant."
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "WrongTokenAccount",
       "msg": "The token account is not owned by the vault authority."
     }

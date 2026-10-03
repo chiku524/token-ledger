@@ -664,6 +664,12 @@ export type ServiceBalance = {
           }
         },
         {
+          "name": "mintAccount",
+          "docs": [
+            "The configured USDC mint; its decimals are verified at initialization."
+          ]
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -1180,16 +1186,21 @@ export type ServiceBalance = {
     },
     {
       "code": 6013,
+      "name": "wrongMintDecimals",
+      "msg": "The mint decimals do not match the configured USDC decimals."
+    },
+    {
+      "code": 6014,
       "name": "mathOverflow",
       "msg": "An arithmetic overflow occurred."
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "wrongMerchant",
       "msg": "The vault is not associated with this merchant."
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "wrongTokenAccount",
       "msg": "The token account is not owned by the vault authority."
     }

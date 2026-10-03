@@ -105,6 +105,13 @@ pub fn initialize_treasury(
     max_proposal_lifetime: i64,
     recovery: Pubkey,
 ) -> Result<()> {
+    // The mint account must be the declared mint with the configured USDC
+    // decimals, so caps and amounts share one scale with the app.
+    require!(ctx.accounts.mint.key() == mint, TreasuryError::WrongMint);
+    require!(
+        ctx.accounts.mint.decimals == token_ledger_shared::USDC_DECIMALS,
+        TreasuryError::WrongMintDecimals
+    );
     require!(
         !approvers.is_empty() && approvers.len() <= MAX_APPROVERS,
         TreasuryError::TooManySigners

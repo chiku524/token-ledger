@@ -86,6 +86,13 @@ pub fn initialize_merchant(
     token_program: Pubkey,
     destination: Pubkey,
 ) -> Result<()> {
+    // The mint account must be the declared mint with the configured USDC
+    // decimals, so on-chain amounts and the app share one scale.
+    require!(ctx.accounts.mint_account.key() == mint, BillingError::WrongMint);
+    require!(
+        ctx.accounts.mint_account.decimals == token_ledger_shared::USDC_DECIMALS,
+        BillingError::WrongMintDecimals
+    );
     let merchant = &mut ctx.accounts.merchant;
     merchant.bump = ctx.bumps.merchant;
     merchant.admin = ctx.accounts.admin.key();
@@ -259,6 +266,17 @@ pub fn activate_mandate_and_charge(
         &ctx.accounts.vault_authority,
         &ctx.accounts.token_program,
     )?;
+
+    // Emit after the charge so the event carries the signed price and the
+    // paid-through the first period reached. A replay cannot reach here twice:
+    // the mandate PDA is `init`, so a second activation fails at account init.
+    emit!(MandateActivated {
+        vault: mandate.vault,
+        mandate: mandate_key,
+        cycle: 0,
+        amount: mandate.price,
+        paid_through: mandate.paid_through,
+    });
     Ok(())
 }
 
@@ -475,6 +493,8 @@ pub struct InitializeMerchant<'info> {
         bump
     )]
     pub merchant: Account<'info, MerchantConfig>,
+    /// The configured USDC mint; its decimals are verified at initialization.
+    pub mint_account: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
 }
 

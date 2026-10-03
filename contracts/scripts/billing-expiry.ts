@@ -74,7 +74,7 @@ async function main() {
   const destination = await getOrCreateAssociatedTokenAccount(connection, payer, mint, merchantAdmin.publicKey);
   await program.methods
     .initializeMerchant(mint, TOKEN_PROGRAM_ID, destination.address)
-    .accounts({ admin: merchantAdmin.publicKey, collector: merchantAdmin.publicKey, merchant })
+    .accounts({ admin: merchantAdmin.publicKey, collector: merchantAdmin.publicKey, merchant, mintAccount: mint })
     .signers([merchantAdmin])
     .rpc();
 

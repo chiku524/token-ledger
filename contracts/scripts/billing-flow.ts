@@ -82,7 +82,7 @@ async function main() {
   if (!(await connection.getAccountInfo(merchant))) {
     const sig = await program.methods
       .initializeMerchant(mint, TOKEN_PROGRAM_ID, destination.address)
-      .accounts({ admin: admin.publicKey, collector: admin.publicKey, merchant })
+      .accounts({ admin: admin.publicKey, collector: admin.publicKey, merchant, mintAccount: mint })
       .signers([admin])
       .rpc();
     console.log("merchant  :", merchant.toBase58(), "tx", sig.slice(0, 12) + "…");

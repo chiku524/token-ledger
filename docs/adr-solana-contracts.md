@@ -84,6 +84,37 @@ charged twice. The `generation` field is recorded but is **not** a guard; the
 single-PDA design is what prevents a stale mandate from collecting. This is
 asserted by the replace tests and noted against #152/#186.
 
+Mint decimals are verified at initialization: `initialize_merchant` and
+`initialize_treasury` require the passed mint account's `decimals` to equal
+`shared::USDC_DECIMALS` (6), so on-chain amounts and the app share one scale. A
+wrong-decimal mint is refused (`WrongMintDecimals`).
+
+### Divergences from the plan
+
+`docs/token-ledger-solana-contract-plan-2.md` is the source spec; these are the
+deliberate departures, recorded so a reviewer does not treat them as drift:
+
+- **Mandate seed is `mandate + vault`, not `vault + generation`.** The plan's
+  §4.4 says `+ generation`, but §4.3 requires replacements to preserve
+  paid-through and to not double-charge overlap. One PDA rewritten in place
+  satisfies §4.3; the `generation` counter is kept for projection but is not a
+  seed or a guard.
+- **Governance instructions are merged.** The plan §5.7 names separate
+  `propose_policy_change` and `propose_emergency_exit`; the program uses one
+  `propose_governance` taking a `GovernanceKind` (PolicyChange / Unpause /
+  EmergencyExit), seeded by policy version and kind byte so the three can coexist.
+- **No explicit `replace_payment`.** Revisioning is done by proposing a higher
+  revision for the same invoice key; the older revision becomes non-executable
+  via the settlement's `active_revision`. This is the plan's §5.3 behaviour
+  without a separate instruction.
+- **`ChargeReceipt` layout differs.** The plan §4.4 lists a "receipt reference";
+  the account stores bump, mandate, vault, cycle, amount, coverage window and
+  `collected_at`. There is no external reference id; the PDA is the reference.
+- **The plan's `WrongCycle` is an addition here.** Collection requires the named
+  cycle to equal `mandate.next_cycle`, so a replay fails before any transfer.
+- **No `MandateActivated` on-chain until now.** §4.5 lists it; it is now emitted
+  after the atomic first charge, carrying price and paid-through.
+
 ### On-chain invariants (must always hold)
 
 Billing:
