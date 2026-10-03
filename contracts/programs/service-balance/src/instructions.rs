@@ -13,7 +13,7 @@ use token_ledger_shared::seeds;
 use token_ledger_shared::{coverage_within_expiry, THIRTY_DAYS_SECONDS};
 
 use crate::errors::BillingError;
-use crate::state::{BillingVault, ChargeReceipt, Mandate, MerchantConfig, PlanVersion};
+use crate::state::{BillingVault, Mandate, MerchantConfig, PlanVersion};
 
 #[event]
 pub struct BillingVaultCreated {
