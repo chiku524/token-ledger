@@ -2,7 +2,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { SegmentedLinks } from "@/components/app/segmented-links";
 import { StatusBadge } from "@/components/app/status-badge";
-import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Alert } from "@/components/ui/alert";
@@ -165,9 +165,7 @@ export default async function ConsolidationPage({
             </TableHeader>
             <TableBody>
               {group.rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4}>Nothing to combine for these dates.</TableCell>
-                </TableRow>
+                <EmptyRow colSpan={4}>Nothing to combine for these dates.</EmptyRow>
               ) : (
                 group.rows.map((row) => (
                   <TableRow key={row.code}>
@@ -206,9 +204,7 @@ export default async function ConsolidationPage({
             </TableHeader>
             <TableBody>
               {ias21.rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4}>Nothing to translate, or a rate is missing.</TableCell>
-                </TableRow>
+                <EmptyRow colSpan={4}>Nothing to translate, or a rate is missing.</EmptyRow>
               ) : (
                 ias21.rows.map((row) => (
                   <TableRow key={`ias21_${row.code}`}>
