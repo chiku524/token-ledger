@@ -9,17 +9,20 @@ export function AuthShell({
   kicker,
   title,
   width = "narrow",
+  ornament,
   children,
 }: {
   kicker: string;
   title: string;
   width?: "narrow" | "wide";
+  /** Decorative content for the left panel. Hidden below the `lg` breakpoint. */
+  ornament?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="grid min-h-dvh bg-[#0a0f2e] lg:grid-cols-2">
       <div className="sticky top-0 hidden h-dvh lg:block">
-        <AuthVisual />
+        <AuthVisual>{ornament}</AuthVisual>
       </div>
       <main className="relative z-10 flex min-h-dvh flex-col bg-background px-6 py-6 lg:-ml-10 lg:rounded-l-[2rem] lg:px-12">
         <div className="flex justify-end">

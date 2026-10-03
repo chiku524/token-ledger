@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthShell, AuthSplit } from "@/components/auth/auth-shell";
+import { SignupOrbit } from "@/components/auth/signup-orbit";
 import { Alert } from "@/components/ui/alert";
 import { SignupWizard } from "@/components/signup-wizard";
 import { ensureCsrf } from "@/auth/current";
@@ -19,7 +20,7 @@ export default async function SignUpPage({
   const ready = hasDatabase() && authSecretConfigured();
 
   return (
-    <AuthShell kicker="Create an account" title="Start with what you hold." width="wide">
+    <AuthShell kicker="Create an account" title="Start with what you hold." width="wide" ornament={<SignupOrbit />}>
       <AuthSplit
         aside={
           <section className="grid gap-3">

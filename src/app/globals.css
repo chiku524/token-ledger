@@ -278,10 +278,93 @@ html.dark {
   }
 }
 
+/* Sign-up panel: float scattered, peel into a circle, peel back out, loop. */
+.auth-orbit {
+  container-type: size;
+}
+
+.auth-gather {
+  animation: auth-gather 14s cubic-bezier(0.4, 0, 0.2, 1) var(--orbit-delay, 0s) infinite;
+}
+
+.auth-float {
+  animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 0s) infinite;
+}
+
+/* Same 14s clock as auth-gather. Fades in after the last mark arrives, out before release. */
+.auth-brand {
+  opacity: 0;
+  animation: auth-brand 14s ease-in-out infinite;
+}
+
+@keyframes auth-gather {
+  /* Scattered layout (rest spots). */
+  0%,
+  12% {
+    transform: translate3d(0, 0, 0);
+  }
+  /* Short travel into the circle — stagger makes this read as a peel. */
+  20%,
+  58% {
+    transform: translate3d(calc(var(--to-x, 0) * 1cqw), calc(var(--to-y, 0) * 1cqh), 0);
+  }
+  /* Short travel back to the scattered layout. */
+  68%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes auth-brand {
+  0%,
+  30% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  34%,
+  54% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  /* Gone before the first mark peels back out at 58%. */
+  57%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(var(--drift-x, 12px), calc(var(--drift-y, -18px) * 0.45), 0) rotate(var(--drift-rot, 6deg));
+  }
+  50% {
+    transform: translate3d(0, var(--drift-y, -18px), 0) rotate(0deg);
+  }
+  75% {
+    transform: translate3d(calc(var(--drift-x, 12px) * -1), calc(var(--drift-y, -18px) * 0.55), 0)
+      rotate(calc(var(--drift-rot, 6deg) * -1));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise-in,
   .stagger > * {
     animation-name: rise-in-fade;
+  }
+
+  .auth-gather,
+  .auth-float,
+  .auth-brand {
+    animation: none;
+  }
+
+  .auth-brand {
+    opacity: 0;
   }
 }
 
