@@ -10,6 +10,7 @@ import type { SolanaDeployment } from "@/config/solana";
 
 export type PreviewAction =
   | "billing.create_vault"
+  | "billing.create_plan"
   | "billing.deposit"
   | "billing.withdraw"
   | "billing.activate"
@@ -83,7 +84,12 @@ export function previewIsComplete(preview: TransactionPreview): { ok: true } | {
 
 /** Whether an action moves a token amount. */
 export function moneyMoves(action: PreviewAction): boolean {
-  return action !== "billing.revoke" && action !== "billing.create_vault" && action !== "treasury.pause";
+  return (
+    action !== "billing.revoke" &&
+    action !== "billing.create_vault" &&
+    action !== "billing.create_plan" &&
+    action !== "treasury.pause"
+  );
 }
 
 /** Whether an action pays a recipient (needs an owner address shown). */
