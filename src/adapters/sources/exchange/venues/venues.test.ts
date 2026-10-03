@@ -3,6 +3,9 @@ import { bybitVenue } from "./bybit";
 import { binanceVenue } from "./binance";
 import { gateVenue } from "./gate";
 import { backpackVenue } from "./backpack";
+import { geminiVenue } from "./gemini";
+import { okxVenue } from "./okx";
+import { kucoinVenue } from "./kucoin";
 import { decimalsFor, toMinorUnits } from "../amounts";
 
 const CRED = { apiKey: "test-key", apiSecret: "U5gMWjJpxW6/GNX/e4Qi4F7/hpQHjtQIaC55gBQKBDI=" };
@@ -79,14 +82,73 @@ describe("exchange venues: read-only contract", () => {
     expect(balances[0]).toMatchObject({ assetCode: "USDC", quantityMinor: 100_000_000n });
   });
 
+  it("Gemini signs an API key and reads balances", async () => {
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toContain("/v1/balances");
+      expect(init?.method).toBe("POST");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["X-GEMINI-APIKEY"]).toBe("test-key");
+      expect(headers["X-GEMINI-SIGNATURE"]).toBeTruthy();
+      return new Response(JSON.stringify([{ currency: "BTC", amount: "0.25" }]), { status: 200 });
+    });
+    const connector = geminiVenue.create(CRED, { fetchImpl: fetchImpl as unknown as typeof fetch });
+    const balances = await connector.fetchBalances();
+    expect(balances[0]).toMatchObject({ assetCode: "BTC", quantityMinor: 25_000_000n });
+  });
+
+  it("Gemini OAuth sends a bearer token and does not sign", async () => {
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      const headers = init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBe("Bearer access");
+      expect(headers["X-GEMINI-SIGNATURE"]).toBeUndefined();
+      return new Response(JSON.stringify([{ currency: "ETH", amount: "1" }]), { status: 200 });
+    });
+    const connector = geminiVenue.create(
+      { apiKey: "access", apiSecret: "tl-oauth:refresh" },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    const balances = await connector.fetchBalances();
+    expect(balances[0]?.assetCode).toBe("ETH");
+  });
+
+  it("OKX signs with the passphrase header and reads balances", async () => {
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toContain("/api/v5/account/balance");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["OK-ACCESS-KEY"]).toBe("test-key");
+      expect(headers["OK-ACCESS-PASSPHRASE"]).toBe("phrase");
+      expect(headers["OK-ACCESS-SIGN"]).toBeTruthy();
+      return new Response(JSON.stringify({ code: "0", data: [{ details: [{ ccy: "BTC", cashBal: "1" }] }] }), { status: 200 });
+    });
+    const connector = okxVenue.create({ ...CRED, apiPassphrase: "phrase" }, { fetchImpl: fetchImpl as unknown as typeof fetch });
+    const balances = await connector.fetchBalances();
+    expect(balances[0]).toMatchObject({ assetCode: "BTC", quantityMinor: 100_000_000n });
+  });
+
+  it("KuCoin signs version 2 and sums account balances", async () => {
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toContain("/api/v1/accounts");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["KC-API-KEY"]).toBe("test-key");
+      expect(headers["KC-API-KEY-VERSION"]).toBe("2");
+      expect(headers["KC-API-PASSPHRASE"]).toBeTruthy();
+      expect(headers["KC-API-PASSPHRASE"]).not.toBe("phrase");
+      return new Response(JSON.stringify({ code: "200000", data: [{ currency: "USDT", balance: "2" }, { currency: "USDT", balance: "3" }] }), { status: 200 });
+    });
+    const connector = kucoinVenue.create({ ...CRED, apiPassphrase: "phrase" }, { fetchImpl: fetchImpl as unknown as typeof fetch });
+    const balances = await connector.fetchBalances();
+    expect(balances[0]).toMatchObject({ assetCode: "USDT", quantityMinor: 5_000_000n });
+  });
+
   it("never issues a write-style request for any venue", async () => {
     const seen: string[] = [];
     const fetchImpl = vi.fn(async (url: string) => {
       seen.push(url);
       return new Response("[]", { status: 200 });
     });
-    for (const venue of [bybitVenue, binanceVenue, gateVenue, backpackVenue]) {
-      const connector = venue.create(CRED, { fetchImpl: fetchImpl as unknown as typeof fetch });
+    for (const venue of [bybitVenue, binanceVenue, gateVenue, backpackVenue, geminiVenue, okxVenue, kucoinVenue]) {
+      const credential = venue === okxVenue || venue === kucoinVenue ? { ...CRED, apiPassphrase: "phrase" } : CRED;
+      const connector = venue.create(credential, { fetchImpl: fetchImpl as unknown as typeof fetch });
       await connector.verify().catch(() => undefined);
     }
     for (const url of seen) {

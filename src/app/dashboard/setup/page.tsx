@@ -2,15 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
-import { ConnectorForm } from "@/components/connector-form";
+import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
+import { ConnectModal } from "@/components/connect-modal";
 import { Flash } from "@/components/flash";
-import { OwnershipChoice } from "@/components/ownership-choice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNote } from "@/components/record-forms";
-import { WalletVerifyForm } from "@/components/wallet-verify-form";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { connectExchanges } from "@/data/connect-catalog";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { SETUP_FLOW, setupStep } from "@/data/setup-flow";
@@ -37,7 +37,7 @@ export default async function SetupPage({
       <PageHeader
         kicker="Connect"
         title={step ? step.title : "Connections are ready"}
-        description="Connect a wallet, an exchange, a custodian, or any combination. Skip any step. Nothing here can move funds."
+        description="Open Connect, pick a wallet or an exchange, and approve read-only access. Nothing here can move funds."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       <p className="eyebrow">
@@ -50,24 +50,15 @@ export default async function SetupPage({
       ) : null}
       {step && writable && books.entities.length > 0 ? (
         <div className="mt-4 max-w-2xl">
-          {step.mode === "watch" ? (
-            <div className="mb-4 grid gap-4">
-              <OwnershipChoice walletConnectReady={reownProjectId() !== null} />
-              <WalletVerifyForm books={books} csrf={csrf} next={step.next} projectId={reownProjectId()} />
-            </div>
-          ) : null}
-          <ConnectorForm
-            id={step.id}
-            books={books}
+          <p className="mb-4 text-sm leading-relaxed text-ink-soft">{step.lede}</p>
+          <ConnectModal
             csrf={csrf}
-            mode={step.mode}
             next={step.next}
-            title={step.mode === "watch" ? "Watch an address" : step.title}
-            intro={
-              step.mode === "watch"
-                ? "Paste a public address. No signature is required. Use this when you cannot sign, including a cold address."
-                : step.lede
-            }
+            books={books}
+            projectId={reownProjectId()}
+            defaultOpen
+            exchanges={connectExchanges()}
+            custodians={Object.values(CUSTODIANS).map((item) => ({ key: item.key, label: item.label }))}
           />
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             {current.index > 0 ? (

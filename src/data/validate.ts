@@ -23,8 +23,8 @@ export const entityFormSchema = z.object({
 });
 
 const watchVenue = z.enum(WATCH_VENUE_KEYS as [string, ...string[]]);
-const exchangeVenue = z.enum(["kraken", "bybit", "binance", "gate", "backpack", "exchange"]);
-const custodianVenue = z.enum(["fireblocks", "custodian"]);
+const exchangeVenue = z.enum(["kraken", "bybit", "binance", "gate", "backpack", "coinbase", "gemini", "okx", "kucoin", "exchange"]);
+const custodianVenue = z.enum(["fireblocks", "bitgo", "custodian"]);
 
 export const connectionFormSchema = z
   .object({
@@ -44,6 +44,7 @@ export const connectionFormSchema = z
       .transform((value) => (value ? value : null)),
     apiKey: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),
     apiSecret: z.string().trim().max(400).optional().transform((value) => (value ? value : null)),
+    apiPassphrase: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),
   })
   .superRefine((value, context) => {
     if (value.mode === "watch" && !value.role) {
@@ -66,6 +67,9 @@ export const connectionFormSchema = z
       const hasSecret = Boolean(value.apiSecret);
       if (hasKey !== hasSecret) {
         context.addIssue({ code: "custom", path: ["apiKey"], message: "Enter both the API key and the API secret, or neither." });
+      }
+      if ((value.exchangeVenue === "okx" || value.exchangeVenue === "kucoin") && hasKey && !value.apiPassphrase) {
+        context.addIssue({ code: "custom", path: ["apiPassphrase"], message: "OKX and KuCoin also need the API passphrase." });
       }
     }
   });

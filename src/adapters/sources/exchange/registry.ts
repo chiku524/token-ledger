@@ -9,6 +9,10 @@ import { bybitVenue } from "./venues/bybit";
 import { binanceVenue } from "./venues/binance";
 import { gateVenue } from "./venues/gate";
 import { backpackVenue } from "./venues/backpack";
+import { coinbaseVenue } from "./venues/coinbase";
+import { geminiVenue } from "./venues/gemini";
+import { okxVenue } from "./venues/okx";
+import { kucoinVenue } from "./venues/kucoin";
 import type { VenueConnector, VenueDefinition } from "./venue";
 
 export const VENUES: Record<string, VenueDefinition> = {
@@ -17,6 +21,10 @@ export const VENUES: Record<string, VenueDefinition> = {
   binance: binanceVenue,
   gate: gateVenue,
   backpack: backpackVenue,
+  coinbase: coinbaseVenue,
+  gemini: geminiVenue,
+  okx: okxVenue,
+  kucoin: kucoinVenue,
 };
 
 export const VENUE_KEYS = Object.keys(VENUES);

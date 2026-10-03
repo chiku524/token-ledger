@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can, roleLabel } from "@/auth/roles";
+import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
+import { ConnectModal } from "@/components/connect-modal";
+import { connectExchanges } from "@/data/connect-catalog";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { connectionStatusTone, StatusBadge } from "@/components/app/status-badge";
@@ -9,14 +12,10 @@ import { Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ConnectorForm } from "@/components/connector-form";
 import { Flash } from "@/components/flash";
-import { OwnershipChoice } from "@/components/ownership-choice";
 import { PageHeader } from "@/components/page-header";
 import { ConnectionControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
-import { WalletVerifyForm } from "@/components/wallet-verify-form";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
-import { WATCH_CHAIN_LABELS } from "@/data/connections";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { connectionModeLabel, connectionStatusLabel, entityName, ownershipLabel, scopeLabel, venueLabel } from "@/data/present";
@@ -165,35 +164,14 @@ export default async function SettingsPage({
       </section>
 
       {canSource && books.entities.length > 0 ? (
-        <div className="mt-8 grid gap-4">
-          <OwnershipChoice walletConnectReady={reownProjectId() !== null} />
-          <WalletVerifyForm books={books} csrf={csrf} next="/dashboard/settings" projectId={reownProjectId()} />
-          <ConnectorForm
-            id="wallet"
-            books={books}
+        <div className="mt-8">
+          <ConnectModal
             csrf={csrf}
-            mode="watch"
             next="/dashboard/settings"
-            title="Watch an address"
-            intro={`Paste a public address on ${WATCH_CHAIN_LABELS}. No signature is required. Choose hot, cold, or staking. No key is stored.`}
-          />
-          <ConnectorForm
-            id="exchange"
             books={books}
-            csrf={csrf}
-            mode="exchange_read"
-            next="/dashboard/settings"
-            title="Exchange, read-only"
-            intro="An account label and a read-only API key. The key is checked with a real read-only call, then sealed. The connection cannot trade or withdraw."
-          />
-          <ConnectorForm
-            id="custodian"
-            books={books}
-            csrf={csrf}
-            mode="custodian_read"
-            next="/dashboard/settings"
-            title="Custodian, read-only"
-            intro="A vault id, and a network when the vault has one. A viewer credential is not collected."
+            projectId={reownProjectId()}
+            exchanges={connectExchanges()}
+            custodians={Object.values(CUSTODIANS).map((item) => ({ key: item.key, label: item.label }))}
           />
         </div>
       ) : null}

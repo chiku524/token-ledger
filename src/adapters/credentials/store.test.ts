@@ -25,6 +25,12 @@ describe("exchange credentials", () => {
     await expect(sealExchangeCredential({ apiKey: "k", apiSecret: "  " }, PASS)).rejects.toThrow(/both required/i);
   });
 
+  it("seals an OKX passphrase with the secret and opens both", async () => {
+    const sealed = await sealExchangeCredential({ apiKey: "okx-key", apiSecret: "secret", apiPassphrase: "phrase" }, PASS);
+    expect(sealed.sealedSecret).not.toContain("phrase");
+    expect(await openExchangeCredential(sealed, PASS)).toEqual({ apiKey: "okx-key", apiSecret: "secret", apiPassphrase: "phrase" });
+  });
+
   it("trims surrounding whitespace", async () => {
     const sealed = await sealExchangeCredential({ apiKey: " key ", apiSecret: " secret " }, PASS);
     expect(await openExchangeCredential(sealed, PASS)).toEqual({ apiKey: "key", apiSecret: "secret" });

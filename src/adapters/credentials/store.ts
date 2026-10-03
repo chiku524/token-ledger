@@ -10,7 +10,11 @@ import { openSecret, redactSecret, sealSecret } from "./crypto";
 export interface ExchangeCredentialInput {
   apiKey: string;
   apiSecret: string;
+  /** OKX and KuCoin sign with a third value. It is sealed with the secret. */
+  apiPassphrase?: string;
 }
+
+const PASSPHRASE_PREFIX = "tl-passphrase:";
 
 /** A credential as stored: sealed blobs plus a redacted hint. */
 export interface SealedExchangeCredential {
@@ -32,7 +36,7 @@ export async function sealExchangeCredential(
   return {
     keyHint: redactSecret(key),
     sealedKey: await sealSecret(key, pass),
-    sealedSecret: await sealSecret(secret, pass),
+    sealedSecret: await sealSecret(packSecret(secret, input.apiPassphrase), pass),
   };
 }
 
@@ -41,10 +45,28 @@ export async function openExchangeCredential(
   passphrase?: string,
 ): Promise<ExchangeCredentialInput> {
   const pass = passphrase ?? readConnectorEncryptionKey();
+  const opened = unpackSecret(await openSecret(sealed.sealedSecret, pass));
   return {
     apiKey: await openSecret(sealed.sealedKey, pass),
-    apiSecret: await openSecret(sealed.sealedSecret, pass),
+    apiSecret: opened.apiSecret,
+    ...(opened.apiPassphrase ? { apiPassphrase: opened.apiPassphrase } : {}),
   };
+}
+
+function packSecret(secret: string, apiPassphrase?: string): string {
+  const passphrase = apiPassphrase?.trim() ?? "";
+  if (!passphrase) return secret;
+  return PASSPHRASE_PREFIX + Buffer.from(JSON.stringify({ secret, passphrase })).toString("base64url");
+}
+
+function unpackSecret(stored: string): { apiSecret: string; apiPassphrase?: string } {
+  if (!stored.startsWith(PASSPHRASE_PREFIX)) return { apiSecret: stored };
+  const parsed = JSON.parse(Buffer.from(stored.slice(PASSPHRASE_PREFIX.length), "base64url").toString("utf8")) as {
+    secret?: string;
+    passphrase?: string;
+  };
+  if (!parsed.secret) return { apiSecret: stored };
+  return { apiSecret: parsed.secret, ...(parsed.passphrase ? { apiPassphrase: parsed.passphrase } : {}) };
 }
 
 /** A redacted view safe to pass to a page or server component. */

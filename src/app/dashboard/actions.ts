@@ -75,6 +75,7 @@ export async function createConnectionAction(formData: FormData) {
     custodianVenue: formData.get("custodianVenue") ?? "",
     apiKey: formData.get("apiKey") ?? "",
     apiSecret: formData.get("apiSecret") ?? "",
+    apiPassphrase: formData.get("apiPassphrase") ?? "",
   });
   if (!parsed.success) fail(path, firstIssue(parsed.error));
   const books = await loadBooks(session.organizationId);
@@ -90,7 +91,11 @@ export async function createConnectionAction(formData: FormData) {
     if (!parsed.data.apiKey || !parsed.data.apiSecret) {
       fail(path, `A ${label} connection needs a read-only credential.`);
     }
-    credential = { apiKey: parsed.data.apiKey!, apiSecret: parsed.data.apiSecret! };
+    credential = {
+      apiKey: parsed.data.apiKey!,
+      apiSecret: parsed.data.apiSecret!,
+      ...(parsed.data.apiPassphrase ? { apiPassphrase: parsed.data.apiPassphrase } : {}),
+    };
     await save(path, async () => {
       if (venue) await validateExchangeCredential(venue.key, credential!);
       else await custodian!.verify(credential!);
