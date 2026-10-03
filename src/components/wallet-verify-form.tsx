@@ -59,9 +59,8 @@ export function WalletVerifyForm({
   return (
     <FormCard
       id="verify-wallet"
-      title="Connect and sign"
-      description="The wallet signs a message that names this site, this organization, and this address. The message says it does not authorize a transfer. Disconnecting the wallet later does not remove the address from the books."
-      className="scroll-mt-6 md:grid-cols-2"
+      description="The wallet signs a message that names this site, this organization, and this address. The message says it does not authorize a transfer."
+      className="scroll-mt-6 border-0 bg-transparent p-0 md:grid-cols-2"
     >
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="next" value={next} />

@@ -50,7 +50,7 @@ export default async function SetupPage({
       ) : null}
       {step && writable && books.entities.length > 0 ? (
         <div className="mt-4 max-w-2xl">
-          <p className="mb-4 text-sm leading-relaxed text-ink-soft">{step.lede}</p>
+          <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{step.lede}</p>
           <ConnectModal
             csrf={csrf}
             next={step.next}
