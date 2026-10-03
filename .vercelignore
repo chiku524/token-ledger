@@ -2,5 +2,6 @@
 .env.*
 !.env.example
 
-# The Solana contracts workspace is unrelated to the app build.
-contracts
+# The Solana workspace at the repo root is unrelated to the app build.
+# Anchored so src/contracts, which the app imports, is still uploaded.
+/contracts
