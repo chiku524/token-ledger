@@ -218,7 +218,6 @@ pub fn activate_mandate_and_charge(
     let now = Clock::get()?.unix_timestamp;
     let plan = &ctx.accounts.plan;
     require!(plan.merchant == ctx.accounts.vault.merchant, BillingError::WrongMerchant);
-    require!(ctx.accounts.vault.generation == ctx.accounts.vault.generation, BillingError::WrongMerchant);
     require!(max_total_debit >= plan.price, BillingError::CapExceeded);
     require!(authorization_expiry > now, BillingError::MandateExpired);
     require!(

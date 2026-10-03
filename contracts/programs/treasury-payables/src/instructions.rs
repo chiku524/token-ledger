@@ -91,6 +91,7 @@ pub struct EmergencyExitExecuted {
 // Setup and funding
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 pub fn initialize_treasury(
     ctx: Context<InitializeTreasury>,
     entity: Pubkey,
@@ -276,7 +277,6 @@ pub fn execute_payment(ctx: Context<ExecutePayment>) -> Result<()> {
     require!(!proposal.executed, TreasuryError::AlreadyExecuted);
     require!(now <= proposal.expires_at, TreasuryError::Expired);
     require!(proposal.policy_version == treasury.policy_version, TreasuryError::StalePolicy);
-    require!(proposal.executed == false, TreasuryError::AlreadyExecuted);
 
     // Distinct approvals meet the threshold (bitmap, so duplicates cannot add).
     require!(
