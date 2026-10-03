@@ -284,32 +284,32 @@ html.dark {
 }
 
 .auth-gather {
-  animation: auth-gather 11s cubic-bezier(0.4, 0, 0.2, 1) var(--orbit-delay, 0s) infinite;
+  animation: auth-gather 14s cubic-bezier(0.4, 0, 0.2, 1) var(--orbit-delay, 0s) infinite;
 }
 
 .auth-float {
   animation: auth-float var(--float-duration, 9s) ease-in-out var(--float-delay, 0s) infinite;
 }
 
-/* Same 11s clock as auth-gather. Fades in after the last mark arrives, out before release. */
+/* Same 14s clock as auth-gather. Fades in after the last mark arrives, out before release. */
 .auth-brand {
   opacity: 0;
-  animation: auth-brand 11s ease-in-out infinite;
+  animation: auth-brand 14s ease-in-out infinite;
 }
 
 @keyframes auth-gather {
   /* Scattered layout (rest spots). */
   0%,
-  14% {
+  12% {
     transform: translate3d(0, 0, 0);
   }
   /* Short travel into the circle — stagger makes this read as a peel. */
-  24%,
-  50% {
+  20%,
+  58% {
     transform: translate3d(calc(var(--to-x, 0) * 1cqw), calc(var(--to-y, 0) * 1cqh), 0);
   }
   /* Short travel back to the scattered layout. */
-  60%,
+  68%,
   100% {
     transform: translate3d(0, 0, 0);
   }
@@ -317,17 +317,17 @@ html.dark {
 
 @keyframes auth-brand {
   0%,
-  34% {
+  30% {
     opacity: 0;
-    transform: translate3d(0, 6px, 0);
+    transform: translate3d(0, 8px, 0);
   }
-  38%,
-  45% {
+  34%,
+  54% {
     opacity: 1;
     transform: translate3d(0, 0, 0);
   }
-  /* Gone before the first mark peels back out at 50%. */
-  49%,
+  /* Gone before the first mark peels back out at 58%. */
+  57%,
   100% {
     opacity: 0;
     transform: translate3d(0, -4px, 0);

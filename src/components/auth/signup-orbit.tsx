@@ -76,9 +76,9 @@ export function SignupOrbit() {
         </span>
       ))}
       {/* Sits in the open band under the circle; timed to the gather hold. */}
-      <span className="auth-brand absolute left-1/2 top-[62%] flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 text-white">
-        <LogoMark className="h-8 w-auto drop-shadow-none" />
-        <span className="font-logo text-2xl font-semibold leading-none tracking-tight whitespace-nowrap sm:text-3xl">
+      <span className="auth-brand absolute left-1/2 top-[63%] flex -translate-x-1/2 -translate-y-1/2 items-center gap-4 text-white">
+        <LogoMark className="h-12 w-auto drop-shadow-none sm:h-14" />
+        <span className="font-logo text-3xl font-semibold leading-none tracking-tight whitespace-nowrap sm:text-4xl">
           Token Ledger
         </span>
       </span>
