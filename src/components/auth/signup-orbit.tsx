@@ -1,5 +1,5 @@
 /**
- * Marks for the empty blue panel beside the sign-up wizard.
+ * Marks for the auth left panel (sign-up and sign-in).
  * They float in the scattered layout, peel into a circle in order, hold,
  * then peel back out to the same layout — looping. While the circle is held,
  * the Token Ledger wordmark fades in below it, then out before the release.
