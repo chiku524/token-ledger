@@ -77,6 +77,25 @@ impl Harness {
         self.svm.airdrop(&address, lamports).expect("airdrop");
     }
 
+    /// Move the clock to a unix timestamp while keeping the current slot. Used by
+    /// time-based cases (mandate expiry, daily-cap reset) devnet cannot test.
+    pub fn warp_clock(&mut self, unix_timestamp: i64) {
+        let mut clock = self.svm.get_sysvar::<solana_clock::Clock>();
+        clock.unix_timestamp = unix_timestamp;
+        self.svm.set_sysvar(&clock);
+    }
+
+    /// The current unix timestamp of the VM clock.
+    pub fn now(&self) -> i64 {
+        self.svm.get_sysvar::<solana_clock::Clock>().unix_timestamp
+    }
+
+    /// Expire the current blockhash so an otherwise byte-identical resend is not
+    /// deduplicated (litesvm rejects a repeat of the exact same transaction).
+    pub fn advance_blockhash(&mut self) {
+        self.svm.expire_blockhash();
+    }
+
     /// Create an initialized SPL mint, owned by the token program.
     pub fn set_mint(&mut self, address: Address, authority: Address, decimals: u8) {
         let mint = spl_token_interface::state::Mint {

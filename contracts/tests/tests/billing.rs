@@ -1,15 +1,12 @@
 //! Service Balance integration tests on the in-process litesvm VM. No devnet,
 //! no network: these run in CI and can warp the clock for time-based cases.
 //!
-//! Status: the harness and `initialize_merchant` run against the real compiled
-//! program. The funded flow (deposit, activate, collect) is written but ignored:
-//! constructing an SPL mint/token account in litesvm hits solana-crate version
-//! friction (the SPL interface crates use `solana_pubkey` v3 while litesvm uses
-//! `solana_address` v2), so the fixtures need more work. The equivalent flows are
-//! already proven on devnet in contracts/scripts/*.ts.
+//! The SPL mint/token fixtures are written directly into the VM (litesvm's own
+//! pattern) and the instructions run against the real compiled program. The
+//! time-warp cases (expiry, next-cycle due) are only testable here, not on devnet.
 use litesvm::LiteSVM;
-use solana_address::Address;
 use solana_account::Account;
+use solana_address::Address;
 use solana_instruction::{account_meta::AccountMeta, Instruction};
 use token_ledger_contract_tests::{discriminator, initialize_merchant_ix, Harness};
 
@@ -21,12 +18,10 @@ fn load() -> Option<Harness> {
     Harness::load(SERVICE_BALANCE, "service_balance")
 }
 
-/// A merchant (admin/collector/destination) plus a mint and a funded controller,
-/// with the vault created and 200 USDC deposited. Returns the setup so a test can
-/// drive mandate operations.
+/// A merchant plus a mint and a funded controller, with the vault created and
+/// 200 USDC deposited. Returns the addresses a test needs to drive mandates.
 struct Setup {
     h: Harness,
-    admin: Address,
     merchant: Address,
     plan: Address,
     vault: Address,
@@ -72,11 +67,15 @@ fn set_up(mut h: Harness) -> Setup {
     })
     .expect("create_plan_version");
 
-    // Vault authority and token account are PDAs; write the token account directly
-    // (the vault authority is the program PDA that signs transfers).
     let controller = admin;
-    let (vault, _) = Address::find_program_address(&[b"billing_vault", merchant.as_ref(), controller.as_ref()], &program_id);
-    let (vault_authority, _) = Address::find_program_address(&[b"billing_vault", merchant.as_ref(), controller.as_ref()], &program_id);
+    let (vault, _) = Address::find_program_address(
+        &[b"billing_vault", merchant.as_ref(), controller.as_ref()],
+        &program_id,
+    );
+    let (vault_authority, _) = Address::find_program_address(
+        &[b"billing_vault", merchant.as_ref(), controller.as_ref()],
+        &program_id,
+    );
     let (vault_token, _) = Address::find_program_address(&[b"billing_vault_token", vault.as_ref()], &program_id);
 
     h.send(Instruction {
@@ -86,14 +85,16 @@ fn set_up(mut h: Harness) -> Setup {
             AccountMeta::new(merchant, false),
             AccountMeta::new(vault, false),
             AccountMeta::new_readonly(vault_authority, false),
-            AccountMeta::new(vault_token, false),
             AccountMeta::new_readonly(mint, false),
+            AccountMeta::new(vault_token, false),
             AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
             AccountMeta::new_readonly(token_ledger_contract_tests::system_program(), false),
-            AccountMeta::new_readonly(solana_address::Address::from_str_const("SysvarRent111111111111111111111111111111111"), false),
+            AccountMeta::new_readonly(
+                Address::from_str_const("SysvarRent111111111111111111111111111111111"),
+                false,
+            ),
         ],
         data: {
-            // create_billing_vault takes the controller pubkey as its argument.
             let mut d = discriminator("create_billing_vault").to_vec();
             d.extend_from_slice(controller.as_ref());
             d
@@ -101,8 +102,8 @@ fn set_up(mut h: Harness) -> Setup {
     })
     .expect("create_billing_vault");
 
-    // The program creates the vault token account via `init`, so it is not
-    // pre-created here. Fund the controller and deposit through the program.
+    // The program creates the vault token account via `init`; this is the
+    // controller's own funded token account used to deposit.
     let controller_token = Address::new_unique();
     h.set_token_account(controller_token, mint, controller, 200 * USDC);
     h.send(Instruction {
@@ -125,7 +126,6 @@ fn set_up(mut h: Harness) -> Setup {
     let (mandate, _) = Address::find_program_address(&[b"mandate", vault.as_ref()], &program_id);
     Setup {
         h,
-        admin,
         merchant,
         plan,
         vault,
@@ -138,6 +138,7 @@ fn set_up(mut h: Harness) -> Setup {
     }
 }
 
+/// Activate a mandate and take the first charge atomically.
 fn activate(s: &mut Setup, cap: u64, expiry: i64) -> Result<(), String> {
     let program_id = s.h.program_id;
     let mut data = discriminator("activate_mandate_and_charge").to_vec();
@@ -161,11 +162,112 @@ fn activate(s: &mut Setup, cap: u64, expiry: i64) -> Result<(), String> {
     })
 }
 
+/// The collector triggers the next cycle. The collector is the payer here.
+fn collect(s: &mut Setup) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new_readonly(s.merchant, false),
+            AccountMeta::new(s.vault, false),
+            AccountMeta::new(s.mandate, false),
+            AccountMeta::new(s.vault_authority, false),
+            AccountMeta::new_readonly(s.vault_authority, false),
+            AccountMeta::new(s.vault_token, false),
+            AccountMeta::new(s.destination, false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+        ],
+        data: discriminator("collect_cycle").to_vec(),
+    })
+}
+
+fn revoke(s: &mut Setup) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.controller, true),
+            AccountMeta::new(s.vault, false),
+            AccountMeta::new(s.mandate, false),
+        ],
+        data: discriminator("revoke_mandate").to_vec(),
+    })
+}
+
+fn replace(s: &mut Setup, cap: u64, expiry: i64) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    let mut data = discriminator("replace_mandate").to_vec();
+    data.extend_from_slice(&cap.to_le_bytes());
+    data.extend_from_slice(&expiry.to_le_bytes());
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.controller, true),
+            AccountMeta::new(s.vault, false),
+            AccountMeta::new_readonly(s.plan, false),
+            AccountMeta::new(s.mandate, false),
+        ],
+        data,
+    })
+}
+
+fn withdraw(s: &mut Setup, amount: u64) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    let mut data = discriminator("withdraw").to_vec();
+    data.extend_from_slice(&amount.to_le_bytes());
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(s.controller, true),
+            AccountMeta::new(s.vault, false),
+            AccountMeta::new_readonly(s.vault_authority, false),
+            AccountMeta::new(s.vault_token, false),
+            AccountMeta::new(s.controller_token, false),
+            AccountMeta::new_readonly(token_ledger_contract_tests::token_program(), false),
+        ],
+        data,
+    })
+}
+
+/// Admin pauses new collections. Withdrawals must still work.
+fn pause_collection(s: &mut Setup, paused: bool) -> Result<(), String> {
+    let program_id = s.h.program_id;
+    let mut data = discriminator("set_collection_pause").to_vec();
+    data.push(paused as u8);
+    s.h.send(Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new_readonly(s.h.payer_pk(), true),
+            AccountMeta::new(s.merchant, false),
+        ],
+        data,
+    })
+}
+
+/// An authorization expiry `days` from the current VM clock.
+fn expiry_in(s: &Setup, days: i64) -> i64 {
+    s.h.now() + days * 86_400
+}
+
 fn token_amount(svm: &LiteSVM, address: Address) -> u64 {
     let account = svm.get_account(&address).expect("token account");
     let data: &[u8] = &account.data;
     // SPL token account: amount is a u64 at offset 64.
     u64::from_le_bytes(data[64..72].try_into().unwrap())
+}
+
+/// The mandate account layout: 8 discriminator + bump 1 + vault 32 + plan 32 +
+/// merchant 32 + price 8 + period 8 + max_total_debit 8 + start 8 + expiry 8,
+/// so `total_debited` is a u64 at offset 145 and `next_cycle` follows at 153.
+fn mandate_total_debited(svm: &LiteSVM, mandate: Address) -> u64 {
+    let account = svm.get_account(&mandate).expect("mandate");
+    u64::from_le_bytes(account.data[145..153].try_into().unwrap())
+}
+
+fn mandate_next_cycle(svm: &LiteSVM, mandate: Address) -> u64 {
+    let account = svm.get_account(&mandate).expect("mandate");
+    u64::from_le_bytes(account.data[153..161].try_into().unwrap())
 }
 
 #[test]
@@ -191,45 +293,142 @@ fn initialize_merchant_creates_the_config() {
 }
 
 #[test]
-#[ignore = "harness WIP: funded flow needs mint/token setup; see the note in tests/tests/billing.rs"]
 fn deposit_moves_usdc_into_the_vault() {
     let Some(h) = load() else {
         eprintln!("skip: build the program first");
         return;
     };
-    let mut s = set_up(h);
+    let s = set_up(h);
     assert_eq!(token_amount(&s.h.svm, s.vault_token), 200 * USDC, "vault holds the deposit");
     assert_eq!(token_amount(&s.h.svm, s.controller_token), 0, "controller spent the deposit");
 }
 
 #[test]
-#[ignore = "harness WIP: funded flow needs mint/token setup; see the note in tests/tests/billing.rs"]
 fn activate_charges_the_first_period_atomically() {
     let Some(h) = load() else {
         eprintln!("skip: build the program first");
         return;
     };
     let mut s = set_up(h);
-    let expiry = (s.h.svm.get_sysvar::<solana_clock::Clock>().unix_timestamp) + 200 * 24 * 60 * 60;
+    let expiry = s.h.now() + 200 * 24 * 60 * 60;
     activate(&mut s, 100 * USDC, expiry).expect("activate");
     assert_eq!(token_amount(&s.h.svm, s.vault_token), 180 * USDC, "first charge debited 20");
     assert_eq!(token_amount(&s.h.svm, s.destination), 20 * USDC, "merchant received 20");
-
-    let mandate = s.h.svm.get_account(&s.mandate).expect("mandate");
-    // total_debited is a u64 at a known offset; assert through the vault effect.
-    assert!(!mandate.data.is_empty());
+    assert_eq!(mandate_total_debited(&s.h.svm, s.mandate), 20 * USDC, "one period debited");
+    assert_eq!(mandate_next_cycle(&s.h.svm, s.mandate), 1, "cycle advanced");
 }
 
 #[test]
-#[ignore = "harness WIP: funded flow needs mint/token setup; see the note in tests/tests/billing.rs"]
 fn activate_refuses_coverage_past_expiry() {
     let Some(h) = load() else {
         eprintln!("skip: build the program first");
         return;
     };
     let mut s = set_up(h);
-    let now = s.h.svm.get_sysvar::<solana_clock::Clock>().unix_timestamp;
+    let now = s.h.now();
     let err = activate(&mut s, 100 * USDC, now + THIRTY_DAYS - 60).expect_err("should refuse");
     assert!(err.contains("CoveragePastExpiry") || err.contains("custom program error"), "got {err}");
     assert_eq!(token_amount(&s.h.svm, s.vault_token), 200 * USDC, "no charge on a failed activation");
+}
+
+#[test]
+fn collect_charges_the_next_cycle_and_stops_at_the_cap() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    // A cap of two periods: the activation charge plus exactly one more.
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 40 * USDC, expiry).expect("activate");
+    collect(&mut s).expect("second cycle");
+    assert_eq!(token_amount(&s.h.svm, s.vault_token), 160 * USDC, "two charges debited 40");
+    assert_eq!(token_amount(&s.h.svm, s.destination), 40 * USDC, "merchant received 40");
+    assert_eq!(mandate_next_cycle(&s.h.svm, s.mandate), 2, "two cycles collected");
+
+    s.h.advance_blockhash();
+    let err = collect(&mut s).expect_err("cap should be exhausted");
+    assert!(err.contains("CapExceeded") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, s.vault_token), 160 * USDC, "no charge past the cap");
+}
+
+#[test]
+fn revoked_mandate_refuses_collection() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 100 * USDC, expiry).expect("activate");
+    revoke(&mut s).expect("revoke");
+    let err = collect(&mut s).expect_err("revoked mandate must not collect");
+    assert!(err.contains("MandateRevoked") || err.contains("custom program error"), "got {err}");
+    assert_eq!(token_amount(&s.h.svm, s.vault_token), 180 * USDC, "no charge after revoke");
+}
+
+#[test]
+fn withdrawal_needs_no_merchant_and_returns_the_balance() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 100 * USDC, expiry).expect("activate");
+    // Collected funds are the merchant's; the unspent balance is the customer's.
+    withdraw(&mut s, 180 * USDC).expect("withdraw");
+    assert_eq!(token_amount(&s.h.svm, s.vault_token), 0, "vault drained");
+    assert_eq!(token_amount(&s.h.svm, s.controller_token), 180 * USDC, "controller refunded");
+}
+
+#[test]
+fn replacement_preserves_paid_through_and_carries_the_cap() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 100 * USDC, expiry).expect("activate");
+    replace(&mut s, 100 * USDC, expiry).expect("replace");
+    // The cap carries over: 20 already debited, one more period fits.
+    collect(&mut s).expect("collect after replace");
+    assert_eq!(mandate_total_debited(&s.h.svm, s.mandate), 40 * USDC, "cap carried over");
+
+    // A new cap below (debited + one period) is refused.
+    let err = replace(&mut s, 20 * USDC, expiry).expect_err("cap floor");
+    assert!(err.contains("CapExceeded") || err.contains("custom program error"), "got {err}");
+}
+
+#[test]
+fn expired_authorization_refuses_a_fresh_cycle() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    // Expiry 35 days out: the first 30-day period fits, a later one cannot.
+    let now = s.h.now();
+    activate(&mut s, 100 * USDC, now + 35 * 24 * 60 * 60).expect("activate");
+    s.h.warp_clock(now + 34 * 24 * 60 * 60);
+    let err = collect(&mut s).expect_err("coverage would pass the expiry");
+    assert!(err.contains("CoveragePastExpiry") || err.contains("custom program error"), "got {err}");
+}
+
+#[test]
+fn collection_pause_stops_charges_but_not_withdrawal() {
+    let Some(h) = load() else {
+        eprintln!("skip: build the program first");
+        return;
+    };
+    let mut s = set_up(h);
+    let expiry = expiry_in(&s, 200);
+    activate(&mut s, 100 * USDC, expiry).expect("activate");
+    pause_collection(&mut s, true).expect("pause");
+    let err = collect(&mut s).expect_err("paused collection");
+    assert!(err.contains("CollectionPaused") || err.contains("custom program error"), "got {err}");
+    // The customer's exit is never blocked by a pause.
+    withdraw(&mut s, 180 * USDC).expect("withdraw while paused");
+    assert_eq!(token_amount(&s.h.svm, s.controller_token), 180 * USDC, "exit honoured");
 }

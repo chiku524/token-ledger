@@ -1,0 +1,47 @@
+name: Contracts
+
+# The Solana contracts are a separate Rust project with their own SBF toolchain.
+# This runs only when the contracts change, so an app-only change does not pay
+# for the SBF build and the litesvm suite.
+on:
+  push:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contracts.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contracts.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            contracts
+            contracts/tests
+      - name: Install the Solana toolchain
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v3.0.13/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: Build the SBF programs
+        # Anchor's default platform-tools cannot parse the edition2024
+        # dependency in the solana-program v2.3 tree (see DEPLOYMENTS.md).
+        run: cargo-build-sbf --tools-version v1.57 --sbf-out-dir target/deploy
+        working-directory: contracts
+      - name: Program invariant unit tests
+        run: cargo test
+        working-directory: contracts
+      - name: litesvm integration tests
+        # These load the built .so from ../target/deploy and drive the real
+        # programs in-process; the funded and time-warp flows run without a
+        # validator. They skip only when the build produced no artifact.
+        run: cargo test
+        working-directory: contracts/tests
