@@ -5,7 +5,7 @@
 //! moves funds or holds authority; each program keeps its own fund-moving
 //! authority and vault.
 
-use anchor_lang::prelude::*;
+
 
 /// Seed prefixes. Opaque, fixed-size, and domain-separated so a seed from one
 /// account type can never collide with another.

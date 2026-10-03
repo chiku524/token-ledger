@@ -20,7 +20,10 @@ cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "cargo test"
+# Program unit tests (invariants) in the root workspace, then the litesvm
+# integration tests in their standalone workspace. The latter is separate so its
+# heavy litesvm/agave dependencies cannot affect the SBF program build.
+test = "cargo test && (cd tests && cargo test)"
 
 # The IDL and TypeScript types are the client contract and are committed under
 # contracts/idl and contracts/types (target/ is gitignored). Regenerate with:

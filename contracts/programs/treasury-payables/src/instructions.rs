@@ -12,7 +12,7 @@ use token_ledger_shared::seeds;
 use token_ledger_shared::{day_index, MAX_APPROVERS};
 
 use crate::errors::TreasuryError;
-use crate::state::{DailySpend, GovernanceKind, GovernanceProposal, InvoiceKey, InvoiceSettlement, PaymentProposal, TreasuryConfig};
+use crate::state::{DailySpend, GovernanceKind, GovernanceProposal, InvoiceSettlement, PaymentProposal, TreasuryConfig};
 
 #[event]
 pub struct TreasuryCreated {
@@ -183,7 +183,7 @@ pub fn propose_payment(
     if settlement.treasury == Pubkey::default() {
         settlement.bump = ctx.bumps.settlement;
         settlement.treasury = treasury.key();
-        settlement.invoice_key = InvoiceKey(invoice_key);
+        settlement.invoice_key = crate::state::InvoiceKey(invoice_key);
         settlement.active_revision = revision;
         settlement.paid = false;
     } else {
@@ -196,7 +196,7 @@ pub fn propose_payment(
     let proposal = &mut ctx.accounts.proposal;
     proposal.bump = ctx.bumps.proposal;
     proposal.treasury = treasury.key();
-    proposal.invoice_key = InvoiceKey(invoice_key);
+    proposal.invoice_key = crate::state::InvoiceKey(invoice_key);
     proposal.revision = revision;
     proposal.policy_version = treasury.policy_version;
     proposal.recipient_owner = recipient_owner;
