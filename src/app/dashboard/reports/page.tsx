@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { SegmentedLinks } from "@/components/app/segmented-links";
 import { StatusBadge } from "@/components/app/status-badge";
-import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Button } from "@/components/ui/button";
@@ -168,9 +168,7 @@ export default async function ReportsPage({
             </TableHeader>
             <TableBody>
               {balance.rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6}>No accounts for this company.</TableCell>
-                </TableRow>
+                <EmptyRow colSpan={6}>No accounts for this company.</EmptyRow>
               ) : (
                 balance.rows.map((row) => (
                   <TableRow key={row.code}>
@@ -220,12 +218,10 @@ export default async function ReportsPage({
             </TableHeader>
             <TableBody>
               {carrying.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4}>
-                    No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal;
-                    post an entry on the Journal page to see it held here.
-                  </TableCell>
-                </TableRow>
+                <EmptyRow colSpan={4}>
+                  No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal;
+                  post an entry on the Journal page to see it held here.
+                </EmptyRow>
               ) : (
                 carrying.map((row) => (
                   <TableRow key={`${row.measurementBasis}-${row.assetCode}`}>

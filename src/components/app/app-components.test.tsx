@@ -7,6 +7,7 @@ import { EmptyState } from "./empty-state";
 import { Field } from "./field";
 import { SectionHeader } from "./section-header";
 import { StatusBadge, connectionStatusTone } from "./status-badge";
+import { EmptyRow } from "./table-cells";
 
 describe("connectionStatusTone", () => {
   it("maps health to a tone", () => {
@@ -77,5 +78,20 @@ describe("Logo", () => {
     expect(html).toContain("Token Ledger");
     expect(html).toContain("fill-primary");
     expect(html).not.toMatch(/#[0-9a-f]{6}/i);
+  });
+});
+
+describe("EmptyRow", () => {
+  it("spans the table and centres a muted message", () => {
+    const html = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <EmptyRow colSpan={4}>Nothing here</EmptyRow>
+        </tbody>
+      </table>,
+    );
+    expect(html).toContain('colSpan="4"');
+    expect(html).toContain("Nothing here");
+    expect(html).toContain("text-center");
   });
 });

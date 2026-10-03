@@ -31,6 +31,7 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 | `Field` | `.field` |
 | `StatCard` | Overview stat tiles; numbers count up (`NumberTicker`) and stagger in. Place inside a `Stagger`. |
 | `NumberHead`, `NumberCell` | `.num` table columns. `NumberCell align="left"` for dates and addresses (pair it with a plain `TableHead`). |
+| `EmptyRow` | Centred muted message row for a table with no rows. Pass `colSpan` for the column count. Use `EmptyState` when the whole table is absent. |
 | `FormCard` | `grid gap-3 panel p-4` form with a title and description (headings `h2` or `h3`) |
 | `SegmentedLinks` | Company switcher in Reports and Combined |
 
