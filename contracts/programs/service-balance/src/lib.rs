@@ -67,8 +67,8 @@ pub mod service_balance {
         instructions::activate_mandate_and_charge(ctx, max_total_debit, authorization_expiry)
     }
 
-    pub fn collect_cycle(ctx: Context<CollectCycle>) -> Result<()> {
-        instructions::collect_cycle(ctx)
+    pub fn collect_cycle(ctx: Context<CollectCycle>, cycle: u64) -> Result<()> {
+        instructions::collect_cycle(ctx, cycle)
     }
 
     pub fn revoke_mandate(ctx: Context<ControllerOnVault>) -> Result<()> {

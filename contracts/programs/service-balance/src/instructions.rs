@@ -13,7 +13,7 @@ use token_ledger_shared::seeds;
 use token_ledger_shared::{coverage_within_expiry, THIRTY_DAYS_SECONDS};
 
 use crate::errors::BillingError;
-use crate::state::{BillingVault, Mandate, MerchantConfig, PlanVersion};
+use crate::state::{BillingVault, ChargeReceipt, Mandate, MerchantConfig, PlanVersion};
 
 #[event]
 pub struct BillingVaultCreated {
@@ -242,6 +242,7 @@ pub fn activate_mandate_and_charge(
     mandate.generation = ctx.accounts.vault.generation;
 
     // First charge is atomic with activation: insufficient funds aborts both.
+    // The first cycle of a fresh mandate is always cycle 0.
     let vault = ctx.accounts.vault.clone();
     let merchant = ctx.accounts.merchant.clone();
     let mandate_key = mandate.key();
@@ -250,6 +251,9 @@ pub fn activate_mandate_and_charge(
         mandate,
         mandate_key,
         &merchant,
+        0,
+        ctx.bumps.receipt,
+        &mut ctx.accounts.receipt,
         &ctx.accounts.vault_token,
         &ctx.accounts.destination_token,
         &ctx.accounts.vault_authority,
@@ -258,7 +262,7 @@ pub fn activate_mandate_and_charge(
     Ok(())
 }
 
-pub fn collect_cycle(ctx: Context<CollectCycle>) -> Result<()> {
+pub fn collect_cycle(ctx: Context<CollectCycle>, cycle: u64) -> Result<()> {
     let vault = ctx.accounts.vault.clone();
     let merchant = ctx.accounts.merchant.clone();
     let mandate_key = ctx.accounts.mandate.key();
@@ -267,6 +271,9 @@ pub fn collect_cycle(ctx: Context<CollectCycle>) -> Result<()> {
         &mut ctx.accounts.mandate,
         mandate_key,
         &merchant,
+        cycle,
+        ctx.bumps.receipt,
+        &mut ctx.accounts.receipt,
         &ctx.accounts.vault_token,
         &ctx.accounts.destination_token,
         &ctx.accounts.vault_authority,
@@ -359,6 +366,9 @@ fn collect_inner<'info>(
     mandate: &mut Mandate,
     mandate_key: Pubkey,
     merchant: &MerchantConfig,
+    cycle: u64,
+    receipt_bump: u8,
+    receipt: &mut Account<'info, ChargeReceipt>,
     vault_token: &Account<'info, TokenAccount>,
     destination_token: &Account<'info, TokenAccount>,
     vault_authority: &UncheckedAccount<'info>,
@@ -367,6 +377,10 @@ fn collect_inner<'info>(
     let authority_bump = vault.authority_bump;
     let now = Clock::get()?.unix_timestamp;
 
+    // The caller names the cycle it is collecting. It must be the mandate's next
+    // cycle, which makes a replay of an already-collected cycle a distinct PDA
+    // and a wrong counter: `WrongCycle` before any transfer.
+    require!(cycle == mandate.next_cycle, BillingError::WrongCycle);
     require!(!mandate.revoked, BillingError::MandateRevoked);
     require!(!merchant.collection_paused, BillingError::CollectionPaused);
     require!(now <= mandate.authorization_expiry, BillingError::MandateExpired);
@@ -418,7 +432,17 @@ fn collect_inner<'info>(
     );
     token::transfer(cpi, amount)?;
 
-    let cycle = mandate.next_cycle;
+    // Record the receipt, then update cycle state. The receipt PDA is unique by
+    // mandate and cycle, so the same cycle cannot be recorded or collected twice.
+    receipt.bump = receipt_bump;
+    receipt.mandate = mandate_key;
+    receipt.vault = mandate.vault;
+    receipt.cycle = cycle;
+    receipt.amount = amount;
+    receipt.coverage_start = coverage_start;
+    receipt.coverage_end = coverage_end;
+    receipt.collected_at = now;
+
     mandate.total_debited = new_total;
     mandate.next_cycle = cycle.checked_add(1).ok_or(BillingError::MathOverflow)?;
     mandate.paid_through = coverage_end;
@@ -572,6 +596,16 @@ pub struct ActivateMandate<'info> {
         bump
     )]
     pub mandate: Account<'info, Mandate>,
+    /// The receipt for the atomic first charge (cycle 0), seeded by mandate and
+    /// cycle so it cannot be created or collected twice.
+    #[account(
+        init,
+        payer = controller,
+        space = 8 + ChargeReceipt::INIT_SPACE,
+        seeds = [seeds::CHARGE_RECEIPT, mandate.key().as_ref(), &0u64.to_le_bytes()],
+        bump
+    )]
+    pub receipt: Account<'info, ChargeReceipt>,
     /// CHECK: merchant destination, validated to equal the config destination.
     #[account(constraint = merchant.destination == destination_token.key() @ BillingError::WrongMint)]
     pub merchant: Account<'info, MerchantConfig>,
@@ -587,9 +621,12 @@ pub struct ActivateMandate<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(cycle: u64)]
 pub struct CollectCycle<'info> {
     /// The collector triggers the charge; any caller could, but only to the
     /// fixed destination, so this is an operational role, not an authority.
+    /// It pays rent for the receipt PDA.
+    #[account(mut)]
     pub collector: Signer<'info>,
     #[account(
         constraint = merchant.collector == collector.key() @ BillingError::NotCollector,
@@ -605,10 +642,17 @@ pub struct CollectCycle<'info> {
         constraint = mandate.vault == vault.key() @ BillingError::WrongMerchant,
     )]
     pub mandate: Account<'info, Mandate>,
-    /// CHECK: receipt is not stored in version one; the mandate counter and the
-    /// event are the durable record. Left for a later revision.
-    #[account(mut)]
-    pub vault_authority_placeholder: UncheckedAccount<'info>,
+    /// The receipt for this cycle, seeded by mandate and cycle. `init_if_needed`
+    /// lets the instruction require `cycle == mandate.next_cycle` first, so a
+    /// replay of a collected cycle fails with `WrongCycle` before any transfer.
+    #[account(
+        init_if_needed,
+        payer = collector,
+        space = 8 + ChargeReceipt::INIT_SPACE,
+        seeds = [seeds::CHARGE_RECEIPT, mandate.key().as_ref(), &cycle.to_le_bytes()],
+        bump
+    )]
+    pub receipt: Account<'info, ChargeReceipt>,
     /// CHECK: PDA authority for the vault token account.
     #[account(seeds = [seeds::BILLING_VAULT, vault.merchant.as_ref(), vault.controller.as_ref()], bump = vault.authority_bump)]
     pub vault_authority: UncheckedAccount<'info>,
@@ -617,6 +661,7 @@ pub struct CollectCycle<'info> {
     #[account(mut)]
     pub destination_token: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
