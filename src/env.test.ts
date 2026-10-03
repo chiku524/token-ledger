@@ -8,6 +8,7 @@ import {
   readEvmRpcUrl,
   readSolanaRpcUrl,
   readSuiGraphqlUrl,
+  REOWN_PROJECT_ID,
   reownProjectId,
   SOLANA_PUBLIC_RPC_URL,
   SUI_PUBLIC_GRAPHQL_URL,
@@ -22,7 +23,15 @@ describe("authSecretConfigured", () => {
 });
 
 describe("reownProjectId", () => {
-  it("stays off until a project id is set", () => {
+  it("uses the public project id when the environment does not set one", () => {
+    const previous = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID;
+    delete process.env.NEXT_PUBLIC_REOWN_PROJECT_ID;
+    expect(reownProjectId()).toBe(REOWN_PROJECT_ID);
+    if (previous === undefined) delete process.env.NEXT_PUBLIC_REOWN_PROJECT_ID;
+    else process.env.NEXT_PUBLIC_REOWN_PROJECT_ID = previous;
+  });
+
+  it("lets a caller turn WalletConnect off or override the project", () => {
     expect(reownProjectId({})).toBeNull();
     expect(reownProjectId({ NEXT_PUBLIC_REOWN_PROJECT_ID: "  " })).toBeNull();
     expect(reownProjectId({ NEXT_PUBLIC_REOWN_PROJECT_ID: "project" })).toBe("project");

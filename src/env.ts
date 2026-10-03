@@ -13,8 +13,18 @@ export function readAuthSecret(env: { AUTH_SECRET?: string } = { AUTH_SECRET: pr
   return secret;
 }
 
-/** WalletConnect / Reown is optional. Without a project id the modal stays off. */
-export function reownProjectId(env: { NEXT_PUBLIC_REOWN_PROJECT_ID?: string } = { NEXT_PUBLIC_REOWN_PROJECT_ID: process.env.NEXT_PUBLIC_REOWN_PROJECT_ID }): string | null {
+/**
+ * Public Reown / WalletConnect project id. Same value as `wrangler.jsonc`.
+ * It is exposed to the browser by design. An env override wins when set.
+ */
+export const REOWN_PROJECT_ID = "840841f806a3e3d48403f5a51478e358";
+
+/** WalletConnect stays on unless a caller passes an empty project id. */
+export function reownProjectId(
+  env: { NEXT_PUBLIC_REOWN_PROJECT_ID?: string } = {
+    NEXT_PUBLIC_REOWN_PROJECT_ID: process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || REOWN_PROJECT_ID,
+  },
+): string | null {
   const id = env.NEXT_PUBLIC_REOWN_PROJECT_ID?.trim() ?? "";
   return id.length > 0 ? id : null;
 }
