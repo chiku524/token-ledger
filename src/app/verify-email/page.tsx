@@ -27,10 +27,10 @@ export default async function VerifyEmailPage({
         </Alert>
       ) : null}
       {token ? (
-        <FormCard action={verifyEmailAction} className="mt-6">
+        <FormCard action={verifyEmailAction} className="mt-6 border-0 bg-transparent p-0">
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="token" value={token} />
-          <SubmitButton>Confirm email</SubmitButton>
+          <SubmitButton className="h-11 w-full">Confirm email</SubmitButton>
         </FormCard>
       ) : (
         <p className="mt-6 text-sm text-muted-foreground">Open the confirmation link from your email to confirm your address.</p>

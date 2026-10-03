@@ -35,7 +35,7 @@ export default async function ResetPasswordPage({
         </Alert>
       ) : null}
       {token ? (
-        <FormCard action={resetPasswordAction} className="mt-6">
+        <FormCard action={resetPasswordAction} className="mt-6 border-0 bg-transparent p-0">
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="token" value={token} />
           <Field label="New password">
@@ -44,16 +44,16 @@ export default async function ResetPasswordPage({
           <Field label="Confirm password">
             <Input name="confirm" type="password" required minLength={12} autoComplete="new-password" />
           </Field>
-          <SubmitButton>Set password</SubmitButton>
+          <SubmitButton className="h-11 w-full">Set password</SubmitButton>
           <p className="text-sm text-muted-foreground">Setting a new password signs out any other sessions.</p>
         </FormCard>
       ) : (
-        <FormCard action={requestPasswordResetAction} className="mt-6">
+        <FormCard action={requestPasswordResetAction} className="mt-6 border-0 bg-transparent p-0">
           <input type="hidden" name="csrf" value={csrf} />
           <Field label="Email">
             <Input name="email" type="email" required autoComplete="username" />
           </Field>
-          <SubmitButton>Send reset link</SubmitButton>
+          <SubmitButton className="h-11 w-full">Send reset link</SubmitButton>
         </FormCard>
       )}
       <p className="mt-4 text-sm text-muted-foreground">
