@@ -1,6 +1,7 @@
 import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { SignupOrbit } from "@/components/auth/signup-orbit";
 import { Field } from "@/components/app/field";
 import { FormCard } from "@/components/app/form-card";
 import { Alert } from "@/components/ui/alert";
@@ -23,7 +24,12 @@ export default async function ResetPasswordPage({
   const csrf = await ensureCsrf();
 
   return (
-    <AuthShell kicker="Account" title={token ? "Set a new password" : "Reset your password"}>
+    <AuthShell
+      kicker="Account"
+      title={token ? "Set a new password" : "Reset your password"}
+      tone="reset"
+      ornament={<SignupOrbit />}
+    >
       {error ? (
         <Alert variant="destructive" className="mt-6">
           {error}

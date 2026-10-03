@@ -309,8 +309,16 @@ const UNIFORMS = {
 
 const pendingContextReleases = new WeakMap<HTMLCanvasElement, number>()
 
-export function ShaderBackground({ className }: { className?: string }) {
+export function ShaderBackground({
+  className,
+  colors,
+}: {
+  className?: string
+  /** Optional palette override (up to 8 RGB triplets in 0–1). Defaults to the built-in valley colours. */
+  colors?: [number, number, number][]
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const palette = colors ?? UNIFORMS.colors
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -358,7 +366,8 @@ export function ShaderBackground({ className }: { className?: string }) {
       space: gl.getUniformLocation(program, "u_space"),
       cursor: gl.getUniformLocation(program, "u_cursor"),
     }
-    gl.uniform3fv(uni.colors, new Float32Array(UNIFORMS.colors.flat()))
+    const colourSlots = Array.from({ length: 8 }, (_, i) => palette[i] ?? palette[palette.length - 1] ?? [0, 0, 0])
+    gl.uniform3fv(uni.colors, new Float32Array(colourSlots.flat()))
     gl.uniform4f(
       uni.shape,
       UNIFORMS.scale,
@@ -580,7 +589,7 @@ export function ShaderBackground({ className }: { className?: string }) {
       }, 0)
       pendingContextReleases.set(canvas, releaseTimer)
     }
-  }, [])
+  }, [palette])
 
   return (
     <canvas ref={canvasRef} className={className} style={{ display: "block", width: "100%", height: "100%" }} />
