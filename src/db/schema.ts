@@ -1070,6 +1070,40 @@ export const billingCharges = pgTable(
   ],
 );
 
+/**
+ * The app feature entitlement derived from a finalized mandate. One row per
+ * mandate and generation, so a replacement writes a new row and an old
+ * generation cannot be revived. Access is granted until `accessUntil`; a mandate
+ * that is not finalized grants nothing.
+ */
+export const contractEntitlements = pgTable(
+  "contract_entitlements",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    mandateId: text("mandate_id")
+      .notNull()
+      .references(() => mandates.id),
+    generation: bigint("generation", { mode: "bigint" }).notNull(),
+    renewing: boolean("renewing").notNull(),
+    accessUntil: timestamp("access_until", { withTimezone: true }).notNull(),
+    capRemainingMinor: bigint("cap_remaining_minor", { mode: "bigint" }).notNull(),
+    /** Why renewal is off, or null when it is on. */
+    reason: text("reason"),
+    asOf: timestamp("as_of", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("contract_entitlements_mandate_generation_unique").on(table.mandateId, table.generation),
+    index("contract_entitlements_entity_idx").on(table.entityId),
+  ],
+);
+
 /** A company treasury, projected from `treasury_payables`. */
 export const treasuryAccounts = pgTable(
   "treasury_accounts",
