@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AuthShell, AuthSplit } from "@/components/auth/auth-shell";
 import { Alert } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
 import { SignupWizard } from "@/components/signup-wizard";
 import { ensureCsrf } from "@/auth/current";
 import { hasDatabase } from "@/db/availability";
@@ -23,18 +22,16 @@ export default async function SignUpPage({
     <AuthShell kicker="Create an account" title="Start with what you hold." width="wide">
       <AuthSplit
         aside={
-          <Card className="self-start">
-            <CardContent className="grid gap-3">
-              <p className="eyebrow">What gets saved</p>
-              <h2 className="text-lg font-semibold tracking-tight">Read-only from the start</h2>
-              <ul className="grid gap-3 text-sm leading-relaxed text-muted-foreground">
-                <li>A wallet is a public address and a type: hot, cold, or staking.</li>
-                <li>An exchange is an account id. An API key is not collected.</li>
-                <li>A custodian is a vault id, with a network only when the vault has one.</li>
-                <li>You can skip every connection and add them later in Settings.</li>
-              </ul>
-            </CardContent>
-          </Card>
+          <section className="grid gap-3">
+            <p className="eyebrow">What gets saved</p>
+            <h2 className="text-lg font-semibold tracking-tight">Read-only from the start</h2>
+            <ul className="grid gap-3 text-sm leading-relaxed text-muted-foreground">
+              <li>A wallet is a public address and a type: hot, cold, or staking.</li>
+              <li>An exchange is an account id. An API key is not collected.</li>
+              <li>A custodian is a vault id, with a network only when the vault has one.</li>
+              <li>You can skip every connection and add them later in Settings.</li>
+            </ul>
+          </section>
         }
       >
         <p className="text-sm leading-relaxed text-muted-foreground">

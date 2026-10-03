@@ -4,7 +4,6 @@ import { AuthShell, AuthSplit } from "@/components/auth/auth-shell";
 import { Field } from "@/components/app/field";
 import { FormCard } from "@/components/app/form-card";
 import { Alert } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { acceptInviteAction, demoSignInAction, signInAction } from "@/app/sign-in/actions";
 import { ensureCsrf } from "@/auth/current";
@@ -35,40 +34,36 @@ export default async function SignInPage({
     <AuthShell kicker="Sign in" title="Sign in to the books." width="wide">
       <AuthSplit
         aside={
-          <Card aria-labelledby="demo-heading" className="self-start">
-            <CardContent className="grid gap-3">
-              <p className="eyebrow">Demo preview</p>
-              <h2 id="demo-heading" className="text-lg font-semibold tracking-tight">
-                Pick a role
-              </h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {demo
-                  ? "No database is connected, so you can look around as a sample Harbourline colleague. Nothing is saved. This preview is off in production and when a database is connected."
-                  : "The sample preview is off because a database is connected, or this is production. Use the password form."}
-              </p>
-              {demo ? (
-                <ul className="mt-1 grid gap-2">
-                  {DEMO_PREVIEWS.map((preview) => (
-                    <li key={preview.id}>
-                      <form action={demoSignInAction}>
-                        <input type="hidden" name="csrf" value={csrf} />
-                        <input type="hidden" name="next" value={next} />
-                        <input type="hidden" name="preview" value={preview.id} />
-                        <SubmitButton variant="secondary" className="h-auto w-full justify-start py-2 text-left">
-                          <span className="block">
-                            {preview.label}
-                            <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                              {preview.name} · {preview.email}
-                            </span>
-                          </span>
-                        </SubmitButton>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </CardContent>
-          </Card>
+          <section aria-labelledby="demo-heading" className="grid gap-3">
+            <p className="eyebrow">Demo preview</p>
+            <h2 id="demo-heading" className="text-lg font-semibold tracking-tight">
+              Pick a role
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {demo
+                ? "No database is connected, so you can look around as a sample Harbourline colleague. Nothing is saved. This preview is off in production and when a database is connected."
+                : "The sample preview is off because a database is connected, or this is production. Use the password form."}
+            </p>
+            {demo ? (
+              <ul className="mt-1 grid gap-2">
+                {DEMO_PREVIEWS.map((preview) => (
+                  <li key={preview.id}>
+                    <form action={demoSignInAction}>
+                      <input type="hidden" name="csrf" value={csrf} />
+                      <input type="hidden" name="next" value={next} />
+                      <input type="hidden" name="preview" value={preview.id} />
+                      <SubmitButton variant="outline" className="h-auto w-full flex-col gap-0 py-2.5">
+                        <span>{preview.label}</span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {preview.name} · {preview.email}
+                        </span>
+                      </SubmitButton>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
         }
       >
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -81,7 +76,7 @@ export default async function SignInPage({
           </Alert>
         ) : null}
         {invite ? (
-          <FormCard action={acceptInviteAction} title="Accept invite" className="mt-6">
+          <FormCard action={acceptInviteAction} title="Accept invite" className="mt-6 border-0 bg-transparent p-0">
             <p className="text-sm text-muted-foreground">
               {invite.email}. Choose a password of at least 12 characters. This link is shown in the app. It is not emailed.
             </p>
@@ -93,10 +88,10 @@ export default async function SignInPage({
             <Field label="Confirm password">
               <Input name="confirm" type="password" required minLength={12} autoComplete="new-password" />
             </Field>
-            <SubmitButton>Activate account</SubmitButton>
+            <SubmitButton className="h-11 w-full">Activate account</SubmitButton>
           </FormCard>
         ) : (
-          <FormCard action={signInAction} title="Password" className="mt-6">
+          <FormCard action={signInAction} title="Password" className="mt-6 border-0 bg-transparent p-0">
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="next" value={next} />
             <Field label="Email">
@@ -105,7 +100,7 @@ export default async function SignInPage({
             <Field label="Password">
               <Input name="password" type="password" required autoComplete="current-password" />
             </Field>
-            <SubmitButton>Sign in</SubmitButton>
+            <SubmitButton className="h-11 w-full">Sign in</SubmitButton>
             <p className="text-sm text-muted-foreground">
               New organization?{" "}
               <Link href="/sign-up" className="text-link underline">
@@ -118,7 +113,7 @@ export default async function SignInPage({
             </p>
             {database ? null : (
               <p className="text-sm text-muted-foreground">
-                Password sign-in needs a database. The sample roles on the right work without one.
+                Password sign-in needs a database. The sample roles below work without one.
               </p>
             )}
           </FormCard>
