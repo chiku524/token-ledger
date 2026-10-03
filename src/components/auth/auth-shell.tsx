@@ -16,7 +16,7 @@ export function AuthShell({
   kicker: string;
   title: string;
   width?: "narrow" | "wide";
-  /** Left-panel atmosphere. Sign-in uses a teal-navy cast; sign-up keeps the blue. */
+  /** Left-panel atmosphere. Sign-up blue/purple, sign-in teal-navy, reset slate-indigo. */
   tone?: AuthVisualTone;
   /** Decorative content for the left panel. Hidden below the `lg` breakpoint. */
   ornament?: React.ReactNode;

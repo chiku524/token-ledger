@@ -1,7 +1,7 @@
 import { ShaderBackground } from "@/components/ui/valley-of-the-mind";
 import { cn } from "@/lib/utils";
 
-/** Shared left-panel atmospheres. Sign-in keeps the same motion, with a teal-navy cast. */
+/** Shared left-panel atmospheres. Same motion; each auth route keeps a distinct cast. */
 export const AUTH_VISUAL_TONES = {
   signup: {
     base: "bg-[#0a0f2e]",
@@ -24,6 +24,22 @@ export const AUTH_VISUAL_TONES = {
       [0.22, 0.55, 0.78],
       [0.22, 0.55, 0.78],
       [0.22, 0.55, 0.78],
+    ] as [number, number, number][],
+  },
+  reset: {
+    base: "bg-[#0b1220]",
+    washes:
+      "bg-[radial-gradient(60%_50%_at_25%_20%,#c5cce8_0%,transparent_60%),radial-gradient(55%_55%_at_75%_45%,#5468a0_0%,transparent_65%),radial-gradient(50%_45%_at_20%_80%,#1a2548_0%,transparent_70%)]",
+    /** Quiet slate-indigo → muted steel → soft periwinkle (recovery cast). */
+    shaderColors: [
+      [0.043, 0.071, 0.125],
+      [0.102, 0.145, 0.282],
+      [0.329, 0.408, 0.627],
+      [0.55, 0.62, 0.78],
+      [0.55, 0.62, 0.78],
+      [0.55, 0.62, 0.78],
+      [0.55, 0.62, 0.78],
+      [0.55, 0.62, 0.78],
     ] as [number, number, number][],
   },
 } as const;
