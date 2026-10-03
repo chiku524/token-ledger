@@ -26,17 +26,17 @@ export function JournalCard({ className }: { className?: string }) {
         </span>
       </div>
       <table className="w-full text-left text-[10px] sm:text-[11px]">
-        <caption className="sr-only">Journal entry JE-2026-004 in Malaysian ringgit</caption>
+        <caption className="sr-only">Journal entry JE-2026-004 in US dollars</caption>
         <thead className="border-b border-slate-200 text-[9px] uppercase tracking-[.12em] text-slate-600">
           <tr>
             <th scope="col" className="pb-2 font-medium">
               Account
             </th>
             <th scope="col" className="pb-2 text-right font-medium">
-              Debit (MYR)
+              Debit (USD)
             </th>
             <th scope="col" className="pb-2 text-right font-medium">
-              Credit (MYR)
+              Credit (USD)
             </th>
           </tr>
         </thead>

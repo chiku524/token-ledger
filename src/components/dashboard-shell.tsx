@@ -47,7 +47,7 @@ export function DashboardShell({
       <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:hidden">
         <div className="min-w-0">
           <Link href="/">
-            <Logo />
+            <Logo size="sm" />
           </Link>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
         </div>
@@ -60,7 +60,7 @@ export function DashboardShell({
         <div className="px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <Link href="/">
-              <Logo />
+              <Logo size="sm" />
             </Link>
             <ThemeToggle />
           </div>

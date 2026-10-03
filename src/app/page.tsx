@@ -33,9 +33,9 @@ export default function HomePage() {
         >
           <FadeIn y={12}>
             <p className="eyebrow mb-6 max-w-sm leading-6">{content.eyebrow}</p>
-            <h1 className="text-[clamp(2.8rem,5.1vw,4.55rem)] leading-[1.04] font-semibold tracking-[-0.06em]">
-              <span className="block">{content.headline[0]}</span>
-              <span className="block text-brand dark:text-primary">{content.headline[1]}</span>
+            <h1 className="text-[clamp(2.1rem,3.6vw,3.25rem)] leading-[1.1] font-semibold tracking-[-0.05em] text-balance">
+              <span>{content.headline[0]}</span>{" "}
+              <span className="text-brand dark:text-primary">{content.headline[1]}</span>
             </h1>
             <p className="mt-7 max-w-[470px] text-sm leading-[1.85] text-muted-foreground sm:text-base">
               {content.description}

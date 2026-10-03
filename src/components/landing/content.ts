@@ -1,8 +1,8 @@
 export const content = {
   eyebrow: "Digital asset accounting · Malaysia & Singapore",
-  headline: ["Every asset.", "One clear ledger."],
+  headline: ["All your digital assets,", "reconciled in one ledger"],
   description:
-    "Bring wallets, exchanges and custodians into one view. Reconcile activity, review your books and prepare accounting exports.",
+    "Bring wallets, exchanges and custodians into one view. Reconcile activity, review your books and prepare accounting reports.",
   demoLabel: "Go to app",
   signupLabel: "Create an account",
   workflowTitle: "A clearer path to your books.",

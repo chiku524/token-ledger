@@ -8,7 +8,7 @@ export const totalAssets = sources.reduce((sum, source) => sum + source.amount, 
 export const totalAccounts = sources.reduce((sum, source) => sum + source.accounts, 0);
 
 export const money = (value: number, decimals = 0) =>
-  new Intl.NumberFormat("en-MY", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
 
 export const activities = [
   { name: "Staking reward", amount: 650 },
