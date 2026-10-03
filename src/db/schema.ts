@@ -853,3 +853,582 @@ export const matchJobs = pgTable(
   },
   (table) => [index("match_jobs_status_enqueued_idx").on(table.status, table.enqueuedAt)],
 );
+
+// ---------------------------------------------------------------------------
+// Solana contracts: Service Balance (billing) and Accounts Payable (treasury)
+//
+// These tables are projections of the on-chain programs and the private data
+// that drives them. They are additive: an organization that funds no contract
+// is unaffected. Nothing here is a source of truth for money — the chain is.
+// `finalized` marks a row the indexer confirmed in a finalized slot; an app
+// path must never treat a submitted transaction as settled. See
+// docs/adr-solana-contracts.md.
+// ---------------------------------------------------------------------------
+
+/** Whether an on-chain projection has been confirmed in a finalized slot. */
+export const contractFinalization = pgEnum("contract_finalization", ["pending", "finalized", "failed"]);
+/** A logical signing/submission attempt's lifecycle. */
+export const chainTxStatus = pgEnum("chain_tx_status", ["prepared", "submitted", "confirmed", "finalized", "failed", "expired"]);
+/** A durable outbox job's lifecycle. */
+export const jobStatus = pgEnum("job_status", ["queued", "leased", "done", "failed"]);
+/** An invoice's lifecycle. Draft is off-chain; the rest mirror the chain. */
+export const invoiceStatus = pgEnum("invoice_status", ["draft", "proposed", "paid", "cancelled"]);
+/** A supplier destination's verification state. */
+export const destinationVerification = pgEnum("destination_verification", ["unverified", "verified", "revoked"]);
+
+/**
+ * The deployment a row belongs to. The app resolves cluster, program IDs and
+ * mint from here, never from user input. One row per cluster.
+ */
+export const chainDeployments = pgTable(
+  "chain_deployments",
+  {
+    id: text("id").primaryKey(),
+    cluster: text("cluster").notNull(),
+    serviceBalanceProgram: text("service_balance_program").notNull(),
+    treasuryPayablesProgram: text("treasury_payables_program").notNull(),
+    usdcMint: text("usdc_mint").notNull(),
+    tokenProgram: text("token_program").notNull(),
+    /** IDL/build version this deployment was generated from. */
+    idlVersion: text("idl_version").notNull(),
+    /** Commit the deployed bytecode was built from, when known. */
+    buildCommit: text("build_commit"),
+    deployedAt: timestamp("deployed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("chain_deployments_cluster_unique").on(table.cluster)],
+);
+
+/**
+ * A verified wallet bound to a user and entity: proof that the user controls
+ * an address for financial actions. A binding is a verification, not a signing
+ * key — the app never stores a key. Revoked bindings stay for audit.
+ */
+export const walletBindings = pgTable(
+  "wallet_bindings",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** The one-use challenge that was consumed to prove control. */
+    challengeId: text("challenge_id"),
+    cluster: text("cluster").notNull(),
+    walletAddress: text("wallet_address").notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("wallet_bindings_entity_wallet_cluster_unique").on(table.entityId, table.walletAddress, table.cluster),
+    index("wallet_bindings_organization_id_idx").on(table.organizationId),
+    index("wallet_bindings_user_id_idx").on(table.userId),
+  ],
+);
+
+/** A customer's billing vault, projected from `service_balance`. */
+export const billingVaults = pgTable(
+  "billing_vaults",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    chainDeploymentId: text("chain_deployment_id")
+      .notNull()
+      .references(() => chainDeployments.id),
+    merchantAddress: text("merchant_address").notNull(),
+    vaultAddress: text("vault_address").notNull(),
+    vaultAuthority: text("vault_authority").notNull(),
+    vaultTokenAccount: text("vault_token_account").notNull(),
+    controllerAddress: text("controller_address").notNull(),
+    mint: text("mint").notNull(),
+    finalization: contractFinalization("finalization").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("billing_vaults_cluster_vault_unique").on(table.chainDeploymentId, table.vaultAddress),
+    index("billing_vaults_entity_idx").on(table.entityId),
+  ],
+);
+
+/**
+ * The signed mandate for a billing vault. Version one has one mandate PDA per
+ * vault; a replacement rewrites it in place and increments `generation`.
+ */
+export const mandates = pgTable(
+  "mandates",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    billingVaultId: text("billing_vault_id")
+      .notNull()
+      .references(() => billingVaults.id),
+    mandateAddress: text("mandate_address").notNull(),
+    planAddress: text("plan_address").notNull(),
+    planId: text("plan_id").notNull(),
+    planVersion: integer("plan_version").notNull(),
+    /** Fixed price per period, in USDC minor units. */
+    priceMinor: bigint("price_minor", { mode: "bigint" }).notNull(),
+    periodSeconds: integer("period_seconds").notNull(),
+    maxTotalDebitMinor: bigint("max_total_debit_minor", { mode: "bigint" }).notNull(),
+    totalDebitedMinor: bigint("total_debited_minor", { mode: "bigint" }).notNull(),
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    authorizationExpiry: timestamp("authorization_expiry", { withTimezone: true }).notNull(),
+    paidThrough: timestamp("paid_through", { withTimezone: true }).notNull(),
+    nextCycle: bigint("next_cycle", { mode: "bigint" }).notNull(),
+    generation: bigint("generation", { mode: "bigint" }).notNull(),
+    revoked: boolean("revoked").notNull().default(false),
+    finalization: contractFinalization("finalization").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("mandates_vault_unique").on(table.billingVaultId),
+    uniqueIndex("mandates_address_unique").on(table.mandateAddress),
+    index("mandates_entity_idx").on(table.entityId),
+  ],
+);
+
+/** One collected cycle, unique per mandate and cycle. Durable even if an event is missed. */
+export const billingCharges = pgTable(
+  "billing_charges",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    mandateId: text("mandate_id")
+      .notNull()
+      .references(() => mandates.id),
+    cycle: bigint("cycle", { mode: "bigint" }).notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    receiptAddress: text("receipt_address").notNull(),
+    coverageStart: timestamp("coverage_start", { withTimezone: true }).notNull(),
+    coverageEnd: timestamp("coverage_end", { withTimezone: true }).notNull(),
+    /** The chain transaction that collected it. */
+    chainTransactionId: text("chain_transaction_id"),
+    collectedAt: timestamp("collected_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("billing_charges_mandate_cycle_unique").on(table.mandateId, table.cycle),
+    index("billing_charges_entity_idx").on(table.entityId),
+    check("billing_charges_amount_positive", sql`${table.amountMinor} > 0`),
+  ],
+);
+
+/** A company treasury, projected from `treasury_payables`. */
+export const treasuryAccounts = pgTable(
+  "treasury_accounts",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    chainDeploymentId: text("chain_deployment_id")
+      .notNull()
+      .references(() => chainDeployments.id),
+    treasuryAddress: text("treasury_address").notNull(),
+    treasuryAuthority: text("treasury_authority").notNull(),
+    treasuryTokenAccount: text("treasury_token_account").notNull(),
+    mint: text("mint").notNull(),
+    policyVersion: bigint("policy_version", { mode: "bigint" }).notNull(),
+    threshold: integer("threshold").notNull(),
+    approverCount: integer("approver_count").notNull(),
+    proposerCount: integer("proposer_count").notNull(),
+    perPaymentLimitMinor: bigint("per_payment_limit_minor", { mode: "bigint" }).notNull(),
+    dailyLimitMinor: bigint("daily_limit_minor", { mode: "bigint" }).notNull(),
+    maxProposalLifetimeSeconds: integer("max_proposal_lifetime_seconds").notNull(),
+    executionPaused: boolean("execution_paused").notNull().default(false),
+    recoveryAddress: text("recovery_address").notNull(),
+    closed: boolean("closed").notNull().default(false),
+    finalization: contractFinalization("finalization").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("treasury_accounts_cluster_address_unique").on(table.chainDeploymentId, table.treasuryAddress),
+    index("treasury_accounts_entity_idx").on(table.entityId),
+  ],
+);
+
+/** The signer-policy projection: an approver or proposer on a treasury. */
+export const treasurySigners = pgTable(
+  "treasury_signers",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    treasuryAccountId: text("treasury_account_id")
+      .notNull()
+      .references(() => treasuryAccounts.id),
+    /** "approver" or "proposer". */
+    role: text("role").notNull(),
+    signerAddress: text("signer_address").notNull(),
+    policyVersion: bigint("policy_version", { mode: "bigint" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("treasury_signers_treasury_role_addr_unique").on(table.treasuryAccountId, table.role, table.signerAddress),
+    index("treasury_signers_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/** A private supplier. Names and details stay off-chain. */
+export const suppliers = pgTable(
+  "suppliers",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    name: text("name").notNull(),
+    /** Normalized name for duplicate detection. */
+    normalizedName: text("normalized_name").notNull(),
+    notes: text("notes").notNull().default(""),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("suppliers_entity_normalized_name_unique").on(table.entityId, table.normalizedName),
+    index("suppliers_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/** A verified payout address for a supplier, with its verification history. */
+export const supplierDestinations = pgTable(
+  "supplier_destinations",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    supplierId: text("supplier_id")
+      .notNull()
+      .references(() => suppliers.id),
+    address: text("address").notNull(),
+    chain: text("chain").notNull(),
+    verification: destinationVerification("verification").notNull().default("unverified"),
+    verifiedBy: text("verified_by"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("supplier_destinations_supplier_addr_chain_unique").on(table.supplierId, table.address, table.chain),
+    index("supplier_destinations_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * An off-chain invoice. The chain only guarantees one settlement per
+ * `invoiceKey`; the backend enforces normalized supplier + reference
+ * uniqueness within an entity (the unique index below).
+ */
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    supplierId: text("supplier_id")
+      .notNull()
+      .references(() => suppliers.id),
+    /** The opaque on-chain invoice key (hex), fixed when the first proposal is made. */
+    invoiceKey: text("invoice_key").notNull(),
+    supplierReference: text("supplier_reference").notNull(),
+    normalizedReference: text("normalized_reference").notNull(),
+    currency: text("currency").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    dueDate: date("due_date"),
+    /** Salted hash of the private document; the document itself stays off-chain. */
+    documentHash: text("document_hash"),
+    documentNonce: text("document_nonce"),
+    status: invoiceStatus("status").notNull().default("draft"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("invoices_entity_key_unique").on(table.entityId, table.invoiceKey),
+    uniqueIndex("invoices_entity_supplier_ref_unique").on(table.entityId, table.supplierId, table.normalizedReference),
+    index("invoices_organization_id_idx").on(table.organizationId),
+    check("invoices_amount_positive", sql`${table.amountMinor} > 0`),
+  ],
+);
+
+/** A payment proposal revision, projected from `treasury_payables`. */
+export const paymentProposals = pgTable(
+  "payment_proposals",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    treasuryAccountId: text("treasury_account_id")
+      .notNull()
+      .references(() => treasuryAccounts.id),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoices.id),
+    proposalAddress: text("proposal_address").notNull(),
+    invoiceKey: text("invoice_key").notNull(),
+    revision: integer("revision").notNull(),
+    policyVersion: bigint("policy_version", { mode: "bigint" }).notNull(),
+    recipientOwner: text("recipient_owner").notNull(),
+    mint: text("mint").notNull(),
+    grossAmountMinor: bigint("gross_amount_minor", { mode: "bigint" }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    cancelled: boolean("cancelled").notNull().default(false),
+    executed: boolean("executed").notNull().default(false),
+    finalization: contractFinalization("finalization").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("payment_proposals_address_unique").on(table.proposalAddress),
+    uniqueIndex("payment_proposals_invoice_revision_unique").on(table.invoiceId, table.revision),
+    index("payment_proposals_treasury_idx").on(table.treasuryAccountId),
+    check("payment_proposals_amount_positive", sql`${table.grossAmountMinor} > 0`),
+  ],
+);
+
+/** One approver's decision on a payment proposal. Revoking clears the signature. */
+export const paymentApprovals = pgTable(
+  "payment_approvals",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    paymentProposalId: text("payment_proposal_id")
+      .notNull()
+      .references(() => paymentProposals.id),
+    approverAddress: text("approver_address").notNull(),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("payment_approvals_proposal_approver_unique").on(table.paymentProposalId, table.approverAddress),
+    index("payment_approvals_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/** A durable signing/submission attempt. One row per try, keyed by logical operation. */
+export const chainTransactions = pgTable(
+  "chain_transactions",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    chainDeploymentId: text("chain_deployment_id")
+      .notNull()
+      .references(() => chainDeployments.id),
+    /** Stable logical operation id; retries share it. */
+    logicalOperationId: text("logical_operation_id").notNull(),
+    /** What the operation is, e.g. "billing.collect" or "treasury.execute". */
+    kind: text("kind").notNull(),
+    attempt: integer("attempt").notNull(),
+    signature: text("signature"),
+    recentBlockhash: text("recent_blockhash"),
+    status: chainTxStatus("status").notNull(),
+    slot: bigint("slot", { mode: "bigint" }),
+    error: text("error"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("chain_transactions_logical_attempt_unique").on(table.logicalOperationId, table.attempt),
+    uniqueIndex("chain_transactions_signature_unique").on(table.signature),
+    index("chain_transactions_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * A decoded program event or instruction, uniquely identified by cluster,
+ * signature and instruction/event ordinal. `organization_id` is nullable: the
+ * indexer may observe an event before it maps to a tenant.
+ */
+export const chainEvents = pgTable(
+  "chain_events",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").references(() => organizations.id),
+    cluster: text("cluster").notNull(),
+    signature: text("signature").notNull(),
+    instructionIndex: integer("instruction_index").notNull(),
+    eventOrdinal: integer("event_ordinal").notNull(),
+    programId: text("program_id").notNull(),
+    name: text("name").notNull(),
+    payload: jsonb("payload").notNull(),
+    slot: bigint("slot", { mode: "bigint" }),
+    blockTime: timestamp("block_time", { withTimezone: true }),
+    observedAt: timestamp("observed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("chain_events_cluster_sig_ix_ordinal_unique").on(
+      table.cluster,
+      table.signature,
+      table.instructionIndex,
+      table.eventOrdinal,
+    ),
+    index("chain_events_organization_observed_idx").on(table.organizationId, table.observedAt),
+  ],
+);
+
+/**
+ * A finalized settlement: one row per (cluster, treasury, invoice key). This is
+ * the chain evidence a journal proposal is built from, never a client claim.
+ */
+export const paymentSettlements = pgTable(
+  "payment_settlements",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    treasuryAccountId: text("treasury_account_id")
+      .notNull()
+      .references(() => treasuryAccounts.id),
+    invoiceId: text("invoice_id")
+      .notNull()
+      .references(() => invoices.id),
+    paymentProposalId: text("payment_proposal_id")
+      .notNull()
+      .references(() => paymentProposals.id),
+    cluster: text("cluster").notNull(),
+    invoiceKey: text("invoice_key").notNull(),
+    recipientOwner: text("recipient_owner").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    signature: text("signature").notNull(),
+    slot: bigint("slot", { mode: "bigint" }).notNull(),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("payment_settlements_cluster_treasury_invoice_unique").on(table.cluster, table.treasuryAccountId, table.invoiceKey),
+    uniqueIndex("payment_settlements_signature_unique").on(table.signature),
+    index("payment_settlements_entity_idx").on(table.entityId),
+    check("payment_settlements_amount_positive", sql`${table.amountMinor} > 0`),
+  ],
+);
+
+/**
+ * The link from a settlement to an accounting result. A settlement may yield
+ * several postings for different purposes, so uniqueness is by purpose, not by
+ * settlement. Export follows internal posting and is retried independently.
+ */
+export const settlementJournalLinks = pgTable(
+  "settlement_journal_links",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    settlementId: text("settlement_id")
+      .notNull()
+      .references(() => paymentSettlements.id),
+    /** The reviewable draft that was or will be posted. */
+    journalDraftId: text("journal_draft_id").references(() => journalDrafts.id),
+    /** Set once the draft is posted to the immutable journal. */
+    journalEntryId: text("journal_entry_id").references(() => journalEntries.id),
+    /** Why this posting exists, e.g. "supplier_expense" or "payable_clearing". */
+    purpose: text("purpose").notNull(),
+    status: journalDraftStatus("status").notNull().default("draft"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("settlement_journal_links_settlement_purpose_unique").on(table.settlementId, table.purpose),
+    index("settlement_journal_links_organization_id_idx").on(table.organizationId),
+  ],
+);
+
+/** A durable outbox row: a retryable side effect with a stable dedupe key. */
+export const jobOutbox = pgTable(
+  "job_outbox",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").references(() => organizations.id),
+    /** What to do, e.g. "billing.collect" or "treasury.execute". */
+    kind: text("kind").notNull(),
+    /** The logical operation the job acts on. */
+    subjectId: text("subject_id"),
+    payload: jsonb("payload").notNull(),
+    /** A stable key so enqueuing the same work twice is a no-op. */
+    dedupeKey: text("dedupe_key").notNull(),
+    status: jobStatus("status").notNull().default("queued"),
+    attempts: integer("attempts").notNull().default(0),
+    availableAt: timestamp("available_at", { withTimezone: true }).notNull().defaultNow(),
+    leasedAt: timestamp("leased_at", { withTimezone: true }),
+    leaseOwner: text("lease_owner"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("job_outbox_dedupe_key_unique").on(table.dedupeKey),
+    index("job_outbox_status_available_idx").on(table.status, table.availableAt),
+  ],
+);
+
+/** A durable backfill checkpoint per cluster and program. */
+export const chainCursors = pgTable(
+  "chain_cursors",
+  {
+    id: text("id").primaryKey(),
+    cluster: text("cluster").notNull(),
+    programId: text("program_id").notNull(),
+    /** The last observed slot or signature, as an opaque cursor. */
+    cursor: text("cursor").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("chain_cursors_cluster_program_unique").on(table.cluster, table.programId)],
+);
