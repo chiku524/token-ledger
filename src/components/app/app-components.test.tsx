@@ -31,10 +31,8 @@ describe("Flash", () => {
     expect(html).toContain("Nope");
   });
 
-  it("shows a saved message as a status", () => {
-    const html = renderToStaticMarkup(<Flash saved="Saved" />);
-    expect(html).toContain('role="status"');
-    expect(html).not.toContain('role="alert"');
+  it("leaves a saved message to the toast", () => {
+    expect(renderToStaticMarkup(<Flash saved="Saved" />)).toBe("");
   });
 
   it("renders nothing when there is no message", () => {
