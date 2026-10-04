@@ -27,7 +27,7 @@ describe("ConnectionTourStep", () => {
     expect(html).toContain("Connection tour");
     expect(html).toContain("A connection only reads");
     expect(html).toContain("1 of 5");
-    expect(html).toContain("does not store an API key");
+    expect(html).toContain("Permissions stay read-only");
     expect(html).not.toContain("Back");
   });
 

@@ -21,7 +21,7 @@ export const SETUP_FLOW = [
     id: "custodian",
     mode: "custodian_read",
     title: "Connect a custodian",
-    lede: "The vault id, and a network when the vault has one. A viewer credential is not collected.",
+    lede: "The vault id, and a network when the vault has one. Enter a read-only viewer credential; it is sealed and cannot sign or move funds.",
     next: "/dashboard/setup?step=done",
     skip: "Skip custodian",
   },

@@ -10,7 +10,7 @@ import { WATCH_CHAIN_LABELS } from "@/data/connections";
 const STEPS = [
   {
     title: "A connection only reads",
-    body: "A wallet, exchange, or custodian is added as a read-only connection. Token Ledger can see balances and movements. It cannot withdraw, trade, or sign, and it does not store an API key.",
+    body: "A wallet, exchange, or custodian is added as a read-only connection. Token Ledger can see balances and movements. It cannot withdraw, trade, or sign. Permissions stay read-only.",
     href: "/dashboard/settings#connections",
   },
   {

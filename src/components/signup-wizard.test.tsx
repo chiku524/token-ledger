@@ -15,6 +15,6 @@ describe("SignupWizard", () => {
     expect(html).toContain("Wallet");
     expect(html).toContain("Exchange");
     expect(html).toContain("Custodian");
-    expect(html).toContain("does not ask for an API key");
+    expect(html).toContain("scopes are balances and movements");
   });
 });

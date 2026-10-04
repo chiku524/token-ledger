@@ -5,8 +5,8 @@
  * has read-only connections. A connection owns sources: a wallet address, an
  * exchange account, or a custodian vault. Balance snapshots are observed
  * holdings. Source transactions are movements. Neither is a journal.
- * Reconciliation records tie movements to journal lines. No connection stores
- * an API key or a signing key.
+ * Reconciliation records tie movements to journal lines. Exchange and custodian
+ * credentials, when needed, are sealed separately; no connection stores a signing key.
  *
  * Monetary and token amounts are bigint minor units. Posted journals must be
  * built with `postJournalEntry` before insert — the database stores the lines,

@@ -65,7 +65,7 @@ export async function signUpAction(formData: FormData) {
   const saved =
     connected === 0
       ? "Account created. You can connect a wallet, an exchange, or a custodian from Settings."
-      : `Account created with ${connected} read-only connection${connected === 1 ? "" : "s"}. No key was stored.`;
+      : `Account created with ${connected} read-only connection${connected === 1 ? "" : "s"}. Permissions stay at balances and movements.`;
   redirect(`/dashboard/settings?saved=${encodeURIComponent(saved)}`);
 }
 
