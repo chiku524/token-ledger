@@ -366,7 +366,7 @@ function ExchangePanel({
           <input type="hidden" name="chain" value="" />
           <p className="text-sm leading-relaxed text-muted-foreground">
             {exchange.key === "coinbase"
-              ? "Create a CDP Secret API key with ECDSA (not Ed25519) and view access only. Paste the key name and the EC private key PEM. The key is checked, then sealed."
+              ? "Create a CDP Secret API key with view access only. Paste the key name and the secret (Ed25519 base64, or an ECDSA PEM). Legacy coinbase.com HMAC keys no longer work. The key is checked, then sealed."
               : `Create a read-only key with ${exchange.scopes.join(", ")}. Leave trading and withdrawal off. The key is checked, then sealed.`}
           </p>
           <CompanyField entities={entities} />
@@ -381,7 +381,7 @@ function ExchangePanel({
             />
           </Field>
           {exchange.key === "coinbase" ? (
-            <Field label="EC private key (PEM)">
+            <Field label="API secret (Ed25519 base64 or ECDSA PEM)">
               <Textarea name="apiSecret" required rows={4} autoComplete="off" maxLength={4000} className="font-mono" />
             </Field>
           ) : (

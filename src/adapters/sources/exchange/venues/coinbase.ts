@@ -3,7 +3,7 @@
  *
  * Two credential shapes:
  * - OAuth: access token (apiKey) + `tl-oauth:` refresh token (apiSecret) → Bearer
- * - CDP API key: key name (apiKey) + ECDSA private key PEM (apiSecret) → per-request JWT
+ * - CDP API key: key name (apiKey) + ECDSA PEM or Ed25519 base64 secret → per-request JWT
  *
  * Reads accounts and recent transactions. Never calls a send or trade endpoint.
  */
@@ -13,7 +13,7 @@ import type { NormalizedBalance, NormalizedSourceTransaction } from "../../../ty
 import { decimalsFor, toMinorUnits } from "../amounts";
 import { ExchangeHttpError, requestJson } from "../http";
 import type { VenueConnector, VenueDefinition } from "../venue";
-import { looksLikeCoinbasePrivateKey, signCoinbaseJwt } from "./coinbase-jwt";
+import { isCoinbaseApiKeySecret, signCoinbaseJwt } from "./coinbase-jwt";
 
 const BASE = "https://api.coinbase.com";
 
@@ -36,15 +36,35 @@ class CoinbaseConnector implements VenueConnector {
     private readonly fetchImpl: typeof fetch,
   ) {}
 
-  /** OAuth access token, including legacy connections stored without the prefix. */
+  /**
+   * OAuth when the secret is marked (or legacy refresh without a PEM/Ed25519 shape).
+   * CDP API-key secrets must never fall through to Bearer(apiKey).
+   */
   private get oauth(): boolean {
     if (this.credential.apiSecret.startsWith(OAUTH_SECRET_PREFIX)) return true;
-    return !looksLikeCoinbasePrivateKey(this.credential.apiSecret);
+    if (isCoinbaseApiKeySecret(this.credential.apiSecret)) return false;
+    // CDP key names with an unrecognised secret are a paste error, not OAuth.
+    if (looksLikeCoinbaseKeyName(this.credential.apiKey)) {
+      throw new ExchangeHttpError(
+        "Coinbase API secret must be an ECDSA PEM or Ed25519 base64 secret from the CDP portal.",
+        "auth",
+      );
+    }
+    // Short legacy HMAC keys expired in 2025.
+    if (this.credential.apiKey.length <= 32) {
+      throw new ExchangeHttpError(
+        "Legacy Coinbase API keys expired in 2025. Create a CDP Secret API key instead.",
+        "auth",
+      );
+    }
+    // Legacy OAuth refresh tokens stored without the tl-oauth: prefix.
+    return true;
   }
 
   private async get<T>(path: string): Promise<T> {
     const headers: Record<string, string> = { "CB-VERSION": "2024-10-01" };
-    if (this.oauth) {
+    const oauth = this.oauth;
+    if (oauth) {
       headers.Authorization = `Bearer ${this.credential.apiKey}`;
     } else {
       try {
@@ -64,10 +84,13 @@ class CoinbaseConnector implements VenueConnector {
       return await requestJson<T>(this.fetchImpl, `${this.baseUrl}${path}`, { headers });
     } catch (error) {
       if (error instanceof ExchangeHttpError && error.kind === "auth") {
+        // Status only — never log or surface response bodies (may echo request metadata).
+        console.warn(`coinbase.auth_rejected status=${error.status ?? "unknown"} mode=${oauth ? "oauth" : "api_key"}`);
+        const status = error.status != null ? ` (HTTP ${error.status})` : "";
         throw new ExchangeHttpError(
-          this.oauth
-            ? "Coinbase rejected the connection. Connect again to refresh access."
-            : "Coinbase rejected the API key. Use a CDP ECDSA key with view access, or connect with OAuth.",
+          oauth
+            ? `Coinbase rejected the connection${status}. Connect again to refresh access.`
+            : `Coinbase rejected the API key${status}. Use a CDP ECDSA PEM or Ed25519 secret with view access, or connect with OAuth.`,
           "auth",
           error.status,
         );
@@ -121,6 +144,10 @@ class CoinbaseConnector implements VenueConnector {
   async verify(): Promise<void> {
     await this.get<{ data?: unknown[] }>("/v2/accounts?limit=1");
   }
+}
+
+function looksLikeCoinbaseKeyName(apiKey: string): boolean {
+  return apiKey.includes("/apiKeys/") || apiKey.startsWith("organizations/");
 }
 
 export const coinbaseVenue: VenueDefinition = {
