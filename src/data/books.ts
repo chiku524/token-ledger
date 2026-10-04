@@ -33,7 +33,7 @@ export type ConnectionMode = "watch" | "exchange_read" | "custodian_read";
 export type ConnectionStatus = "pending" | "healthy" | "degraded" | "revoked";
 export type ConnectionOwnership = "verified" | "watch_only";
 
-/** Read-only grant. Scopes are balances and movements. No secret is stored. */
+/** Read-only grant. Scopes are balances and movements only. */
 export interface BooksConnection {
   id: string;
   organizationId: string;

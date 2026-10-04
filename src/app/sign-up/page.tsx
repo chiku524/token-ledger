@@ -28,8 +28,8 @@ export default async function SignUpPage({
             <h2 className="text-lg font-semibold tracking-tight">Read-only from the start</h2>
             <ul className="grid gap-3 text-sm leading-relaxed text-muted-foreground">
               <li>A wallet is a public address and a type: hot, cold, or staking.</li>
-              <li>An exchange is an account id. An API key is not collected.</li>
-              <li>A custodian is a vault id, with a network only when the vault has one.</li>
+              <li>An exchange starts as an account id. A read-only API key can be added later in Settings.</li>
+              <li>A custodian is a vault id. A read-only viewer credential can be added later in Settings.</li>
               <li>You can skip every connection and add them later in Settings.</li>
             </ul>
           </section>

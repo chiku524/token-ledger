@@ -104,8 +104,8 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
 
       <div hidden={step !== 2} className="grid gap-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Connect a wallet, an exchange, a custodian, or all of them. Each one is read-only. This form does not ask for
-          an API key, and a connection cannot withdraw, trade, or sign.
+          Connect a wallet, an exchange, a custodian, or all of them. Each one is read-only — scopes are balances and
+          movements. A connection cannot withdraw, trade, or sign.
         </p>
         <ConnectionChoice
           title="Wallet"

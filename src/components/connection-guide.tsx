@@ -12,15 +12,15 @@ const MODES = [
   },
   {
     title: "Exchange, read-only",
-    stores: "The account id",
+    stores: "The account id, and a sealed read-only API key when one is needed",
     reads: "Balances, trades, deposits, and withdrawals",
-    secret: "An API key is not collected. A live reader must be a read-only grant.",
+    secret: "A read-only API key and secret may be entered. Trading and withdrawal stay off.",
   },
   {
     title: "Custodian, read-only",
-    stores: "The vault id, and a network when the vault has one",
+    stores: "The vault id, a network when the vault has one, and a sealed viewer credential",
     reads: "Vault balances and movements",
-    secret: "A viewer credential is not collected yet.",
+    secret: "A read-only viewer credential may be entered. It cannot sign or move funds.",
   },
 ];
 
