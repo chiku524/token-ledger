@@ -70,7 +70,7 @@ export default async function SettingsPage({
       <section id="connections" className="mt-10 scroll-mt-6">
         <SectionHeader
           title="Connections"
-          description="Add a wallet, an exchange, or a custodian here. One connection can cover several accounts. Scopes stay at balances and movements. No API key is stored."
+          description="Add a wallet, an exchange, or a custodian here. One connection can cover several accounts. Connections stay read-only — scopes are balances and movements."
           action={
             canSource ? (
               <Link href="/dashboard/setup" className="text-sm text-link underline">

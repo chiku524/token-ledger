@@ -82,8 +82,8 @@ export default async function SourcesPage({
           title="Connections"
           description={
             <>
-              One connection can cover several addresses, accounts, or vaults. Scopes stay at balances and movements. No API
-              key is stored. Add, check, and disconnect a connection in{" "}
+              One connection can cover several addresses, accounts, or vaults. Connections stay read-only — scopes are
+              balances and movements. Add, check, and disconnect a connection in{" "}
               <Link href="/dashboard/settings" className="underline">
                 Settings
               </Link>

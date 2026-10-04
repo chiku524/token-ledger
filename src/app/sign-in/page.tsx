@@ -1,6 +1,7 @@
 import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import { AuthShell, AuthSplit } from "@/components/auth/auth-shell";
+import { SignupOrbit } from "@/components/auth/signup-orbit";
 import { Field } from "@/components/app/field";
 import { FormCard } from "@/components/app/form-card";
 import { Alert } from "@/components/ui/alert";
@@ -31,7 +32,13 @@ export default async function SignInPage({
   const invite = inviteToken && database ? await findInvite(inviteToken) : null;
 
   return (
-    <AuthShell kicker="Sign in" title="Sign in to the books." width="wide">
+    <AuthShell
+      kicker="Sign in"
+      title="Sign in to the books."
+      width="wide"
+      tone="signin"
+      ornament={<SignupOrbit />}
+    >
       <AuthSplit
         aside={
           <section aria-labelledby="demo-heading" className="grid gap-3">

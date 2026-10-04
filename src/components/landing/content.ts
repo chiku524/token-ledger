@@ -10,7 +10,7 @@ export const content = {
     {
       title: "Connect",
       description:
-        "Bring wallets, exchanges and custodians together. See addresses, accounts and vaults in one list of what you hold.",
+        "Bring wallets, exchanges and custodians together. Connections stay read-only — balances and movements — in one list of what you hold.",
     },
     {
       title: "Reconcile",
