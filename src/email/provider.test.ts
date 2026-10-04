@@ -90,14 +90,52 @@ describe("ResendEmailProvider", () => {
 });
 
 describe("message builders", () => {
-  it("includes the link and the expiry in the invite", () => {
-    const message = inviteEmail({ to: "a@x.com", link: "/sign-in?invite=tok", organizationName: "Acme", expiresInDays: 7 });
+  it("includes the link, expiry, CTA, and inviter in the invite", () => {
+    const message = inviteEmail({
+      to: "a@x.com",
+      link: "/sign-in?invite=tok",
+      organizationName: "Acme",
+      inviterName: "Nico",
+      expiresInDays: 7,
+    });
+    expect(message.subject).toContain("Acme");
+    expect(message.subject).toContain("👋");
     expect(message.text).toContain("/sign-in?invite=tok");
     expect(message.text).toContain("expires in 7 days");
+    expect(message.text).toContain("Nico invited you");
+    expect(message.text).toContain("weren't expecting this invite");
+    expect(message.html).toBeDefined();
+    expect(message.html).toContain("Accept invitation");
+    expect(message.html).toContain('href="/sign-in?invite=tok"');
+    expect(message.html).toContain("Nico");
+    expect(message.html).toContain("Acme");
+    expect(message.html).toContain("#C8F542");
+    expect(message.html).toContain("#2140E6");
   });
 
-  it("includes the link in the reset and verify messages", () => {
+  it("escapes user-controlled names in invite HTML", () => {
+    const message = inviteEmail({
+      to: "a@x.com",
+      link: "https://app.example/invite",
+      organizationName: '<Acme & Co>',
+      inviterName: 'Nico<script>alert(1)</script>',
+      expiresInDays: 1,
+    });
+    expect(message.html).toContain("&lt;Acme &amp; Co&gt;");
+    expect(message.html).toContain("Nico&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(message.html).not.toContain("<script>alert(1)</script>");
+  });
+
+  it("includes the link in the reset and a branded verify message", () => {
     expect(resetEmail({ to: "a@x.com", link: "/reset?token=t", organizationName: "Acme", expiresInDays: 60 }).text).toContain("/reset?token=t");
-    expect(verifyEmail({ to: "a@x.com", link: "/verify?token=v", organizationName: "Acme" }).text).toContain("/verify?token=v");
+    const verify = verifyEmail({ to: "a@x.com", link: "/verify?token=v", organizationName: "Acme" });
+    expect(verify.subject).toContain("✉️");
+    expect(verify.text).toContain("/verify?token=v");
+    expect(verify.text).toContain("Welcome to Token Ledger");
+    expect(verify.text).toContain("ignore this email");
+    expect(verify.html).toBeDefined();
+    expect(verify.html).toContain("Confirm email");
+    expect(verify.html).toContain('href="/verify?token=v"');
+    expect(verify.html).toContain("Acme");
   });
 });
