@@ -14,6 +14,7 @@ import { venueDefinition } from "@/adapters/sources/exchange/registry";
 import { custodianDefinition } from "@/adapters/sources/custodian/registry";
 import { getConnectionCredential, openStoredCredential, putConnectionCredential } from "@/db/credentials";
 import { readOauthClient, refreshCoinbaseAccessToken, refreshGeminiAccessToken, OAUTH_SECRET_PREFIX } from "@/auth/exchange-oauth";
+import { looksLikeCoinbasePrivateKey } from "@/adapters/sources/exchange/venues/coinbase-jwt";
 import {
   finishSyncRun,
   recentRunsForConnection,
@@ -92,7 +93,11 @@ export async function runConnectionSync(
       return result("failed", message);
     }
     exchangeCredential = await openStoredCredential(stored);
-    if (connection.venue === "coinbase") {
+    if (
+      connection.venue === "coinbase" &&
+      (exchangeCredential.apiSecret.startsWith(OAUTH_SECRET_PREFIX) ||
+        !looksLikeCoinbasePrivateKey(exchangeCredential.apiSecret))
+    ) {
       const client = readOauthClient("coinbase");
       if (client) {
         const refreshed = await refreshCoinbaseAccessToken(exchangeCredential.apiSecret, client);

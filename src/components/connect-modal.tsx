@@ -365,15 +365,30 @@ function ExchangePanel({
           <input type="hidden" name="role" value="" />
           <input type="hidden" name="chain" value="" />
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Create a read-only key with {exchange.scopes.join(", ")}. Leave trading and withdrawal off. The key is checked, then sealed.
+            {exchange.key === "coinbase"
+              ? "Create a CDP Secret API key with ECDSA (not Ed25519) and view access only. Paste the key name and the EC private key PEM. The key is checked, then sealed."
+              : `Create a read-only key with ${exchange.scopes.join(", ")}. Leave trading and withdrawal off. The key is checked, then sealed.`}
           </p>
           <CompanyField entities={entities} />
-          <Field label="API key">
-            <Input name="apiKey" required autoComplete="off" maxLength={200} className="font-mono" />
+          <Field label={exchange.key === "coinbase" ? "API key name" : "API key"}>
+            <Input
+              name="apiKey"
+              required
+              autoComplete="off"
+              maxLength={exchange.key === "coinbase" ? 300 : 200}
+              className="font-mono"
+              placeholder={exchange.key === "coinbase" ? "organizations/.../apiKeys/..." : undefined}
+            />
           </Field>
-          <Field label="API secret">
-            <Input name="apiSecret" required type="password" autoComplete="off" maxLength={400} className="font-mono" />
-          </Field>
+          {exchange.key === "coinbase" ? (
+            <Field label="EC private key (PEM)">
+              <Textarea name="apiSecret" required rows={4} autoComplete="off" maxLength={4000} className="font-mono" />
+            </Field>
+          ) : (
+            <Field label="API secret">
+              <Input name="apiSecret" required type="password" autoComplete="off" maxLength={400} className="font-mono" />
+            </Field>
+          )}
           {exchange.key === "okx" || exchange.key === "kucoin" ? (
             <Field label="API passphrase">
               <Input name="apiPassphrase" required type="password" autoComplete="off" maxLength={200} className="font-mono" />

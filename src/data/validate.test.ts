@@ -72,6 +72,19 @@ describe("form validation", () => {
       apiSecret: "secret",
     });
     expect(ok.success).toBe(true);
+
+    const coinbasePem = connectionFormSchema.safeParse({
+      entityId: "ent_1",
+      mode: "exchange_read",
+      role: "",
+      name: "Coinbase",
+      chain: "",
+      identifier: "main",
+      exchangeVenue: "coinbase",
+      apiKey: "organizations/00000000-0000-0000-0000-000000000000/apiKeys/11111111-1111-1111-1111-111111111111",
+      apiSecret: `${"-----BEGIN EC PRIVATE KEY-----\n"}${"A".repeat(200)}\n-----END EC PRIVATE KEY-----\n`,
+    });
+    expect(coinbasePem.success).toBe(true);
   });
 
   it("requires a balanced-looking journal to have two lines, a date, and a name", () => {

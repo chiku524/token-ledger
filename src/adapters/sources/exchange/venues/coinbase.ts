@@ -1,14 +1,19 @@
 /**
  * Coinbase venue, read-only (Coinbase App API v2).
  *
- * The credential is an OAuth access token (apiKey) and refresh token (apiSecret).
+ * Two credential shapes:
+ * - OAuth: access token (apiKey) + `tl-oauth:` refresh token (apiSecret) → Bearer
+ * - CDP API key: key name (apiKey) + ECDSA private key PEM (apiSecret) → per-request JWT
+ *
  * Reads accounts and recent transactions. Never calls a send or trade endpoint.
  */
 import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
+import { OAUTH_SECRET_PREFIX } from "@/auth/exchange-oauth";
 import type { NormalizedBalance, NormalizedSourceTransaction } from "../../../types";
 import { decimalsFor, toMinorUnits } from "../amounts";
 import { ExchangeHttpError, requestJson } from "../http";
 import type { VenueConnector, VenueDefinition } from "../venue";
+import { looksLikeCoinbasePrivateKey, signCoinbaseJwt } from "./coinbase-jwt";
 
 const BASE = "https://api.coinbase.com";
 
@@ -31,17 +36,41 @@ class CoinbaseConnector implements VenueConnector {
     private readonly fetchImpl: typeof fetch,
   ) {}
 
+  /** OAuth access token, including legacy connections stored without the prefix. */
+  private get oauth(): boolean {
+    if (this.credential.apiSecret.startsWith(OAUTH_SECRET_PREFIX)) return true;
+    return !looksLikeCoinbasePrivateKey(this.credential.apiSecret);
+  }
+
   private async get<T>(path: string): Promise<T> {
+    const headers: Record<string, string> = { "CB-VERSION": "2024-10-01" };
+    if (this.oauth) {
+      headers.Authorization = `Bearer ${this.credential.apiKey}`;
+    } else {
+      try {
+        const token = signCoinbaseJwt({
+          apiKey: this.credential.apiKey,
+          privateKey: this.credential.apiSecret,
+          method: "GET",
+          requestPath: path,
+        });
+        headers.Authorization = `Bearer ${token}`;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Coinbase rejected the credential.";
+        throw new ExchangeHttpError(message, "auth");
+      }
+    }
     try {
-      return await requestJson<T>(this.fetchImpl, `${this.baseUrl}${path}`, {
-        headers: {
-          Authorization: `Bearer ${this.credential.apiKey}`,
-          "CB-VERSION": "2024-10-01",
-        },
-      });
+      return await requestJson<T>(this.fetchImpl, `${this.baseUrl}${path}`, { headers });
     } catch (error) {
       if (error instanceof ExchangeHttpError && error.kind === "auth") {
-        throw new ExchangeHttpError("Coinbase rejected the connection. Connect again to refresh access.", "auth", error.status);
+        throw new ExchangeHttpError(
+          this.oauth
+            ? "Coinbase rejected the connection. Connect again to refresh access."
+            : "Coinbase rejected the API key. Use a CDP ECDSA key with view access, or connect with OAuth.",
+          "auth",
+          error.status,
+        );
       }
       throw error;
     }
@@ -98,7 +127,7 @@ export const coinbaseVenue: VenueDefinition = {
   key: "coinbase",
   label: "Coinbase",
   summary: "Read-only balances and transactions from a Coinbase account.",
-  keyUrl: "https://www.coinbase.com/settings/api",
+  keyUrl: "https://portal.cdp.coinbase.com/projects/api-keys",
   scopes: ["wallet:accounts:read", "wallet:transactions:read"],
   create(credential, options = {}) {
     return new CoinbaseConnector(credential, options.baseUrl ?? BASE, options.fetchImpl ?? fetch);
