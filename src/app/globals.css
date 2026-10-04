@@ -278,6 +278,134 @@ html.dark {
   }
 }
 
+.line-mask {
+  display: block;
+  overflow: clip;
+  overflow-clip-margin: 0.12em;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.line-rise {
+  display: block;
+  animation: line-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) var(--line-delay, 0s) both;
+}
+
+.preview-slab {
+  animation: preview-slab 800ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+.preview-card {
+  animation: preview-card 700ms cubic-bezier(0.22, 1, 0.36, 1) 260ms both;
+}
+
+.preview-tiles > * {
+  animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --rise-y: 10px;
+}
+
+.preview-tiles > :nth-child(1) {
+  animation-delay: 520ms;
+}
+
+.preview-tiles > :nth-child(2) {
+  animation-delay: 580ms;
+}
+
+.preview-tiles > :nth-child(3) {
+  animation-delay: 640ms;
+}
+
+.preview-journal {
+  animation: preview-journal 700ms cubic-bezier(0.22, 1, 0.36, 1) 720ms both;
+}
+
+@keyframes line-rise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes preview-slab {
+  from {
+    opacity: 0;
+    scale: 0.94;
+    rotate: 0deg;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes preview-card {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes preview-journal {
+  from {
+    opacity: 0;
+    translate: 0 36px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes reveal-scale {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      --rise-y: 24px;
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 70%;
+    }
+
+    .reveal-scale {
+      animation: reveal-scale linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 80%;
+    }
+
+    .reveal-stagger > * {
+      --rise-y: 24px;
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 60%;
+    }
+
+    .reveal-stagger > :nth-child(2) {
+      animation-range: entry 10% entry 70%;
+    }
+
+    .reveal-stagger > :nth-child(3) {
+      animation-range: entry 15% entry 80%;
+    }
+  }
+}
+
 /* Sign-up panel: float scattered, peel into a circle, peel back out, loop. */
 .auth-orbit {
   container-type: size;
@@ -353,7 +481,15 @@ html.dark {
 
 @media (prefers-reduced-motion: reduce) {
   .rise-in,
-  .stagger > * {
+  .stagger > *,
+  .preview-tiles > * {
+    animation-name: rise-in-fade;
+  }
+
+  .line-rise,
+  .preview-slab,
+  .preview-card,
+  .preview-journal {
     animation-name: rise-in-fade;
   }
 
