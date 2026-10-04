@@ -1,9 +1,19 @@
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Building2, FileText, LayoutDashboard, Link2, Settings2, Wallet } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Building2,
+  FileText,
+  LayoutDashboard,
+  Link2,
+  Settings2,
+  Wallet,
+} from "lucide-react";
 import { exampleHref } from "@/components/landing/content";
 import { JournalCard } from "@/components/landing/journal-card";
 import { activities, money, sources, totalAccounts, totalAssets } from "@/components/landing/sample-data";
 import { LogoMark } from "@/components/logo";
+import { NumberTicker } from "@/components/motion/number-ticker";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -65,8 +75,11 @@ function Activity() {
 export function DashboardPreview() {
   return (
     <div className="relative isolate mx-auto w-full max-w-[710px] pb-4 pt-7 lg:pt-9">
-      <div aria-hidden className="absolute inset-y-0 left-[9%] right-[-1%] -z-10 rounded-[22px] bg-brand sm:rotate-1" />
-      <Card className="relative gap-0 overflow-hidden rounded-xl bg-background p-0 shadow-2xl sm:-rotate-1">
+      <div
+        aria-hidden
+        className="preview-slab absolute inset-y-0 left-[9%] right-[-1%] -z-10 rounded-[22px] bg-brand sm:rotate-1"
+      />
+      <Card className="preview-card relative gap-0 overflow-hidden rounded-xl bg-background p-0 shadow-2xl sm:-rotate-1">
         <div className="flex">
           <aside
             aria-label="Illustrative dashboard sidebar"
@@ -93,10 +106,12 @@ export function DashboardPreview() {
             <div className="mb-5 flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold tracking-tight sm:text-base">Harbourline Digital</h2>
             </div>
-            <div className="mb-4 grid grid-cols-[1.7fr_1fr_1fr] gap-2">
+            <div className="preview-tiles mb-4 grid grid-cols-[1.7fr_1fr_1fr] gap-2">
               <div className="rounded-lg border bg-card p-3">
                 <p className="text-[9px] text-muted-foreground">Total asset value</p>
-                <p className="mt-2 font-heading text-sm font-semibold tracking-tight sm:text-lg">USD {money(totalAssets)}</p>
+                <p className="mt-2 font-heading text-sm font-semibold tracking-tight sm:text-lg">
+                  USD <NumberTicker value={totalAssets} duration={1.1} className="[font-family:inherit]" />
+                </p>
                 <div
                   role="img"
                   aria-label="Wallets 53.3%, exchanges 35%, custodians 11.7%"
@@ -106,19 +121,25 @@ export function DashboardPreview() {
                     <span
                       key={source.name}
                       className={source.color}
-                      style={{ width: `${(source.amount / totalAssets) * 100}%` }}
+                      style={{
+                        width: `${(source.amount / totalAssets) * 100}%`,
+                      }}
                     />
                   ))}
                 </div>
               </div>
               <div className="rounded-lg border bg-card p-3">
                 <p className="text-[9px] text-muted-foreground">Accounts</p>
-                <p className="mt-2 font-heading text-xl font-semibold">{totalAccounts}</p>
+                <p className="mt-2 font-heading text-xl font-semibold">
+                  <NumberTicker value={totalAccounts} duration={0.9} className="[font-family:inherit]" />
+                </p>
                 <p className="mt-1 text-[9px] leading-relaxed text-muted-foreground">Across all sources</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
                 <p className="text-[9px] text-muted-foreground">Entities</p>
-                <p className="mt-2 font-heading text-xl font-semibold">3</p>
+                <p className="mt-2 font-heading text-xl font-semibold">
+                  <NumberTicker value={3} duration={0.9} className="[font-family:inherit]" />
+                </p>
                 <p className="mt-1 text-[9px] leading-relaxed text-muted-foreground">Group companies</p>
               </div>
             </div>
@@ -141,7 +162,7 @@ export function DashboardPreview() {
           </div>
         </div>
       </Card>
-      <JournalCard className="relative mx-auto -mt-1 w-[90%] rotate-1 sm:-mt-2 sm:ml-[17%] sm:w-[77%]" />
+      <JournalCard className="preview-journal relative mx-auto -mt-1 w-[90%] rotate-1 sm:-mt-2 sm:ml-[17%] sm:w-[77%]" />
     </div>
   );
 }

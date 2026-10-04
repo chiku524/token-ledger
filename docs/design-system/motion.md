@@ -43,6 +43,17 @@ Library: `motion` (`import { m } from "motion/react"`). Subtle, product-led.
 - Nav: shared `layoutId` pill for the active item.
 - Dialog, Sheet, Dropdown: use the shadcn animation classes (`tw-animate-css`).
 
+## Landing page
+
+The landing page is the one place with scroll-linked motion. Details and tuning notes are in `docs/landing-motion.md`.
+
+- `SmoothScroll` (Lenis) wraps the landing page only. The dashboard keeps native scroll. It is skipped under reduced motion, and touch devices stay native (`syncTouch: false`).
+- `Convergence` is the single pinned, scroll-scrubbed scene. Everything it animates is a motion value, so React does not re-render during scroll.
+- `HeroScroll` tilts the dashboard preview as the hero leaves. It renders a plain div under reduced motion.
+- `Reveal` is a CSS scroll-driven fade for below-the-fold content (`animation-timeline: view()`), gated by `@supports` and `prefers-reduced-motion: no-preference`, so unsupported browsers just show the content.
+- Scrubbed sections render static markup until `useScrollLive()` is true (hydrated, no reduced motion), so server HTML is never hidden.
+- Scroll-linked values must keep their input ranges inside 0 to 1. Motion hands them to the browser's native scroll timeline, which throws on offsets outside that range.
+
 ## Not doing
 
 Scroll-jacking, parallax, chart draw-in. The auth left panel is the one looping decoration: `SignupOrbit` floats in a scattered layout, peels into a circle in order, shows the Token Ledger wordmark briefly, then peels back out. Sign-in, sign-up, and reset-password share that motion with distinct `AuthVisual` tones (blue/purple, teal-navy, slate-indigo). Transform/opacity only; it stops under `prefers-reduced-motion`.

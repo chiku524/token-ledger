@@ -36,6 +36,25 @@ export const content = {
       description: "Banks, funds and growing Web3 companies. Monthly reports, multiple entities and asset values.",
     },
   ],
+  convergence: {
+    title: "How your sources become one ledger",
+    captions: [
+      "Wallets, exchanges and custodians, each with its own records.",
+      "Token Ledger brings them into one set of books.",
+      "Balanced entries, ready for Xero, QuickBooks or a CSV.",
+    ],
+    chips: [
+      { label: "Self-custody wallet", kind: "wallet", x: 16, y: 8 },
+      { label: "Exchange account", kind: "exchange", x: 50, y: 4 },
+      { label: "Custodian vault", kind: "custodian", x: 84, y: 9 },
+      { label: "Multisig wallet", kind: "wallet", x: 12, y: 64 },
+      { label: "Trading desk", kind: "exchange", x: 40, y: 72 },
+      { label: "Qualified custodian", kind: "custodian", x: 70, y: 65 },
+      { label: "Hardware wallet", kind: "wallet", x: 88, y: 76 },
+      { label: "Exchange sub-account", kind: "exchange", x: 8, y: 30 },
+    ],
+    exports: ["Xero", "QuickBooks", "CSV"],
+  },
   ctaTitle: "See your assets come together.",
   ctaLabel: "Go to app",
 };
