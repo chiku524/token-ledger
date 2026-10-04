@@ -5,6 +5,7 @@ import { Convergence } from "@/components/landing/convergence";
 import { DashboardPreview } from "@/components/landing/dashboard-preview";
 import { HeroScroll } from "@/components/landing/hero-scroll";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Institutions } from "@/components/landing/institutions";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { Plans } from "@/components/landing/plans";
 import { Logo } from "@/components/logo";
@@ -78,6 +79,8 @@ export default function HomePage() {
         </section>
 
         <Convergence />
+
+        <Institutions />
 
         <HowItWorks />
 
