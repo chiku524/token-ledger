@@ -17,7 +17,8 @@ import Link from "next/link";
 import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
-import { valueBooksHoldings } from "@/data/valuation";
+import { latestSnapshots, valueBooksHoldings } from "@/data/valuation";
+import type { Books, BooksBalanceSnapshot } from "@/data/books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import {
@@ -47,6 +48,48 @@ const connectionKind: Record<string, string> = {
   accounting: "Accounting export",
 };
 
+function sortSnapshots(snapshots: readonly BooksBalanceSnapshot[]) {
+  return [...snapshots].sort((a, b) => b.asOf.localeCompare(a.asOf) || b.id.localeCompare(a.id));
+}
+
+function SnapshotTable({
+  caption,
+  snapshots,
+  books,
+}: {
+  caption: string;
+  snapshots: readonly BooksBalanceSnapshot[];
+  books: Books;
+}) {
+  return (
+    <TableCard>
+      <Table>
+        <caption className="sr-only">{caption}</caption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">Company</TableHead>
+            <TableHead scope="col">Held at</TableHead>
+            <TableHead scope="col">Asset</TableHead>
+            <NumberHead scope="col">Quantity</NumberHead>
+            <TableHead scope="col">As of</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {snapshots.map((snapshot) => (
+            <TableRow key={snapshot.id}>
+              <TableCell>{entityName(snapshot.entityId, books.entities)}</TableCell>
+              <TableCell>{sourceName(snapshot.sourceId, books.sources)}</TableCell>
+              <TableCell>{snapshot.assetCode}</TableCell>
+              <NumberCell>{formatQuantity(snapshot.quantityMinor, snapshot.assetCode, books.assets)}</NumberCell>
+              <NumberCell align="left">{formatTimestamp(snapshot.asOf)}</NumberCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableCard>
+  );
+}
+
 export default async function SourcesPage({
   searchParams,
 }: {
@@ -67,6 +110,8 @@ export default async function SourcesPage({
   });
   const connectors = listStubAdapters();
   const liveConnectors = listLiveAdapters();
+  const latest = sortSnapshots(latestSnapshots(books.balanceSnapshots));
+  const history = books.balanceSnapshots.length > latest.length ? sortSnapshots(books.balanceSnapshots) : [];
   const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
 
   return (
@@ -155,38 +200,22 @@ export default async function SourcesPage({
         <SectionHeader
           className="mt-10"
           title="Observed balances"
-          description="These quantities were observed on the connection. They are not a market price and not the booked value. Activity that has not been journaled still appears here."
+          description="The latest quantity observed per wallet, exchange, or custodian and asset. Not a market price and not the booked value. Activity that has not been journaled still appears here."
         />
         {books.balanceSnapshots.length === 0 ? (
           <EmptyState className="mt-4">No balances observed yet.</EmptyState>
         ) : (
-          <TableCard>
-            <Table>
-              <caption className="sr-only">Observed balances</caption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead scope="col">Company</TableHead>
-                  <TableHead scope="col">Held at</TableHead>
-                  <TableHead scope="col">Asset</TableHead>
-                  <NumberHead scope="col">Quantity</NumberHead>
-                  <TableHead scope="col">As of</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...books.balanceSnapshots]
-                  .sort((a, b) => b.asOf.localeCompare(a.asOf) || b.id.localeCompare(a.id))
-                  .map((snapshot) => (
-                    <TableRow key={snapshot.id}>
-                      <TableCell>{entityName(snapshot.entityId, books.entities)}</TableCell>
-                      <TableCell>{sourceName(snapshot.sourceId, books.sources)}</TableCell>
-                      <TableCell>{snapshot.assetCode}</TableCell>
-                      <NumberCell>{formatQuantity(snapshot.quantityMinor, snapshot.assetCode, books.assets)}</NumberCell>
-                      <NumberCell align="left">{formatTimestamp(snapshot.asOf)}</NumberCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableCard>
+          <>
+            <SnapshotTable caption="Latest observed balances" snapshots={latest} books={books} />
+            {history.length > 0 ? (
+              <details className="group mt-3">
+                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                  Balance history ({books.balanceSnapshots.length} observations)
+                </summary>
+                <SnapshotTable caption="All observed balances" snapshots={history} books={books} />
+              </details>
+            ) : null}
+          </>
         )}
       </section>
 

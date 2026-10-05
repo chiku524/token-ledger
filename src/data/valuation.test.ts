@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BooksBalanceSnapshot, StoredAssetPrice } from "./books";
-import { holdingsFromSnapshots, valueBooksHoldings } from "./valuation";
+import { holdingsFromSnapshots, latestSnapshots, valueBooksHoldings } from "./valuation";
 
 function snapshot(overrides: Partial<BooksBalanceSnapshot> & Pick<BooksBalanceSnapshot, "sourceId" | "assetCode" | "quantityMinor" | "asOf">): BooksBalanceSnapshot {
   return {
@@ -20,6 +20,22 @@ describe("holdingsFromSnapshots", () => {
     ]);
     // latest for s1 is 2, plus s2's 3 => 5
     expect(holdings).toEqual([{ assetCode: "ETH", quantityMinor: 5n }]);
+  });
+});
+
+describe("latestSnapshots", () => {
+  it("keeps one snapshot per source and asset, the most recent", () => {
+    const latest = latestSnapshots([
+      snapshot({ sourceId: "s1", assetCode: "ETH", quantityMinor: 1n, asOf: "2026-06-01T00:00:00Z" }),
+      snapshot({ sourceId: "s1", assetCode: "ETH", quantityMinor: 2n, asOf: "2026-06-05T00:00:00Z" }),
+      snapshot({ sourceId: "s1", assetCode: "SOL", quantityMinor: 7n, asOf: "2026-06-03T00:00:00Z" }),
+      snapshot({ sourceId: "s2", assetCode: "ETH", quantityMinor: 3n, asOf: "2026-06-02T00:00:00Z" }),
+    ]);
+    expect(latest.map((s) => `${s.sourceId}|${s.assetCode}|${s.quantityMinor}`).sort()).toEqual([
+      "s1|ETH|2",
+      "s1|SOL|7",
+      "s2|ETH|3",
+    ]);
   });
 });
 
