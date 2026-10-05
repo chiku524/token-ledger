@@ -15,16 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
-import { reportAssetBars, reportComposition } from "@/data/charts";
 import { can } from "@/auth/roles";
+import { canRevalue, entityReport } from "@/data/entity-report";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
-import { sliceBooks } from "@/data/slice-books";
-import { revaluationForEntity } from "@/data/valuation";
-import { booksAreWritable } from "@/data/load-books";
 import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
-import { assetCarryingSchedule, netBalanceMinor, trialBalance } from "@/ledger";
+import { netBalanceMinor } from "@/ledger";
 
 export const metadata = { title: "Reports" };
 
@@ -42,7 +39,6 @@ export default async function ReportsPage({
     { from: books.period.start, to: books.period.end },
   );
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
-  const scoped = sliceBooks(books, range);
 
   if (!entity) {
     return (
@@ -62,26 +58,12 @@ export default async function ReportsPage({
     );
   }
 
-  const balance = trialBalance(scoped.journalEntries, books.accounts, entity.id);
-  const carrying = assetCarryingSchedule(scoped.journalEntries, books.accounts, entity.id);
-  const canPost = can(session.role, "journal.post") && booksAreWritable() && !session.demo;
-  const revaluation = canPost
-    ? revaluationForEntity({
-        entries: books.journalEntries,
-        accounts: books.accounts,
-        assets: books.assets,
-        prices: books.assetPrices,
-        entityId: entity.id,
-        quoteCurrency: entity.functionalCurrency,
-        assetAccountCode: "1310",
-        gainAccountCode: "4200",
-        lossAccountCode: "5200",
-        asOf: range.to,
-      })
-    : null;
-  const balanced = balance.debitTotal === balance.creditTotal;
-  const assetBars = reportAssetBars(entity.id, scoped);
-  const composition = reportComposition(entity.id, scoped);
+  const { balance, balanced, carrying, assetBars, composition, revaluation } = entityReport({
+    books,
+    entityId: entity.id,
+    range,
+    includeRevaluation: canRevalue(session),
+  });
   const exportQuery = `entity=${encodeURIComponent(entity.id)}&from=${range.from}&to=${range.to}`;
 
   return (
@@ -89,7 +71,7 @@ export default async function ReportsPage({
       <PageHeader
         kicker={`${range.from} – ${range.to} · ${entity.reportingFramework}`}
         title="Reports"
-        description="Account balances and crypto values for one company. The combined view is a separate page. Download the same figures as CSV."
+        description="Account balances and crypto values for one company. The combined view is a separate page. Download the same figures as CSV or PDF."
       />
       <Flash error={parsed.ok ? undefined : parsed.message} />
       <SegmentedLinks
@@ -110,6 +92,7 @@ export default async function ReportsPage({
             ["trial-balance", "Balances CSV"],
             ["journal", "Journal CSV"],
             ["reconciliation", "Matching CSV"],
+            ["pdf", "Download report"],
           ].map(([kind, label]) => (
             <Button key={kind} asChild variant="secondary">
               <a href={`/dashboard/reports/export?kind=${kind}&${exportQuery}`}>{label}</a>
