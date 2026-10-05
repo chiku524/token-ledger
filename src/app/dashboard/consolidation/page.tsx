@@ -26,7 +26,13 @@ export const metadata = { title: "Combined" };
 export default async function ConsolidationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ currency?: string | string[]; from?: string | string[]; to?: string | string[] }>;
+  searchParams: Promise<{
+    currency?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+    error?: string | string[];
+    saved?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
@@ -66,7 +72,7 @@ export default async function ConsolidationPage({
         title="Combined"
         description="Each company keeps its own currency until this page. Amounts are converted with the saved rate on or before the end date. Sample rates are not a market price."
       />
-      <Flash error={parsed.ok ? undefined : parsed.message} />
+      <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
       <SegmentedLinks
         label="Currency"
         className="mb-6"

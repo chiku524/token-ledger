@@ -28,7 +28,13 @@ export const metadata = { title: "Reports" };
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ entity?: string | string[]; from?: string | string[]; to?: string | string[] }>;
+  searchParams: Promise<{
+    entity?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+    error?: string | string[];
+    saved?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
@@ -73,7 +79,7 @@ export default async function ReportsPage({
         title="Reports"
         description="Account balances and crypto values for one company. The combined view is a separate page. Download the same figures as CSV or PDF."
       />
-      <Flash error={parsed.ok ? undefined : parsed.message} />
+      <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
       <SegmentedLinks
         label="Company"
         className="mb-6"
