@@ -33,6 +33,13 @@ export async function save(path: string, work: () => Promise<unknown>): Promise<
 export function safeMessage(error: unknown): string {
   if (error instanceof AuthError || error instanceof LedgerError || error instanceof BooksWriteError) return error.message;
   if (hasCode(error, "23505")) return "That reference or address is already in use.";
+  if (hasCode(error, "42P01")) return "The database is missing a required table. Run migrations, then try again.";
+  const raw = error instanceof Error ? error.message : "";
+  if (/CONNECTOR_ENCRYPTION_KEY/i.test(raw)) {
+    return "Connector encryption is not configured on the server (CONNECTOR_ENCRYPTION_KEY). Ask an admin to set it, then try again.";
+  }
+  // Log unexpected save failures server-side without echoing secrets to the UI.
+  console.error("books.save_failed", raw || error);
   return "Could not save the record.";
 }
 
