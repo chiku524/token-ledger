@@ -6,6 +6,8 @@ import { parseDateRange } from "@/data/period";
 import { scopeBooks } from "@/data/scope-books";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, sourceName } from "@/data/present";
+import { canRevalue, entityReport } from "@/data/entity-report";
+import { entityReportDocument, reportPdf } from "@/data/report-pdf";
 
 export const runtime = "nodejs";
 
@@ -93,6 +95,15 @@ export async function GET(request: Request) {
     return csv(reconciliationCsv(rows), "reconciliation.csv");
   }
 
+  if (kind === "pdf") {
+    if (!entity) return new Response("No company.", { status: 404 });
+    const report = entityReport({ books, entityId: entity.id, range: parsed.range, includeRevaluation: canRevalue(session) });
+    const bytes = await reportPdf(
+      entityReportDocument({ books, entityId: entity.id, range: parsed.range, report, generatedAt: new Date() }),
+    );
+    return pdf(bytes, `report-${slug(entity.name)}-${parsed.range.from}-${parsed.range.to}.pdf`);
+  }
+
   return new Response("Unknown export kind.", { status: 400 });
 }
 
@@ -104,4 +115,18 @@ function csv(body: string, filename: string) {
       "Cache-Control": "no-store",
     },
   });
+}
+
+function pdf(body: Uint8Array, filename: string) {
+  return new Response(new Uint8Array(body), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+function slug(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "company";
 }
