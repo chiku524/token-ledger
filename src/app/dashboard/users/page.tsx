@@ -75,7 +75,7 @@ export default async function UsersPage({
       <PageHeader
         kicker={books.organization.name}
         title="Users"
-        description="Invite someone, change what they can do, or turn off an account. The invite link is shown here once. It is not emailed."
+        description="Invite someone, change what they can do, or turn off an account. The invite is emailed when email is configured, and the link is shown here once."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
       {inviteLink ? (
