@@ -89,7 +89,8 @@ export default async function OperationsPage({
                   <TableCell>
                     <span className="block">{connection.name}</span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      {venueLabel(connection.venue)} · {syncRunStatusLabel(lastRun?.status ?? "running")}
+                      {venueLabel(connection.venue)}
+                      {lastRun ? ` · ${syncRunStatusLabel(lastRun.status)}` : " · Never run"}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -126,7 +127,7 @@ export default async function OperationsPage({
         </TableCard>
       )}
 
-      {!writable ? <div className="mt-4"><ReadOnlyNote /></div> : null}
+      {!writable ? <div className="mt-4"><ReadOnlyNote demo={session.demo} /></div> : null}
       {!canSource ? (
         <RoleNote>You can view connector health. A manual re-run is for an owner or an admin.</RoleNote>
       ) : null}
