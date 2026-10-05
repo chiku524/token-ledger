@@ -7,18 +7,22 @@ import { assetCarryingSchedule, proposeRevaluation, valueHoldings, type AssetPri
 import type { PostedJournalEntry } from "@/ledger";
 import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice } from "./books";
 
-/** The most recent observed quantity per source+asset. Zero is a real observation. */
-export function holdingsFromSnapshots(
-  snapshots: readonly BooksBalanceSnapshot[],
-): Array<{ assetCode: string; quantityMinor: bigint }> {
+export function latestSnapshots(snapshots: readonly BooksBalanceSnapshot[]): BooksBalanceSnapshot[] {
   const latest = new Map<string, BooksBalanceSnapshot>();
   for (const snapshot of snapshots) {
     const key = `${snapshot.sourceId}|${snapshot.assetCode}`;
     const current = latest.get(key);
     if (!current || snapshot.asOf > current.asOf) latest.set(key, snapshot);
   }
+  return [...latest.values()];
+}
+
+/** The most recent observed quantity per source+asset. Zero is a real observation. */
+export function holdingsFromSnapshots(
+  snapshots: readonly BooksBalanceSnapshot[],
+): Array<{ assetCode: string; quantityMinor: bigint }> {
   const byAsset = new Map<string, bigint>();
-  for (const snapshot of latest.values()) {
+  for (const snapshot of latestSnapshots(snapshots)) {
     byAsset.set(snapshot.assetCode, (byAsset.get(snapshot.assetCode) ?? 0n) + snapshot.quantityMinor);
   }
   return [...byAsset.entries()].map(([assetCode, quantityMinor]) => ({ assetCode, quantityMinor }));
