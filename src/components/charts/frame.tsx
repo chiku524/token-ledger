@@ -16,23 +16,25 @@ export function ChartFrame({
         {description ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
       </figcaption>
       <div className="mt-3">{children}</div>
-      <table className="sr-only">
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Item</th>
-            <th scope="col">Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={`${row.label}-${row.detail}`}>
-              <td>{row.label}</td>
-              <td>{row.detail}</td>
+      <div className="sr-only">
+        <table>
+          <caption>{title}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Item</th>
+              <th scope="col">Value</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={`${row.label}-${row.detail}`}>
+                <td>{row.label}</td>
+                <td>{row.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

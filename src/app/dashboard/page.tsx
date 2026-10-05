@@ -176,13 +176,13 @@ export default async function DashboardPage() {
               {recent.map((entry) => (
                 <TableRow key={entry.id}>
                   <NumberCell align="left">{entry.entryDate}</NumberCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Link href="/dashboard/ledger" className="underline">
                       {entry.reference}
                     </Link>
                   </TableCell>
-                  <TableCell>{entityName(entry.entityId, books.entities)}</TableCell>
-                  <TableCell>{entry.memo}</TableCell>
+                  <TableCell className="min-w-36">{entityName(entry.entityId, books.entities)}</TableCell>
+                  <TableCell className="min-w-56">{entry.memo}</TableCell>
                   <NumberCell>{formatMoney(entry.debitMinor, entry.currency)}</NumberCell>
                 </TableRow>
               ))}
