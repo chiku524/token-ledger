@@ -3,7 +3,7 @@ import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/ch
 import { ChartFrame } from "@/components/charts/frame";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
-import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Stagger } from "@/components/motion/stagger";
 import { PageHeader } from "@/components/page-header";
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Stagger className="grid grid-cols-4 gap-2 sm:gap-3">
         <StatCard label="Companies" value={books.entities.length} />
         <StatCard label="Wallets and accounts" value={books.sources.length} />
         <StatCard label="Unmatched" value={exceptions.length} tone={exceptions.length ? "danger" : "success"} />
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
               <h2 className="mt-2 text-lg font-semibold tracking-tight">{entity.name}</h2>
               <p className="mt-3 text-sm text-muted-foreground">
                 {entity.reportingFramework}
-                {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId)}` : " · parent company"}
+                {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId, books.entities)}` : " · parent company"}
               </p>
               <p className="mt-4 text-sm">
                 Debits {report.currency ? formatMoney(report.debitTotal, report.currency) : "—"}
@@ -146,7 +146,10 @@ export default async function DashboardPage() {
             <h2 className="font-medium text-danger">Unmatched activity</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
-              <Link href="/dashboard/reconciliation" className="text-foreground underline">
+              <Link
+                href={`/dashboard/reconciliation?from=${exceptions[0].periodStart}&to=${exceptions[0].periodEnd}`}
+                className="text-foreground underline"
+              >
                 See what did not match
               </Link>
             </p>
@@ -169,6 +172,7 @@ export default async function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {recent.length === 0 ? <EmptyRow colSpan={5}>No entries posted yet.</EmptyRow> : null}
               {recent.map((entry) => (
                 <TableRow key={entry.id}>
                   <NumberCell align="left">{entry.entryDate}</NumberCell>
