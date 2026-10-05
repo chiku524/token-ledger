@@ -74,18 +74,20 @@ export function DashboardShell({
       <div className="min-w-0">
         <ExampleBanner origin={origin} notice={notice} />
         {!session.emailVerified && !session.demo ? (
-          <Alert variant="warning" className="mx-4 mt-4 max-w-3xl md:mx-8">
-            <TriangleAlert aria-hidden />
-            <AlertDescription>
-              <span>Confirm your email address. Check your inbox for the confirmation link.</span>
-              <form action={resendVerificationAction} className="mt-2">
-                <input type="hidden" name="csrf" value={csrf} />
-                <SubmitButton variant="secondary" size="sm" pendingLabel="Sending…">
-                  Resend confirmation email
-                </SubmitButton>
-              </form>
-            </AlertDescription>
-          </Alert>
+          <div className="px-4 pt-4 md:px-8">
+            <Alert variant="warning" className="max-w-3xl">
+              <TriangleAlert aria-hidden />
+              <AlertDescription>
+                <span>Confirm your email address. Check your inbox for the confirmation link.</span>
+                <form action={resendVerificationAction} className="mt-2">
+                  <input type="hidden" name="csrf" value={csrf} />
+                  <SubmitButton variant="secondary" size="sm" pendingLabel="Sending…">
+                    Resend confirmation email
+                  </SubmitButton>
+                </form>
+              </AlertDescription>
+            </Alert>
+          </div>
         ) : null}
         <main id="content" className="px-4 py-6 md:px-8 md:py-8">
           {children}
