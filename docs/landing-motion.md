@@ -41,7 +41,7 @@ To make it longer or shorter, change the section height in `convergence.tsx`. Ke
 
 How it works and Plans use `useScrollLive()` (`src/components/motion/use-scroll-live.ts`). It is false on the server, before hydration and under reduced motion, and the components render their plain static markup in that case. Motion styles only attach once it is true, so the server HTML shows everything at full strength.
 
-- **How it works:** progress runs from the steps block reaching 85% of the viewport to its bottom reaching 70%. Steps light up at 0.04, 0.4 and 0.74 of that range, each over 0.14. The head dot uses `left` rather than a transform, because translating a full-width wrapper stretched the page horizontally.
+- **How it works:** unpinned. Progress runs from the steps block reaching 85% of the viewport to its bottom reaching 70%, through a spring (stiffness 140, damping 30, mass 0.4). Steps light up at 0.04, 0.4 and 0.74 of that range, each over 0.14. Pinned and slower variants were tried and dropped. The head dot uses `left` rather than a transform, because translating a full-width wrapper stretched the page horizontally.
 - **Plans:** on `md` and up, both cards and the left column are CSS-sticky, and the stacking works without JavaScript. Motion only adds the scale and dim on card 1 and the settle on card 2. The spacer between the cards (40vh) and the bottom padding (10vh) set how long the stack holds. Below `md` the cards simply stack.
 
 The closing CTA band keeps its original card design and only fades in with `Reveal variant="scale"`.

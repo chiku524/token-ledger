@@ -23,6 +23,34 @@ export const content = {
         "Review balances across your companies. Prepare entries for Xero, QuickBooks or your accounting software.",
     },
   ],
+  institutionsTitle: "Serving regulated institutions globally",
+  institutions: [
+    {
+      name: "Banks",
+      description: "Enterprise back-office with internal controls to ensure accurate reporting.",
+    },
+    {
+      name: "Exchanges and brokers",
+      description: "Get audit-ready and reconcile on-chain activities with internal systems.",
+    },
+    {
+      name: "Stablecoin issuers",
+      description: "Auditable stablecoin supply tracking for institutional-grade reporting.",
+    },
+    {
+      name: "Token issuers",
+      description: "Auditable token supply tracking for institutional grade reporting.",
+    },
+    {
+      name: "Asset managers",
+      description: "Auditable accounting and NAV reporting for on-chain activities.",
+    },
+    {
+      name: "Fintech / Web3 startups",
+      description:
+        "Automatically reconcile on-chain transactions for fintech, RWA or funds, with Token Ledger as your outsourced CFO.",
+    },
+  ],
   plansTitle: "Built for your next stage.",
   plansDescription:
     "From early startups to established groups. One consolidated view across wallets, exchanges and custodians.",

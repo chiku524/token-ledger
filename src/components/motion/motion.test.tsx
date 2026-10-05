@@ -4,6 +4,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Convergence } from "@/components/landing/convergence";
 import { HeroScroll } from "@/components/landing/hero-scroll";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Institutions } from "@/components/landing/institutions";
 import { Plans } from "@/components/landing/plans";
 import { FadeIn, PageTransition } from "@/components/motion/fade-in";
 import { Reveal } from "@/components/motion/reveal";
@@ -27,7 +28,11 @@ describe("entrance animations", () => {
   });
 
   it("carries the rise distance and delay as style hooks", () => {
-    const html = renderToStaticMarkup(<FadeIn y={16} delay={0.1}>hero</FadeIn>);
+    const html = renderToStaticMarkup(
+      <FadeIn y={16} delay={0.1}>
+        hero
+      </FadeIn>,
+    );
     expect(html).toContain('class="rise-in"');
     expect(html).toContain("--rise-y:16px");
     expect(html).toContain("animation-delay:0.1s");
@@ -83,6 +88,12 @@ describe("entrance animations", () => {
     const html = renderToStaticMarkup(<Plans />);
     expect(html).toContain("Startup");
     expect(html).toContain("Institutional");
+    expect(html).not.toContain("opacity:0");
+  });
+
+  it("server-renders every institution card visible", () => {
+    const html = renderToStaticMarkup(<Institutions />);
+    for (const name of ["Banks", "Stablecoin issuers", "Asset managers"]) expect(html).toContain(name);
     expect(html).not.toContain("opacity:0");
   });
 });
