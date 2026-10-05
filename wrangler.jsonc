@@ -30,6 +30,13 @@
     // verification or reset link never depends on the request host.
     "APP_URL": "https://app.tokenledger.win"
   },
+  // Raise the per-request CPU ceiling well above the Workers Free default of
+  // 10 ms, which server-rendering these pages exceeds (Error 1102,
+  // "Worker exceeded resource limits"). `cpu_ms` only takes effect on the
+  // Workers Paid plan (Free ignores it); see docs/adr-cloudflare-deployment.md.
+  "limits": {
+    "cpu_ms": 30000
+  },
   // The scheduled sync pass. The free plan permits a daily cron; use */15 on a
   // paid plan to match DEFAULT_SYNC_INTERVAL_MS.
   "triggers": {

@@ -1,5 +1,5 @@
 import { listLiveAdapters, listStubAdapters } from "@/adapters";
-import { MoneyBars } from "@/components/charts/charts";
+import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";

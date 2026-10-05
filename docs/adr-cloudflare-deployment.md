@@ -57,6 +57,30 @@ does not block a Worker build.
    chain/RPC vars as Worker secrets.
 6. The cron in `wrangler.jsonc` drives `/api/cron/sync`; `vercel.json` is unused.
 
+## CPU limit (Error 1102) and the Workers Paid plan
+
+The deployed Worker returns **Error 1102, "Worker exceeded resource limits"**
+(`exceededCpu`) intermittently on the dashboard pages. Server-rendering these
+pages costs **median ~37 ms, P90 ~480 ms, P99 ~950 ms** of CPU per request,
+which is far above the **Workers Free** ceiling of **10 ms/request**. The
+successful-render CPU times confirm this: failures are pinned at exactly
+10,000 µs, the Free limit.
+
+`wrangler.jsonc` sets `"limits": { "cpu_ms": 30000 }` to raise the ceiling to
+30 s. **This setting is only honoured on the Workers Paid plan.** On Free the
+platform ignores it and the Worker keeps being killed at 10 ms. A Next.js
+server-rendering app cannot fit in 10 ms, so **the Workers Paid plan is
+required** for this app on Cloudflare. To reduce cold-start and per-request
+CPU regardless of plan:
+
+- Chart components (which pull `recharts`, several hundred KB) are loaded
+  client-only via `src/components/charts/lazy.tsx` (`ssr: false`), so the server
+  bundle no longer evaluates them. This removed ~490 KB from the Worker.
+
+Error 1102 is a runtime kill, not a catchable exception, so a React
+`error.tsx` boundary cannot show a friendly message for it; the only fixes are
+raising the CPU limit (Paid) or lowering CPU (above).
+
 ## Consequences
 
 - The default Vercel deploy is unchanged: same commands, same migrations.
@@ -65,3 +89,5 @@ does not block a Worker build.
   credentials as `v2`, because scrypt is absent there.
 - The only remaining code change for Cloudflare is the database driver; the
   crypto blockers are removed.
+- **Cloudflare requires the Workers Paid plan.** The Free plan's 10 ms CPU
+  budget is below the cost of server-rendering a single dashboard page.

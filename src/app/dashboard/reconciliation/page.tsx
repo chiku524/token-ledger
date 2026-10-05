@@ -7,7 +7,7 @@ import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SubmitButton } from "@/components/submit-button";
-import { StatusBars, StatusDonut } from "@/components/charts/charts";
+import { StatusBars, StatusDonut } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { MatchControls, PeriodCloseForm, ReadOnlyNote, RoleNote, UnmatchControls } from "@/components/record-forms";
 import { reopenPeriodAction } from "@/app/dashboard/actions";

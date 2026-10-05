@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Building2 } from "lucide-react";
-import { MoneyBars } from "@/components/charts/charts";
+import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { RevaluationForm } from "@/components/record-forms";
 import { ensureCsrf } from "@/auth/current";

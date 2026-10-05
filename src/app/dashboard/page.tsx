@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/charts";
+import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
