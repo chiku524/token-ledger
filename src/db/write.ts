@@ -81,7 +81,20 @@ export async function insertConnection(
   const connectionId = newId("conn");
   const sourceId = newId("src");
   // Seal before opening the transaction; a bad credential must not half-write.
-  const sealed = credential ? await sealExchangeCredential(credential) : null;
+  let sealed = null as Awaited<ReturnType<typeof sealExchangeCredential>> | null;
+  if (credential) {
+    try {
+      sealed = await sealExchangeCredential(credential);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not seal the credential.";
+      if (/CONNECTOR_ENCRYPTION_KEY/i.test(message)) {
+        throw new BooksWriteError(
+          "Connector encryption is not configured on the server (CONNECTOR_ENCRYPTION_KEY). Ask an admin to set it, then try again.",
+        );
+      }
+      throw new BooksWriteError("Could not seal the exchange credential for storage.");
+    }
+  }
   const db = getDb();
   await db.transaction(async (tx) => {
     if (challengeId) {

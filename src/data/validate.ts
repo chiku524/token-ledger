@@ -42,8 +42,9 @@ export const connectionFormSchema = z
       .union([custodianVenue, z.literal("")])
       .optional()
       .transform((value) => (value ? value : null)),
-    apiKey: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),
-    apiSecret: z.string().trim().max(400).optional().transform((value) => (value ? value : null)),
+    // CDP Coinbase key names, PEM secrets, and downloaded JSON key files need more room.
+    apiKey: z.string().trim().max(4000).optional().transform((value) => (value ? value : null)),
+    apiSecret: z.string().trim().max(4000).optional().transform((value) => (value ? value : null)),
     apiPassphrase: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),
   })
   .superRefine((value, context) => {

@@ -1,14 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
+import { generateKeyPairSync } from "node:crypto";
 import { bybitVenue } from "./bybit";
 import { binanceVenue } from "./binance";
 import { gateVenue } from "./gate";
 import { backpackVenue } from "./backpack";
+import { coinbaseVenue } from "./coinbase";
 import { geminiVenue } from "./gemini";
 import { okxVenue } from "./okx";
 import { kucoinVenue } from "./kucoin";
 import { decimalsFor, toMinorUnits } from "../amounts";
 
 const CRED = { apiKey: "test-key", apiSecret: "U5gMWjJpxW6/GNX/e4Qi4F7/hpQHjtQIaC55gBQKBDI=" };
+const COINBASE_PEM = generateKeyPairSync("ec", {
+  namedCurve: "P-256",
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  publicKeyEncoding: { type: "spki", format: "pem" },
+}).privateKey;
 
 /** Every venue must sign, read, and never touch a write route. */
 const WRITE_PATHS = /order|withdraw\b(?!al|als|history|record|query)|cancel|transfer/i;
@@ -111,6 +118,102 @@ describe("exchange venues: read-only contract", () => {
     expect(balances[0]?.assetCode).toBe("ETH");
   });
 
+  it("Coinbase OAuth sends the access token as a bearer", async () => {
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toContain("/v2/accounts");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBe("Bearer access-token");
+      expect(headers["CB-VERSION"]).toBeTruthy();
+      return new Response(JSON.stringify({ data: [{ id: "a", balance: { amount: "0.5", currency: "BTC" } }] }), { status: 200 });
+    });
+    const connector = coinbaseVenue.create(
+      { apiKey: "access-token", apiSecret: "tl-oauth:refresh" },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    const balances = await connector.fetchBalances();
+    expect(balances[0]).toMatchObject({ assetCode: "BTC", quantityMinor: 50_000_000n });
+  });
+
+  it("Coinbase API key signs a per-request CDP JWT (ECDSA PEM)", async () => {
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toContain("/v2/accounts");
+      const headers = init?.headers as Record<string, string>;
+      const auth = headers.Authorization ?? "";
+      expect(auth.startsWith("Bearer ")).toBe(true);
+      const jwt = auth.slice("Bearer ".length);
+      const [header, payload] = jwt.split(".");
+      expect(JSON.parse(Buffer.from(header!, "base64url").toString("utf8"))).toMatchObject({
+        alg: "ES256",
+        kid: "organizations/org/apiKeys/key",
+      });
+      expect(JSON.parse(Buffer.from(payload!, "base64url").toString("utf8"))).toMatchObject({
+        aud: ["cdp_service"],
+        uri: "GET api.coinbase.com/v2/accounts",
+      });
+      return new Response(JSON.stringify({ data: [] }), { status: 200 });
+    });
+    const connector = coinbaseVenue.create(
+      { apiKey: "organizations/org/apiKeys/key", apiSecret: COINBASE_PEM },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    await connector.verify();
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("Coinbase API key signs a per-request EdDSA JWT with uris claim", async () => {
+    const ed = generateKeyPairSync("ed25519");
+    const jwk = ed.privateKey.export({ format: "jwk" }) as { d: string; x: string };
+    const secret = Buffer.concat([Buffer.from(jwk.d, "base64url"), Buffer.from(jwk.x, "base64url")]).toString("base64");
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      const auth = (init?.headers as Record<string, string>).Authorization ?? "";
+      const [, payload] = auth.slice("Bearer ".length).split(".");
+      const claims = JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")) as Record<string, unknown>;
+      expect(claims).toMatchObject({
+        aud: ["cdp_service"],
+        uris: ["GET api.coinbase.com/v2/accounts"],
+      });
+      expect(claims).not.toHaveProperty("uri");
+      return new Response(JSON.stringify({ data: [] }), { status: 200 });
+    });
+    const connector = coinbaseVenue.create(
+      { apiKey: "organizations/org/apiKeys/ed", apiSecret: secret },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    await connector.verify();
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("Coinbase surfaces a safe API error hint on 401", async () => {
+    const ed = generateKeyPairSync("ed25519");
+    const jwk = ed.privateKey.export({ format: "jwk" }) as { d: string; x: string };
+    const secret = Buffer.concat([Buffer.from(jwk.d, "base64url"), Buffer.from(jwk.x, "base64url")]).toString("base64");
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ message: "invalid signature" }), { status: 401 }));
+    const connector = coinbaseVenue.create(
+      { apiKey: "organizations/org/apiKeys/ed", apiSecret: secret },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    await expect(connector.verify()).rejects.toThrow(/rejected the API key \(HTTP 401\).*invalid signature/i);
+  });
+
+  it("Coinbase surfaces an auth failure for a rejected OAuth credential", async () => {
+    const fetchImpl = vi.fn(async () => new Response("{}", { status: 401 }));
+    const connector = coinbaseVenue.create(
+      { apiKey: "access", apiSecret: "tl-oauth:refresh" },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    await expect(connector.verify()).rejects.toThrow(/rejected the connection \(HTTP 401\)|refresh access/i);
+  });
+
+  it("Coinbase rejects a CDP key name paired with a non-key secret before calling the network", async () => {
+    const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
+    const connector = coinbaseVenue.create(
+      { apiKey: "organizations/org/apiKeys/key", apiSecret: "not-a-cdp-secret" },
+      { fetchImpl: fetchImpl as unknown as typeof fetch },
+    );
+    await expect(connector.verify()).rejects.toThrow(/ECDSA PEM or Ed25519 base64/i);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("OKX signs with the passphrase header and reads balances", async () => {
     const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
       expect(url).toContain("/api/v5/account/balance");
@@ -146,8 +249,13 @@ describe("exchange venues: read-only contract", () => {
       seen.push(url);
       return new Response("[]", { status: 200 });
     });
-    for (const venue of [bybitVenue, binanceVenue, gateVenue, backpackVenue, geminiVenue, okxVenue, kucoinVenue]) {
-      const credential = venue === okxVenue || venue === kucoinVenue ? { ...CRED, apiPassphrase: "phrase" } : CRED;
+    for (const venue of [bybitVenue, binanceVenue, gateVenue, backpackVenue, coinbaseVenue, geminiVenue, okxVenue, kucoinVenue]) {
+      const credential =
+        venue === okxVenue || venue === kucoinVenue
+          ? { ...CRED, apiPassphrase: "phrase" }
+          : venue === coinbaseVenue
+            ? { apiKey: "organizations/org/apiKeys/key", apiSecret: COINBASE_PEM }
+            : CRED;
       const connector = venue.create(credential, { fetchImpl: fetchImpl as unknown as typeof fetch });
       await connector.verify().catch(() => undefined);
     }

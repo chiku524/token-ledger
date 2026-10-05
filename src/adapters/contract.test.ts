@@ -182,7 +182,7 @@ const GateAdapter = new VenueExchangeAdapter(VENUES.gate!, {
   fetchImpl: venueFetch({ "/spot/accounts": [{ currency: "USDT", available: "10", locked: "0" }] }),
 });
 const CoinbaseAdapter = new VenueExchangeAdapter(VENUES.coinbase!, {
-  credential: { apiKey: "access", apiSecret: "refresh" },
+  credential: { apiKey: "access", apiSecret: "tl-oauth:refresh" },
   fetchImpl: venueFetch({
     "/v2/accounts?limit=100": { data: [{ id: "acct", balance: { amount: "1.5", currency: "BTC" } }] },
     "/v2/accounts?limit=25": { data: [{ id: "acct", balance: { amount: "1.5", currency: "BTC" } }] },

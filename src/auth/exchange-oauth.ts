@@ -17,7 +17,7 @@ const GEMINI_AUTHORIZE = "https://exchange.gemini.com/auth";
 const GEMINI_TOKEN = "https://exchange.gemini.com/auth/token";
 const GEMINI_SCOPES = "balances:read,history:read";
 
-/** Marks a stored refresh token so the Gemini connector uses bearer auth. */
+/** Marks a stored refresh token so Coinbase/Gemini connectors use bearer auth. */
 export const OAUTH_SECRET_PREFIX = "tl-oauth:";
 
 export interface OauthClient {
@@ -146,10 +146,13 @@ export async function exchangeAuthorizationCode(input: {
 
 /** Refresh a Coinbase access token. Returns null when Coinbase refuses. */
 export async function refreshCoinbaseAccessToken(
-  refreshToken: string,
+  storedSecret: string,
   client: OauthClient,
   fetchImpl: typeof fetch = fetch,
 ): Promise<OauthCredential | null> {
+  const refreshToken = storedSecret.startsWith(OAUTH_SECRET_PREFIX)
+    ? storedSecret.slice(OAUTH_SECRET_PREFIX.length)
+    : storedSecret;
   try {
     const json = await postForm(fetchImpl, COINBASE_TOKEN, new URLSearchParams({
       grant_type: "refresh_token",
@@ -159,7 +162,10 @@ export async function refreshCoinbaseAccessToken(
     }));
     const access = stringField(json, "access_token");
     if (!access) return null;
-    return { apiKey: access, apiSecret: stringField(json, "refresh_token") ?? refreshToken };
+    return {
+      apiKey: access,
+      apiSecret: `${OAUTH_SECRET_PREFIX}${stringField(json, "refresh_token") ?? refreshToken}`,
+    };
   } catch {
     return null;
   }
@@ -181,7 +187,7 @@ async function exchangeCoinbase(
   const access = stringField(json, "access_token");
   const refresh = stringField(json, "refresh_token");
   if (!access || !refresh) throw new Error("Coinbase did not return a token.");
-  return { apiKey: access, apiSecret: refresh };
+  return { apiKey: access, apiSecret: `${OAUTH_SECRET_PREFIX}${refresh}` };
 }
 
 /** Refresh a Gemini access token. Gemini rotates the refresh token. Returns null when Gemini refuses. */

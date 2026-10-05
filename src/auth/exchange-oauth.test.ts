@@ -96,7 +96,7 @@ describe("exchange oauth", () => {
       code: "code",
       redirectUri: "https://app.example/callback",
       fetchImpl,
-    })).resolves.toEqual({ apiKey: "access", apiSecret: "refresh" });
+    })).resolves.toEqual({ apiKey: "access", apiSecret: "tl-oauth:refresh" });
 
     await expect(exchangeAuthorizationCode({
       venue: "gemini",
@@ -128,9 +128,9 @@ describe("exchange oauth", () => {
 
   it("refreshes a Coinbase access token and keeps the old refresh token when none is returned", async () => {
     const fetchImpl = (async () => new Response(JSON.stringify({ access_token: "next" }), { status: 200 })) as typeof fetch;
-    await expect(refreshCoinbaseAccessToken("refresh", { clientId: "id", clientSecret: "secret" }, fetchImpl)).resolves.toEqual({
+    await expect(refreshCoinbaseAccessToken("tl-oauth:refresh", { clientId: "id", clientSecret: "secret" }, fetchImpl)).resolves.toEqual({
       apiKey: "next",
-      apiSecret: "refresh",
+      apiSecret: "tl-oauth:refresh",
     });
   });
 
