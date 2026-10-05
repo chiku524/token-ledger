@@ -85,18 +85,18 @@ export default async function OperationsPage({
             <TableBody>
               {rows.map(({ connection, health, lastRun }) => (
                 <TableRow key={connection.id}>
-                  <TableCell>{entityName(connection.entityId, entities)}</TableCell>
-                  <TableCell>
+                  <TableCell className="min-w-36">{entityName(connection.entityId, entities)}</TableCell>
+                  <TableCell className="min-w-44">
                     <span className="block">{connection.name}</span>
                     <span className="mt-1 block text-xs text-muted-foreground">
                       {venueLabel(connection.venue)} · {syncRunStatusLabel(lastRun?.status ?? "running")}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="min-w-56">
                     <StatusBadge tone={LEVEL_TONE[health.level] ?? "neutral"}>{health.label}</StatusBadge>
                     {connection.lastError ? <span className="mt-1 block text-xs text-danger">{connection.lastError}</span> : null}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="min-w-40">
                     {lastRun ? (
                       <span className="block">
                         {syncRunTriggerLabel(lastRun.trigger)} · {syncRunStatusLabel(lastRun.status)}

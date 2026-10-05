@@ -103,12 +103,12 @@ export default async function AuditPage({
                 <TableRow key={event.id}>
                   <NumberCell align="left">{event.occurredAt.slice(0, 16).replace("T", " ")}</NumberCell>
                   <TableCell>{event.actor}</TableCell>
-                  <TableCell>{actionLabel(event.action)}</TableCell>
+                  <TableCell className="min-w-40">{actionLabel(event.action)}</TableCell>
                   <TableCell>
                     {subjectLabel(event.subjectType)}
                     <span className="mt-1 block text-xs text-muted-foreground">{event.subjectId}</span>
                   </TableCell>
-                  <TableCell>{event.detail}</TableCell>
+                  <TableCell className="min-w-56">{event.detail}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

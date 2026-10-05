@@ -91,13 +91,13 @@ export default async function LedgerPage({
                   {entry.lines.map((line) => (
                     <TableRow key={line.lineNumber}>
                       <NumberCell align="left">{line.lineNumber}</NumberCell>
-                      <TableCell>
+                      <TableCell className="min-w-40">
                         {accountLabel(entry.entityId, line.accountCode, books.accounts)}
                         {line.sourceId ? (
                           <span className="mt-1 block text-xs text-muted-foreground">{sourceName(line.sourceId, books.sources)}</span>
                         ) : null}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {line.quantityMinor !== undefined && line.assetCode
                           ? `${movementLabel(line.quantityDirection === "out" ? "out" : "in")} ${formatQuantity(line.quantityMinor, line.assetCode, books.assets)}`
                           : "—"}

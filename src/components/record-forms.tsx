@@ -172,10 +172,10 @@ export function MatchControls({
 
 export function UnmatchControls({ sourceTransactionId, csrf }: { sourceTransactionId: string; csrf: string }) {
   return (
-    <form action={unmatchReconciliationAction} className="grid min-w-60 gap-2">
+    <form action={unmatchReconciliationAction} className="flex min-w-72 items-center gap-2">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="sourceTransactionId" value={sourceTransactionId} />
-      <Input name="note" required maxLength={200} placeholder="Why this is not a match" aria-label="Note" />
+      <Input name="note" required maxLength={200} placeholder="Why this is not a match" aria-label="Note" className="min-w-0 flex-1" />
       <SubmitButton variant="secondary">Unmatch</SubmitButton>
     </form>
   );
@@ -202,7 +202,7 @@ export function DraftApprovalControls({ draftId, csrf, isOwner }: { draftId: str
           placeholder="Owner override note (only if you prepared it)"
           maxLength={200}
           aria-label="Owner override note"
-          className="w-72"
+          className="w-full sm:w-72"
         />
       ) : null}
       <SubmitButton>Approve and post</SubmitButton>

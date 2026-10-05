@@ -122,9 +122,9 @@ export default async function ReconciliationPage({
                         </StatusBadge>
                       </TableCell>
                       <NumberCell align="left">{record.periodStart}</NumberCell>
-                      <TableCell>{sourceName(record.sourceId, books.sources)}</TableCell>
+                      <TableCell className="min-w-40">{sourceName(record.sourceId, books.sources)}</TableCell>
                       <NumberCell align="left">{record.sourceTransactionId ? externalId.get(record.sourceTransactionId) : "—"}</NumberCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {record.journalEntryId
                           ? `${books.journalEntries.find((entry) => entry.id === record.journalEntryId)?.reference ?? record.journalEntryId}:${record.journalLineNumber}`
                           : "—"}
@@ -132,7 +132,7 @@ export default async function ReconciliationPage({
                       <NumberCell align="left">
                         {movementLabel(record.direction)} {formatQuantity(record.quantityMinor, record.assetCode, books.assets)}
                       </NumberCell>
-                      <TableCell>{record.note}</TableCell>
+                      <TableCell className="min-w-48">{record.note}</TableCell>
                       {canMatch && writable ? (
                         <TableCell>
                           {record.status === "exception" && transaction ? (
@@ -173,10 +173,10 @@ export default async function ReconciliationPage({
                 <TableBody>
                   {locks.map((lock) => (
                     <TableRow key={lock.id}>
-                      <TableCell>{entityName(lock.entityId, books.entities)}</TableCell>
-                      <TableCell>{lock.periodStart}</TableCell>
-                      <TableCell>{lock.periodEnd}</TableCell>
-                      <TableCell>{lock.note}</TableCell>
+                      <TableCell className="min-w-36">{entityName(lock.entityId, books.entities)}</TableCell>
+                      <NumberCell align="left">{lock.periodStart}</NumberCell>
+                      <NumberCell align="left">{lock.periodEnd}</NumberCell>
+                      <TableCell className="min-w-48">{lock.note}</TableCell>
                       {canClose ? (
                         <TableCell>
                           <form action={reopenPeriodAction}>

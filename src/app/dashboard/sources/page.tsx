@@ -112,14 +112,14 @@ export default async function SourcesPage({
                   const accounts = books.sources.filter((source) => source.connectionId === connection.id);
                   return (
                     <TableRow key={connection.id}>
-                      <TableCell>{entityName(connection.entityId, books.entities)}</TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-36">{entityName(connection.entityId, books.entities)}</TableCell>
+                      <TableCell className="min-w-44">
                         <span className="block">{connection.name}</span>
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {accounts.length === 0 ? "No account yet" : accounts.map((source) => source.name).join(", ")}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-40">
                         <span className="block">{connectionModeLabel(connection.mode)}</span>
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {venueLabel(connection.venue)} · {scopeLabel(connection.scopes)}
@@ -135,13 +135,13 @@ export default async function SourcesPage({
                           <span className="mt-1 block text-xs text-muted-foreground">Not signed</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-56">
                         <StatusBadge tone={connectionStatusTone(connection.status)}>
                           {connectionStatusLabel(connection.status)}
                         </StatusBadge>
                         {connection.lastError ? <span className="mt-1 block text-xs text-danger">{connection.lastError}</span> : null}
                       </TableCell>
-                      <TableCell>{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</TableCell>
                     </TableRow>
                   );
                 })}

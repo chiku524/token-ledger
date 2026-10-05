@@ -100,13 +100,13 @@ export default async function ConsolidationPage({
               <TableBody>
                 {books.fxRates.map((rate) => (
                   <TableRow key={rate.id}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {formatFxRate(rate)}
                       <span className="mt-1 block text-xs text-muted-foreground">{formatInverseRate(rate)} · exact inverse</span>
                     </TableCell>
                     <NumberCell align="left">{rate.asOf}</NumberCell>
                     <TableCell className="capitalize">{rate.origin}</TableCell>
-                    <TableCell>{rate.note}</TableCell>
+                    <TableCell className="min-w-56">{rate.note}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
