@@ -30,7 +30,7 @@ export const metadata = { title: "Matching" };
 export default async function ReconciliationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string | string[]; to?: string | string[] }>;
+  searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
@@ -64,7 +64,7 @@ export default async function ReconciliationPage({
         title="Matching"
         description="Activity from each wallet, exchange, and custodian is compared with the journal. Same company, place, asset, direction, and amount. Anything left over is unmatched."
       />
-      <Flash error={parsed.ok ? undefined : parsed.message} />
+      <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
       <PeriodForm path="/dashboard/reconciliation" range={range} />
       {!writable ? <div className="mb-4"><ReadOnlyNote demo={session.demo} /></div> : null}
       {!canMatch ? (
