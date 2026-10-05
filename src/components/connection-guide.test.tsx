@@ -42,7 +42,8 @@ describe("ConnectionGuide", () => {
     expect(html).toContain('id="life-heading"');
     expect(html).toContain("Waiting");
     expect(html).toContain("Disconnected");
-    expect(html).toContain("press Check in Settings");
+    expect(html).toContain("still need Check before Holdings fills");
+    expect(html).toContain("Connected Coinbase but see no coins?");
     expect(html).not.toContain("Watch-only wallet");
     expect(html).not.toContain('id="shape-heading"');
   });
@@ -54,7 +55,16 @@ describe("ConnectionGuide", () => {
     expect(html).toContain('id="shape-heading"');
     expect(html).toContain("Observed balance");
     expect(html).toContain("A check never posts one.");
+    expect(html).toContain("Looking for coins under Settings or Overview?");
     expect(html).not.toContain("Watch-only wallet");
     expect(html).not.toContain('id="life-heading"');
+  });
+
+  it("keeps practical depth on Connect without mounting other sections", () => {
+    const html = renderToStaticMarkup(<ConnectionGuide csrf="csrf" canRestartTour={false} />);
+    expect(html).toContain("Common pitfalls");
+    expect(html).toContain("Saving Coinbase");
+    expect(html).toContain("does not import balances yet");
+    expect(html).not.toContain('id="roles-heading"');
   });
 });
