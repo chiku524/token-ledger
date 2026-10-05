@@ -64,7 +64,7 @@ pnpm db:seed
 pnpm auth:bootstrap
 ```
 
-`pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite link is shown once in the page and is not emailed. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`. An owner or admin is then asked, step by step, to connect a wallet, an exchange, and a custodian. Each step can be skipped.
+`pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite is emailed when email is configured, and the link is also shown once in the page. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`. An owner or admin is then asked, step by step, to connect a wallet, an exchange, and a custodian. Each step can be skipped.
 
 | Role | Books | Export and audit | Prepare journals | Approve | Post, reverse, match, CSV import | Entities, sources, FX, close | Users |
 | --- | --- | --- | --- | --- | --- | --- | --- |

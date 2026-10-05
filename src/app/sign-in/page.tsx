@@ -91,7 +91,7 @@ export default async function SignInPage({
         {invite ? (
           <FormCard action={acceptInviteAction} title="Accept invite" className="mt-6 border-0 bg-transparent p-0">
             <p className="text-sm text-muted-foreground">
-              {invite.email}. Choose a password of at least 12 characters. This link is shown in the app. It is not emailed.
+              {invite.email}. Choose a password of at least 12 characters.
             </p>
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="invite" value={inviteToken} />
