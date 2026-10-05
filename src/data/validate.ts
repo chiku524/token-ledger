@@ -42,8 +42,8 @@ export const connectionFormSchema = z
       .union([custodianVenue, z.literal("")])
       .optional()
       .transform((value) => (value ? value : null)),
-    // CDP Coinbase key names and PEM private keys need more room than a typical HMAC secret.
-    apiKey: z.string().trim().max(300).optional().transform((value) => (value ? value : null)),
+    // CDP Coinbase key names, PEM secrets, and downloaded JSON key files need more room.
+    apiKey: z.string().trim().max(4000).optional().transform((value) => (value ? value : null)),
     apiSecret: z.string().trim().max(4000).optional().transform((value) => (value ? value : null)),
     apiPassphrase: z.string().trim().max(200).optional().transform((value) => (value ? value : null)),
   })

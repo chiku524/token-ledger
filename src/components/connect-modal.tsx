@@ -366,7 +366,7 @@ function ExchangePanel({
           <input type="hidden" name="chain" value="" />
           <p className="text-sm leading-relaxed text-muted-foreground">
             {exchange.key === "coinbase"
-              ? "Create a CDP Secret API key with view access only. Paste the key name and the secret (Ed25519 base64, or an ECDSA PEM). Legacy coinbase.com HMAC keys no longer work. The key is checked, then sealed."
+              ? "From the CDP portal Secret API Keys tab: paste the key name (organizations/…/apiKeys/…) and the secret (Ed25519 base64 or ECDSA PEM). You can also paste the downloaded JSON key file into either field. Leave IP allowlist empty or include Vercel egress. The key is checked, then sealed."
               : `Create a read-only key with ${exchange.scopes.join(", ")}. Leave trading and withdrawal off. The key is checked, then sealed.`}
           </p>
           <CompanyField entities={entities} />
@@ -375,13 +375,13 @@ function ExchangePanel({
               name="apiKey"
               required
               autoComplete="off"
-              maxLength={exchange.key === "coinbase" ? 300 : 200}
+              maxLength={exchange.key === "coinbase" ? 4000 : 200}
               className="font-mono"
               placeholder={exchange.key === "coinbase" ? "organizations/.../apiKeys/..." : undefined}
             />
           </Field>
           {exchange.key === "coinbase" ? (
-            <Field label="API secret (Ed25519 base64 or ECDSA PEM)">
+            <Field label="API secret (or JSON key file)">
               <Textarea name="apiSecret" required rows={4} autoComplete="off" maxLength={4000} className="font-mono" />
             </Field>
           ) : (

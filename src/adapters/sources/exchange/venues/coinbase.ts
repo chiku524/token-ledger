@@ -11,9 +11,9 @@ import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
 import { OAUTH_SECRET_PREFIX } from "@/auth/exchange-oauth";
 import type { NormalizedBalance, NormalizedSourceTransaction } from "../../../types";
 import { decimalsFor, toMinorUnits } from "../amounts";
-import { ExchangeHttpError, requestJson } from "../http";
+import { ExchangeHttpError, requestText } from "../http";
 import type { VenueConnector, VenueDefinition } from "../venue";
-import { isCoinbaseApiKeySecret, signCoinbaseJwt } from "./coinbase-jwt";
+import { isCoinbaseApiKeySecret, parseCoinbaseCredentialParts, signCoinbaseJwt } from "./coinbase-jwt";
 
 const BASE = "https://api.coinbase.com";
 
@@ -30,28 +30,35 @@ interface CoinbaseTransaction {
 }
 
 class CoinbaseConnector implements VenueConnector {
+  private readonly apiKey: string;
+  private readonly apiSecret: string;
+
   constructor(
-    private readonly credential: ExchangeCredentialInput,
+    credential: ExchangeCredentialInput,
     private readonly baseUrl: string,
     private readonly fetchImpl: typeof fetch,
-  ) {}
+  ) {
+    const parts = parseCoinbaseCredentialParts(credential.apiKey, credential.apiSecret);
+    this.apiKey = parts.apiKey;
+    this.apiSecret = parts.apiSecret;
+  }
 
   /**
    * OAuth when the secret is marked (or legacy refresh without a PEM/Ed25519 shape).
    * CDP API-key secrets must never fall through to Bearer(apiKey).
    */
   private get oauth(): boolean {
-    if (this.credential.apiSecret.startsWith(OAUTH_SECRET_PREFIX)) return true;
-    if (isCoinbaseApiKeySecret(this.credential.apiSecret)) return false;
+    if (this.apiSecret.startsWith(OAUTH_SECRET_PREFIX)) return true;
+    if (isCoinbaseApiKeySecret(this.apiSecret)) return false;
     // CDP key names with an unrecognised secret are a paste error, not OAuth.
-    if (looksLikeCoinbaseKeyName(this.credential.apiKey)) {
+    if (looksLikeCoinbaseKeyName(this.apiKey)) {
       throw new ExchangeHttpError(
-        "Coinbase API secret must be an ECDSA PEM or Ed25519 base64 secret from the CDP portal.",
+        "Coinbase API secret must be an ECDSA PEM or Ed25519 base64 secret from the CDP portal (or paste the downloaded JSON key file).",
         "auth",
       );
     }
     // Short legacy HMAC keys expired in 2025.
-    if (this.credential.apiKey.length <= 32) {
+    if (this.apiKey.length <= 32) {
       throw new ExchangeHttpError(
         "Legacy Coinbase API keys expired in 2025. Create a CDP Secret API key instead.",
         "auth",
@@ -62,15 +69,18 @@ class CoinbaseConnector implements VenueConnector {
   }
 
   private async get<T>(path: string): Promise<T> {
-    const headers: Record<string, string> = { "CB-VERSION": "2024-10-01" };
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "CB-VERSION": "2024-10-01",
+    };
     const oauth = this.oauth;
     if (oauth) {
-      headers.Authorization = `Bearer ${this.credential.apiKey}`;
+      headers.Authorization = `Bearer ${this.apiKey}`;
     } else {
       try {
         const token = signCoinbaseJwt({
-          apiKey: this.credential.apiKey,
-          privateKey: this.credential.apiSecret,
+          apiKey: this.apiKey,
+          privateKey: this.apiSecret,
           method: "GET",
           requestPath: path,
         });
@@ -81,20 +91,33 @@ class CoinbaseConnector implements VenueConnector {
       }
     }
     try {
-      return await requestJson<T>(this.fetchImpl, `${this.baseUrl}${path}`, { headers });
-    } catch (error) {
-      if (error instanceof ExchangeHttpError && error.kind === "auth") {
-        // Status only — never log or surface response bodies (may echo request metadata).
-        console.warn(`coinbase.auth_rejected status=${error.status ?? "unknown"} mode=${oauth ? "oauth" : "api_key"}`);
-        const status = error.status != null ? ` (HTTP ${error.status})` : "";
+      const { status, text } = await requestText(this.fetchImpl, `${this.baseUrl}${path}`, { headers });
+      if (status === 401 || status === 403) {
+        const hint = safeCoinbaseErrorHint(text);
+        console.warn(
+          `coinbase.auth_rejected status=${status} mode=${oauth ? "oauth" : "api_key"} hint=${hint ?? "none"}`,
+        );
         throw new ExchangeHttpError(
           oauth
-            ? `Coinbase rejected the connection${status}. Connect again to refresh access.`
-            : `Coinbase rejected the API key${status}. Use a CDP ECDSA PEM or Ed25519 secret with view access, or connect with OAuth.`,
+            ? `Coinbase rejected the connection (HTTP ${status}). Connect again to refresh access.`
+            : `Coinbase rejected the API key (HTTP ${status}).${hint ? ` ${hint}` : " Check the CDP key name (organizations/…/apiKeys/…) and secret, view permission, and IP allowlist."}`,
           "auth",
-          error.status,
+          status,
         );
       }
+      if (status === 429) {
+        throw new ExchangeHttpError("The exchange rate limit was hit.", "rate", status);
+      }
+      if (status < 200 || status >= 300) {
+        throw new ExchangeHttpError(`Exchange returned HTTP ${status}.`, "http", status);
+      }
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        throw new ExchangeHttpError("Exchange returned a non-JSON response.", "api", status);
+      }
+    } catch (error) {
+      if (error instanceof ExchangeHttpError) throw error;
       throw error;
     }
   }
@@ -142,12 +165,41 @@ class CoinbaseConnector implements VenueConnector {
   }
 
   async verify(): Promise<void> {
-    await this.get<{ data?: unknown[] }>("/v2/accounts?limit=1");
+    // Path without query keeps the JWT uri claim simple; pagination is unused for verify.
+    await this.get<{ data?: unknown[] }>("/v2/accounts");
   }
 }
 
 function looksLikeCoinbaseKeyName(apiKey: string): boolean {
   return apiKey.includes("/apiKeys/") || apiKey.startsWith("organizations/");
+}
+
+/** Short, non-sensitive Coinbase error text for the user. Never returns token-like values. */
+export function safeCoinbaseErrorHint(body: string): string | null {
+  try {
+    const json = JSON.parse(body) as {
+      message?: unknown;
+      error?: unknown;
+      error_description?: unknown;
+      errors?: Array<{ message?: unknown; id?: unknown }>;
+    };
+    const candidates = [
+      typeof json.message === "string" ? json.message : null,
+      typeof json.error_description === "string" ? json.error_description : null,
+      typeof json.error === "string" ? json.error : null,
+      typeof json.errors?.[0]?.message === "string" ? json.errors[0].message : null,
+      typeof json.errors?.[0]?.id === "string" ? json.errors[0].id : null,
+    ].filter((value): value is string => Boolean(value?.trim()));
+    for (const candidate of candidates) {
+      const text = candidate.trim();
+      if (text.length === 0 || text.length > 160) continue;
+      if (/bearer|eyJ|BEGIN |private|secret|api[_-]?key/i.test(text)) continue;
+      return text.endsWith(".") ? text : `${text}.`;
+    }
+  } catch {
+    // ignore non-JSON
+  }
+  return null;
 }
 
 export const coinbaseVenue: VenueDefinition = {

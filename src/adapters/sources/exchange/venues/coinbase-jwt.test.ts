@@ -1,10 +1,12 @@
 import { createPublicKey, generateKeyPairSync, verify } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  coinbaseJwtRequestPath,
   isCoinbaseApiKeySecret,
   looksLikeCoinbaseEd25519Secret,
   looksLikeCoinbasePrivateKey,
   normalizeCoinbasePrivateKey,
+  parseCoinbaseCredentialParts,
   signCoinbaseJwt,
 } from "./coinbase-jwt";
 
@@ -25,7 +27,7 @@ function decodePart(part: string): Record<string, unknown> {
 }
 
 describe("signCoinbaseJwt", () => {
-  it("produces a verifiable ES256 JWT with CDP claims for a PEM secret", () => {
+  it("produces a verifiable ES256 JWT with App API claims for a PEM secret", () => {
     const keyName = "organizations/org/apiKeys/key";
     const jwt = signCoinbaseJwt({
       apiKey: keyName,
@@ -38,11 +40,14 @@ describe("signCoinbaseJwt", () => {
 
     expect(decodePart(header)).toMatchObject({ alg: "ES256", typ: "JWT", kid: keyName });
     expect(decodePart(payload)).toEqual({
-      iss: "cdp",
-      nbf: 1_700_000_000,
-      exp: 1_700_000_120,
       sub: keyName,
-      uri: "GET api.coinbase.com/v2/accounts?limit=1",
+      iss: "cdp",
+      aud: ["cdp_service"],
+      nbf: 1_700_000_000,
+      iat: 1_700_000_000,
+      exp: 1_700_000_120,
+      // Query string stripped from the JWT uri claim.
+      uri: "GET api.coinbase.com/v2/accounts",
     });
 
     const ok = verify(
@@ -54,7 +59,7 @@ describe("signCoinbaseJwt", () => {
     expect(ok).toBe(true);
   });
 
-  it("produces a verifiable EdDSA JWT for a CDP Ed25519 base64 secret", () => {
+  it("produces a verifiable EdDSA JWT with uris+aud for a CDP Ed25519 secret", () => {
     const keyName = "organizations/org/apiKeys/ed";
     expect(looksLikeCoinbaseEd25519Secret(edSecret)).toBe(true);
     expect(isCoinbaseApiKeySecret(edSecret)).toBe(true);
@@ -68,10 +73,16 @@ describe("signCoinbaseJwt", () => {
     });
     const [header, payload, signature] = jwt.split(".") as [string, string, string];
     expect(decodePart(header)).toMatchObject({ alg: "EdDSA", kid: keyName });
-    expect(decodePart(payload)).toMatchObject({
-      uri: "GET api.coinbase.com/v2/accounts?limit=1",
+    expect(decodePart(payload)).toEqual({
       sub: keyName,
+      iss: "cdp",
+      aud: ["cdp_service"],
+      nbf: 1_700_000_000,
+      iat: 1_700_000_000,
+      exp: 1_700_000_120,
+      uris: ["GET api.coinbase.com/v2/accounts"],
     });
+    expect(decodePart(payload)).not.toHaveProperty("uri");
 
     const ok = verify(null, Buffer.from(`${header}.${payload}`), ed.publicKey, Buffer.from(signature, "base64url"));
     expect(ok).toBe(true);
@@ -91,6 +102,26 @@ describe("signCoinbaseJwt", () => {
       requestPath: "/v2/accounts?limit=1",
     });
     expect(jwt.split(".")).toHaveLength(3);
+  });
+
+  it("parses a CDP portal JSON key file from either field", () => {
+    const file = JSON.stringify({
+      name: "organizations/org/apiKeys/key",
+      privateKey: edSecret,
+    });
+    expect(parseCoinbaseCredentialParts("ignored", file)).toEqual({
+      apiKey: "organizations/org/apiKeys/key",
+      apiSecret: edSecret,
+    });
+    expect(parseCoinbaseCredentialParts(file, "ignored")).toEqual({
+      apiKey: "organizations/org/apiKeys/key",
+      apiSecret: edSecret,
+    });
+  });
+
+  it("strips the query string from the JWT request path", () => {
+    expect(coinbaseJwtRequestPath("/v2/accounts?limit=1")).toBe("/v2/accounts");
+    expect(coinbaseJwtRequestPath("/v2/accounts")).toBe("/v2/accounts");
   });
 
   it("rejects a non-key secret", () => {

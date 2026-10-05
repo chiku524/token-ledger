@@ -2,25 +2,36 @@
  * Coinbase App CDP API key JWT. Each request needs a short-lived bearer token.
  *
  * CDP issues two secret shapes:
- * - ECDSA PEM → ES256 JWT
- * - Ed25519 base64 (64 bytes decoded: seed + public key) → EdDSA JWT (CDP default)
+ * - ECDSA PEM → ES256 JWT (`uri` claim; App API docs)
+ * - Ed25519 base64 (64 bytes: seed + public key) → EdDSA JWT (`uris` claim; CDP SDK / CCXT)
  *
- * See https://docs.cdp.coinbase.com/coinbase-app/authentication-authorization/api-key-authentication
- * and @coinbase/cdp-sdk auth/utils/jwt.
+ * Both include `aud: ["cdp_service"]` and `iat`. The JWT URI path omits the query
+ * string (request URL may still carry query params).
+ *
+ * See:
+ * - https://docs.cdp.coinbase.com/coinbase-app/authentication-authorization/api-key-authentication
+ * - https://docs.cdp.coinbase.com/get-started/authentication/jwt-authentication
+ * - @coinbase/cdp-sdk auth/utils/jwt
  */
 import { createPrivateKey, createSign, randomBytes, sign as cryptoSign } from "node:crypto";
 
 const HOST = "api.coinbase.com";
 
 export interface CoinbaseJwtInput {
-  /** CDP key name, e.g. organizations/{org_id}/apiKeys/{key_id}. */
+  /** CDP key name, e.g. organizations/{org_id}/apiKeys/{key_id} or the key UUID. */
   apiKey: string;
   /** EC private key PEM, or Ed25519 secret as standard base64. */
   privateKey: string;
   method: "GET" | "POST";
-  /** Path including query string, e.g. /v2/accounts?limit=1 */
+  /** Path including optional query string; query is stripped inside the JWT claim. */
   requestPath: string;
   nowSeconds?: number;
+}
+
+/** Paste helpers: portal download JSON or raw fields. */
+export interface CoinbaseCredentialParts {
+  apiKey: string;
+  apiSecret: string;
 }
 
 /** True when the secret looks like an EC/PKCS8 private key PEM. */
@@ -31,7 +42,7 @@ export function looksLikeCoinbasePrivateKey(secret: string): boolean {
 
 /**
  * True when the secret is a CDP Ed25519 key: standard base64 decoding to exactly
- * 64 bytes (32-byte seed + 32-byte public key).
+ * 64 bytes (32-byte seed + 32-byte public key). Typical length is 88 chars with `=`.
  */
 export function looksLikeCoinbaseEd25519Secret(secret: string): boolean {
   const trimmed = secret.trim();
@@ -52,15 +63,53 @@ export function normalizeCoinbasePrivateKey(secret: string): string {
   return secret.replace(/\\n/g, "\n").trim();
 }
 
+/**
+ * Accept either raw fields or a CDP portal JSON key file paste
+ * (`{ "name"|"id", "privateKey" }`).
+ */
+export function parseCoinbaseCredentialParts(apiKey: string, apiSecret: string): CoinbaseCredentialParts {
+  const keyTrim = apiKey.trim();
+  const secretTrim = apiSecret.trim();
+  const fromKey = tryParseKeyFile(keyTrim);
+  if (fromKey) return fromKey;
+  const fromSecret = tryParseKeyFile(secretTrim);
+  if (fromSecret) return fromSecret;
+  return { apiKey: keyTrim, apiSecret: secretTrim };
+}
+
+function tryParseKeyFile(value: string): CoinbaseCredentialParts | null {
+  if (!value.startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(value) as { name?: unknown; id?: unknown; privateKey?: unknown };
+    const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
+    const id = typeof parsed.id === "string" ? parsed.id.trim() : "";
+    const privateKey = typeof parsed.privateKey === "string" ? parsed.privateKey : "";
+    const apiKey = name || id;
+    if (!apiKey || !privateKey.trim()) return null;
+    return { apiKey, apiSecret: privateKey };
+  } catch {
+    return null;
+  }
+}
+
+/** Path used inside the JWT claim — query string stripped (CCXT / CDP practice). */
+export function coinbaseJwtRequestPath(requestPath: string): string {
+  const path = requestPath.startsWith("/") ? requestPath : `/${requestPath}`;
+  const q = path.indexOf("?");
+  return q > 0 ? path.slice(0, q) : path;
+}
+
 export function signCoinbaseJwt(input: CoinbaseJwtInput): string {
   const secret = input.privateKey.trim();
+  const apiKey = input.apiKey.trim();
   const now = input.nowSeconds ?? Math.floor(Date.now() / 1000);
-  const uri = `${input.method} ${HOST}${input.requestPath}`;
+  const path = coinbaseJwtRequestPath(input.requestPath);
+  const uri = `${input.method} ${HOST}${path}`;
   const nonce = randomBytes(16).toString("hex");
 
   if (looksLikeCoinbasePrivateKey(secret)) {
     return signEs256Jwt({
-      apiKey: input.apiKey,
+      apiKey,
       privateKeyPem: normalizeCoinbasePrivateKey(secret),
       uri,
       nonce,
@@ -69,7 +118,7 @@ export function signCoinbaseJwt(input: CoinbaseJwtInput): string {
   }
   if (looksLikeCoinbaseEd25519Secret(secret)) {
     return signEdDsaJwt({
-      apiKey: input.apiKey,
+      apiKey,
       secretBase64: secret,
       uri,
       nonce,
@@ -88,12 +137,15 @@ function signEs256Jwt(input: {
   nonce: string;
   now: number;
 }): string {
+  // App API ES256 docs use singular `uri`. Include aud/iat used by current JWT auth docs.
   const header = { alg: "ES256", typ: "JWT", kid: input.apiKey, nonce: input.nonce };
   const payload = {
-    iss: "cdp",
-    nbf: input.now,
-    exp: input.now + 120,
     sub: input.apiKey,
+    iss: "cdp",
+    aud: ["cdp_service"],
+    nbf: input.now,
+    iat: input.now,
+    exp: input.now + 120,
     uri: input.uri,
   };
   const signingInput = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`;
@@ -133,13 +185,16 @@ function signEdDsaJwt(input: {
     },
     format: "jwk",
   });
+  // CDP SDK + CCXT: EdDSA uses `uris` (array), not `uri`.
   const header = { alg: "EdDSA", typ: "JWT", kid: input.apiKey, nonce: input.nonce };
   const payload = {
-    iss: "cdp",
-    nbf: input.now,
-    exp: input.now + 120,
     sub: input.apiKey,
-    uri: input.uri,
+    iss: "cdp",
+    aud: ["cdp_service"],
+    nbf: input.now,
+    iat: input.now,
+    exp: input.now + 120,
+    uris: [input.uri],
   };
   const signingInput = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`;
   const signature = cryptoSign(null, Buffer.from(signingInput), key).toString("base64url");
