@@ -10,11 +10,13 @@ describe("GUIDE_SECTIONS", () => {
 });
 
 describe("ConnectionGuide", () => {
-  it("shows a TOC and only the Connect section body by default", () => {
+  it("shows a top TOC and only the Connect section body by default", () => {
     const html = renderToStaticMarkup(<ConnectionGuide csrf="csrf" canRestartTour={false} />);
     expect(html).toContain("On this page");
     expect(html).toContain('aria-label="Guide sections"');
+    expect(html).toContain("lg:grid-cols-4");
     expect(html).toContain('id="modes-heading"');
+    expect(html).toContain("How a venue becomes a connection");
     expect(html).toContain("Watch-only wallet");
     expect(html).toContain("Verified means the sign-in controlled the address.");
     expect(html).toContain("Exchange, read-only");
@@ -44,6 +46,7 @@ describe("ConnectionGuide", () => {
     expect(html).toContain("Disconnected");
     expect(html).toContain("still need Check before Holdings fills");
     expect(html).toContain("Connected Coinbase but see no coins?");
+    expect(html).toContain("Connection lifecycle");
     expect(html).not.toContain("Watch-only wallet");
     expect(html).not.toContain('id="shape-heading"');
   });
@@ -55,6 +58,7 @@ describe("ConnectionGuide", () => {
     expect(html).toContain('id="shape-heading"');
     expect(html).toContain("Observed balance");
     expect(html).toContain("A check never posts one.");
+    expect(html).toContain("From Check to Holdings");
     expect(html).toContain("Looking for coins under Settings or Overview?");
     expect(html).not.toContain("Watch-only wallet");
     expect(html).not.toContain('id="life-heading"');
