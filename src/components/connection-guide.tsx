@@ -172,7 +172,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
             <TableBody>
               <TableRow>
                 <TableCell>Owner and admin</TableCell>
-                <TableCell>Add a connection from Settings, check it, and disconnect it. Signup asks for this once. A new admin is also shown the tour once.</TableCell>
+                <TableCell>Add a connection from Settings, check it, and disconnect it. Signup asks for this once. A new owner or admin is also shown the getting started guide once.</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Accountant</TableCell>
@@ -189,11 +189,13 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
           <form action={reopenConnectionTourAction} className="mt-4">
             <input type="hidden" name="csrf" value={csrf} />
             <SubmitButton>
-              Take the tour
+              Take the getting started guide
             </SubmitButton>
           </form>
         ) : (
-          <p className="mt-4 text-sm text-muted-foreground">A new admin is offered the tour the first time they sign in.</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            A new owner or admin is offered a short getting started guide the first time they sign in — connect, Check, then find balances on Holdings.
+          </p>
         )}
       </section>
     </div>

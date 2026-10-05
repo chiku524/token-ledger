@@ -17,7 +17,7 @@ export interface SessionUser {
   role: Role;
   entityScope: string[];
   demo: boolean;
-  /** Null until this admin finishes or skips the connection tour. */
+  /** Null until this owner or admin finishes or skips the getting started guide. */
   connectionTourCompletedAt: string | null;
   /** True once the email is confirmed. Always true in demo mode. */
   emailVerified: boolean;

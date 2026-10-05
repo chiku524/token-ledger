@@ -5,6 +5,7 @@ import { shouldShowConnectionTour } from "@/auth/tour";
 import { ConnectionGuide } from "@/components/connection-guide";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { canTakeConnectionTour } from "@/data/getting-started";
 
 export const metadata = { title: "Guide" };
 
@@ -25,7 +26,7 @@ export default async function GuidePage() {
         title="Guide"
         description="Read-only access for a wallet, an exchange, or a custodian. Observations stay beside the journal until someone posts them."
       />
-      <ConnectionGuide csrf={csrf} canRestartTour={session.role === "admin" && !tourPending} />
+      <ConnectionGuide csrf={csrf} canRestartTour={canTakeConnectionTour(session.role) && !tourPending} />
     </>
   );
 }

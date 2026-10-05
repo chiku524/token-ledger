@@ -4,6 +4,7 @@ import { resendVerificationAction } from "@/app/dashboard/user-actions";
 import type { SessionUser } from "@/auth/current";
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { GettingStartedProgress } from "@/data/getting-started";
 import { ConnectionTour } from "./connection-tour";
 import { DashboardNav } from "./dashboard-nav";
 import { ExampleBanner } from "./example-banner";
@@ -22,6 +23,7 @@ export function DashboardShell({
   showUsers,
   scopeLabel,
   showConnectionTour,
+  tourProgress,
 }: {
   children: React.ReactNode;
   origin: "example" | "live";
@@ -32,6 +34,7 @@ export function DashboardShell({
   showUsers: boolean;
   scopeLabel: string | null;
   showConnectionTour: boolean;
+  tourProgress: GettingStartedProgress;
 }) {
   const userMenu = <UserMenu session={session} csrf={csrf} scopeLabel={scopeLabel} />;
 
@@ -90,7 +93,7 @@ export function DashboardShell({
         <main id="content" className="px-4 py-6 md:px-8 md:py-8">
           {children}
         </main>
-        {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}
+        {showConnectionTour ? <ConnectionTour csrf={csrf} progress={tourProgress} /> : null}
       </div>
     </div>
   );

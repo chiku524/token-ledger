@@ -15,11 +15,11 @@ describe("ConnectionGuide", () => {
     expect(html).toContain("A check never posts one.");
     expect(html).toContain("Waiting");
     expect(html).toContain("Disconnected");
-    expect(html).not.toContain("Take the tour");
+    expect(html).not.toContain("Take the getting started guide");
   });
 
-  it("offers the tour again to an admin who has already finished it", () => {
+  it("offers the guide again to an owner or admin who has already finished it", () => {
     const html = renderToStaticMarkup(<ConnectionGuide csrf="csrf" canRestartTour />);
-    expect(html).toContain("Take the tour");
+    expect(html).toContain("Take the getting started guide");
   });
 });

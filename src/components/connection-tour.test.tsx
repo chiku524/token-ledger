@@ -10,30 +10,42 @@ vi.mock("@/app/dashboard/tour-actions", () => ({
   completeConnectionTourAction: async () => undefined,
 }));
 
-import { Dialog } from "@/components/ui/dialog";
 import { ConnectionTourStep } from "./connection-tour";
 
-function render(step: number) {
+const emptyProgress = { connections: [], observedBalanceCount: 0 };
+
+function render(phase: "connect" | "check" | "holdings" | "next") {
   return renderToStaticMarkup(
-    <Dialog open>
-      <ConnectionTourStep step={step} error={null} onBack={() => undefined} onNext={() => undefined} onFinish={() => undefined} />
-    </Dialog>,
+    <ConnectionTourStep
+      phase={phase}
+      progress={emptyProgress}
+      error={null}
+      onContinue={() => undefined}
+      onFinish={() => undefined}
+    />,
   );
 }
 
 describe("ConnectionTourStep", () => {
-  it("opens on the read-only explanation", () => {
-    const html = render(0);
-    expect(html).toContain("Connection tour");
-    expect(html).toContain("A connection only reads");
-    expect(html).toContain("1 of 5");
-    expect(html).toContain("Permissions stay read-only");
-    expect(html).not.toContain("Back");
+  it("opens on connect with getting started progress", () => {
+    const html = render("connect");
+    expect(html).toContain("Getting started");
+    expect(html).toContain("Connect a venue to start");
+    expect(html).toContain("1 of 4");
+    expect(html).toContain("Open connection steps");
+    expect(html).toContain("Skip guide");
   });
 
-  it("offers the guide on the last step", () => {
-    const html = render(4);
+  it("explains Check before balances appear", () => {
+    const html = render("check");
+    expect(html).toContain("Check the connection");
+    expect(html).toContain("Holdings stays empty");
+  });
+
+  it("offers Matching on the last step", () => {
+    const html = render("next");
     expect(html).toContain("Finish");
+    expect(html).toContain("Open Matching");
     expect(html).toContain("Open the guide");
   });
 });
