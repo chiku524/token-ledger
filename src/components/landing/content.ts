@@ -51,19 +51,6 @@ export const content = {
         "Automatically reconcile on-chain transactions for fintech, RWA or funds, with Token Ledger as your outsourced CFO.",
     },
   ],
-  plansTitle: "Built for your next stage.",
-  plansDescription:
-    "From early startups to established groups. One consolidated view across wallets, exchanges and custodians.",
-  plans: [
-    {
-      name: "Startup",
-      description: "Web3 startups and funds. Quarterly reports from the same books.",
-    },
-    {
-      name: "Institutional",
-      description: "Banks, funds and growing Web3 companies. Monthly reports, multiple entities and asset values.",
-    },
-  ],
   convergence: {
     title: "How your sources become one ledger",
     captions: [
@@ -90,7 +77,6 @@ export const content = {
 export const navigation = [
   { label: "Product", href: "#product" },
   { label: "How it works", href: "#how-it-works" },
-  { label: "Plans", href: "#plans" },
 ];
 
 export const exampleHref = "/sign-in?next=/dashboard";

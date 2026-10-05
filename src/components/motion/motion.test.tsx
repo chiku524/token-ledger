@@ -5,7 +5,6 @@ import { Convergence } from "@/components/landing/convergence";
 import { HeroScroll } from "@/components/landing/hero-scroll";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { Institutions } from "@/components/landing/institutions";
-import { Plans } from "@/components/landing/plans";
 import { FadeIn, PageTransition } from "@/components/motion/fade-in";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
@@ -82,13 +81,6 @@ describe("entrance animations", () => {
     const html = renderToStaticMarkup(<HowItWorks />);
     for (const title of ["Connect", "Reconcile", "Report"]) expect(html).toContain(title);
     expect(html).not.toContain("opacity:");
-  });
-
-  it("server-renders both plans visible", () => {
-    const html = renderToStaticMarkup(<Plans />);
-    expect(html).toContain("Startup");
-    expect(html).toContain("Institutional");
-    expect(html).not.toContain("opacity:0");
   });
 
   it("server-renders every institution card visible", () => {

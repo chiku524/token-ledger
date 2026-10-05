@@ -7,7 +7,6 @@ import { HeroScroll } from "@/components/landing/hero-scroll";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { Institutions } from "@/components/landing/institutions";
 import { LandingHeader } from "@/components/landing/landing-header";
-import { Plans } from "@/components/landing/plans";
 import { Logo } from "@/components/logo";
 import { FadeIn } from "@/components/motion/fade-in";
 import { Reveal } from "@/components/motion/reveal";
@@ -83,8 +82,6 @@ export default function HomePage() {
         <Institutions />
 
         <HowItWorks />
-
-        <Plans />
 
         <section className="page-width" aria-labelledby="cta-title">
           <Reveal variant="scale">
