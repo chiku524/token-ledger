@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
+import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge, type StatusTone } from "@/components/app/status-badge";
 import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/page-header";
 import { ConnectionControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadOperations } from "@/data/load-operations";
-import { entityName, syncRunStatusLabel, syncRunTriggerLabel, venueLabel } from "@/data/present";
+import { actionLabel, entityName, syncRunStatusLabel, syncRunTriggerLabel, venueLabel } from "@/data/present";
 import { one } from "@/data/query";
 
 export const metadata = { title: "Operations" };
@@ -23,13 +24,51 @@ const LEVEL_TONE: Record<string, StatusTone> = {
   disconnected: "neutral",
 };
 
+function executionTone(finalizedAt: Date | null, error: string | null, signature: string | null): StatusTone {
+  if (finalizedAt) return "success";
+  if (error) return "danger";
+  return signature ? "warning" : "neutral";
+}
+
+function executionLabel(finalizedAt: Date | null, error: string | null, signature: string | null): string {
+  if (finalizedAt) return "Finalized";
+  if (error) return "Failed";
+  return signature ? "Awaiting finality" : "Queued";
+}
+
+function StatusCard({
+  title,
+  value,
+  label,
+  detail,
+  tone,
+}: {
+  title: string;
+  value: number | string;
+  label: string;
+  detail: string;
+  tone: StatusTone;
+}) {
+  return (
+    <Card className="gap-2">
+      <CardContent className="grid gap-2">
+        <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{title}</p>
+        <p className="text-2xl font-semibold tracking-tight">
+          {value} <span className="text-sm font-normal text-muted-foreground">{label}</span>
+        </p>
+        <StatusBadge tone={tone}>{detail}</StatusBadge>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default async function OperationsPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const { session, writable, entities, queuedEvents, rows } = await loadOperations();
+  const { session, writable, entities, queuedEvents, rows, chain } = await loadOperations();
   const canSource = can(session.role, "source.write");
   const csrf = await ensureCsrf();
 
@@ -41,6 +80,87 @@ export default async function OperationsPage({
         description="Every connection, its last pull, and what it read. A failing connection is shown first so it is not missed. A manual re-run here is the same read the scheduler makes."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
+
+      {chain ? (
+        <section className="mt-8">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatusCard title="Execution" detail={`${chain.execution.finalized} finalized`} value={chain.execution.awaitingFinality + chain.execution.awaitingSubmission} label="in flight" tone={chain.execution.failed > 0 ? "danger" : "neutral"} />
+            <StatusCard title="Failed runs" detail="execution attempts that errored" value={chain.execution.failed} label="failed" tone={chain.execution.failed > 0 ? "danger" : "success"} />
+            <StatusCard title="Job queue" detail={`${chain.outbox.leased} leased, ${chain.outbox.completed} done`} value={chain.outbox.pending + chain.outbox.failed} label="pending" tone={chain.outbox.failed > 0 ? "danger" : "neutral"} />
+            <StatusCard title="Indexer lag" detail={chain.indexer.worstLagSeconds === null ? "no cursors" : `worst ${chain.indexer.worstLagSeconds}s`} value={chain.indexer.stale ? "Stale" : "Fresh"} label="" tone={chain.indexer.stale ? "danger" : "success"} />
+          </div>
+
+          {chain.execution.rows.length > 0 ? (
+            <div className="mt-6">
+              <SectionHeader
+                title="Recent executions"
+                description="Billing collections and treasury payments. Only a finalized slot is settled; 'submitted' is not."
+              />
+              <TableCard>
+                <Table>
+                  <caption className="sr-only">Recent chain executions</caption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Kind</TableHead>
+                      <TableHead>State</TableHead>
+                      <TableHead>Signature</TableHead>
+                      <TableHead>Attempt</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chain.execution.rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{actionLabel(row.kind)}</TableCell>
+                        <TableCell>
+                          <StatusBadge tone={executionTone(row.finalizedAt, row.error, row.signature)}>
+                            {executionLabel(row.finalizedAt, row.error, row.signature)}
+                          </StatusBadge>
+                          {row.error ? <span className="mt-1 block text-xs text-danger">{row.error}</span> : null}
+                        </TableCell>
+                        <NumberCell align="left" className="break-all">
+                          {row.signature ?? "—"}
+                        </NumberCell>
+                        <NumberCell align="left">{row.attempt}</NumberCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableCard>
+            </div>
+          ) : null}
+
+          {chain.indexer.rows.length > 0 ? (
+            <div className="mt-6">
+              <SectionHeader title="Indexer cursors" description="How far the chain indexer has read each program. A stale cursor means finalized state is not yet reflected." />
+              <TableCard>
+                <Table>
+                  <caption className="sr-only">Indexer cursors</caption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cluster</TableHead>
+                      <TableHead>Program</TableHead>
+                      <TableHead>Cursor</TableHead>
+                      <TableHead>Lag</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chain.indexer.rows.map((cursor) => (
+                      <TableRow key={`${cursor.cluster}-${cursor.programId}`}>
+                        <TableCell>{cursor.cluster}</TableCell>
+                        <NumberCell align="left" className="break-all">
+                          {cursor.programId}
+                        </NumberCell>
+                        <NumberCell align="left">{cursor.cursor}</NumberCell>
+                        <NumberCell align="left">{cursor.lagSeconds}s</NumberCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableCard>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <Card>
         <CardContent className="grid gap-2">
