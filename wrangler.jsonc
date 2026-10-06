@@ -30,13 +30,12 @@
     // verification or reset link never depends on the request host.
     "APP_URL": "https://app.tokenledger.win"
   },
-  // Raise the per-request CPU ceiling well above the Workers Free default of
-  // 10 ms, which server-rendering these pages exceeds (Error 1102,
-  // "Worker exceeded resource limits"). `cpu_ms` only takes effect on the
-  // Workers Paid plan (Free ignores it); see docs/adr-cloudflare-deployment.md.
-  "limits": {
-    "cpu_ms": 30000
-  },
+  // NOTE: do not set `limits.cpu_ms` here while this account is on the Workers
+  // Free plan. The Cloudflare API rejects the deploy outright on Free with
+  // error 100328 ("CPU limits are not supported for the Free plan"), it does not
+  // ignore the setting. Raising the ceiling is a Workers Paid action; until then
+  // per-request CPU must fit the Free budget (see #232 / #233 and
+  // docs/adr-cloudflare-deployment.md).
   // The scheduled sync pass. The free plan permits a daily cron; use */15 on a
   // paid plan to match DEFAULT_SYNC_INTERVAL_MS.
   "triggers": {
