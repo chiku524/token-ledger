@@ -268,6 +268,12 @@ export async function setUserAccess(userId: string, role: Role, entityScope: str
   await db.update(users).set({ role, entityScope: entityScope.join(",") }).where(eq(users.id, userId));
 }
 
+/** Change a user's own display name. Email is the sign-in identity and is not changed here. */
+export async function updateUserName(userId: string, name: string): Promise<void> {
+  const db = getDb();
+  await db.update(users).set({ name }).where(eq(users.id, userId));
+}
+
 export async function deactivateUser(userId: string): Promise<void> {
   const db = getDb();
   await db.transaction(async (tx) => {

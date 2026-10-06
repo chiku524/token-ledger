@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AssetPrice } from "./pricing";
-import { proposeRevaluation } from "./revaluation";
+import { proposeRevaluation, revaluationBasis } from "./revaluation";
 
 function price(assetCode: string, priceMinor: bigint, asOf: string): AssetPrice {
   return { id: `p_${assetCode}`, organizationId: "org_1", assetCode, quoteCurrency: "USD", priceMinor, quoteScale: 2, asOf, origin: "live", source: "coingecko" };
@@ -74,5 +74,45 @@ describe("proposeRevaluation", () => {
     });
     expect(proposal.staleAssetCodes).toEqual(["ETH"]);
     expect(proposal.netMinor).toBe(150000n);
+  });
+
+  it("measures at cost on the entry date, so a day-one move is not a gain", () => {
+    const proposal = proposeRevaluation({
+      prices: [price("ETH", 400000n, "2026-06-14T00:00:00Z")],
+      holdings: [
+        { assetCode: "ETH", quantityMinor: 1_000000000000000000n, quantityScale: 18, carryingMinor: 250000n, entryDate: "2026-06-15" },
+      ],
+      quoteCurrency: "USD",
+      assetAccountCode: "1300",
+      gainAccountCode: "4200",
+      lossAccountCode: "5200",
+      asOf: "2026-06-15T00:00:00Z",
+    });
+    expect(proposal.netMinor).toBe(0n);
+    expect(proposal.journalLines).toEqual([]);
+    expect(proposal.lines[0]).toMatchObject({ basis: "cost", marketMinor: 250000n, differenceMinor: 0n });
+  });
+
+  it("measures at market from the day after entry", () => {
+    const proposal = proposeRevaluation({
+      prices: [price("ETH", 400000n, "2026-06-14T00:00:00Z")],
+      holdings: [
+        { assetCode: "ETH", quantityMinor: 1_000000000000000000n, quantityScale: 18, carryingMinor: 250000n, entryDate: "2026-06-15" },
+      ],
+      quoteCurrency: "USD",
+      assetAccountCode: "1300",
+      gainAccountCode: "4200",
+      lossAccountCode: "5200",
+      asOf: "2026-06-16T00:00:00Z",
+    });
+    expect(proposal.netMinor).toBe(150000n);
+    expect(proposal.lines[0]).toMatchObject({ basis: "market" });
+  });
+});
+
+describe("revaluationBasis", () => {
+  it("is cost on the entry day and market after", () => {
+    expect(revaluationBasis("2026-06-15", "2026-06-15")).toBe("cost");
+    expect(revaluationBasis("2026-06-15", "2026-06-16")).toBe("market");
   });
 });

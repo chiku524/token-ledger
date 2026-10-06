@@ -46,6 +46,15 @@ describe("permission matrix", () => {
     expect(can("accountant", "source.import")).toBe(true);
     expect(can("accountant", "entity.write")).toBe(false);
     expect(can("accountant", "fx.write")).toBe(false);
+    // Connecting (signing) your own wallet is for every role; writing a source
+    // (track an arbitrary address, an exchange, or a custodian) is owner/admin only.
+    for (const role of ROLES) {
+      expect(can(role, "source.connect")).toBe(true);
+    }
+    expect(can("accountant", "source.write")).toBe(false);
+    expect(can("approver", "source.write")).toBe(false);
+    expect(can("viewer", "source.write")).toBe(false);
+    expect(can("admin", "source.write")).toBe(true);
     // An approver approves but never posts directly, and cannot manage users.
     expect(can("approver", "journal.approve")).toBe(true);
     expect(can("approver", "journal.post")).toBe(false);
@@ -70,6 +79,9 @@ describe("permission matrix", () => {
     expect(canAssignRole(admin, "accountant", null)).toBe(true);
     expect(canAssignRole(admin, "owner", null)).toBe(false);
     expect(canAssignRole(admin, "viewer", { id: "owner", role: "owner" })).toBe(false);
+    // An admin can promote another person to admin, but not to owner.
+    expect(canAssignRole(admin, "admin", null)).toBe(true);
+    expect(canAssignRole(admin, "admin", { id: "user2", role: "accountant" })).toBe(true);
     expect(canAssignRole(owner, "admin", { id: "admin", role: "admin" })).toBe(true);
     expect(canAssignRole(admin, "viewer", { id: "admin", role: "admin" })).toBe(false);
     expect(canDeactivate(admin, { id: "owner", role: "owner" })).toBe(false);

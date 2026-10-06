@@ -8,12 +8,12 @@ import { Field } from "@/components/app/field";
 import { SubmitButton } from "@/components/submit-button";
 import { VenueMark } from "@/components/venue-mark";
 import { WalletVerifyForm } from "@/components/wallet-verify-form";
+import { WatchWalletFields } from "@/components/track-wallet-fields";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { WATCH_VENUES } from "@/data/connections";
 import type { Books } from "@/data/books";
 
 export interface ConnectExchange {
@@ -43,6 +43,7 @@ export function ConnectModal({
   exchanges,
   custodians,
   projectId,
+  canWrite = true,
   defaultOpen = false,
 }: {
   csrf: string;
@@ -51,6 +52,8 @@ export function ConnectModal({
   exchanges: ConnectExchange[];
   custodians: ConnectCustodian[];
   projectId: string | null;
+  /** Full source.write: exchanges, custodians, and tracking an arbitrary address. */
+  canWrite?: boolean;
   defaultOpen?: boolean;
 }) {
   const titleId = useId();
@@ -59,8 +62,8 @@ export function ConnectModal({
   const [panel, setPanel] = useState<Panel>({ kind: "list" });
 
   const needle = query.trim().toLowerCase();
-  const visibleExchanges = exchanges.filter((item) => item.label.toLowerCase().includes(needle));
-  const visibleCustodians = custodians.filter((item) => item.label.toLowerCase().includes(needle));
+  const visibleExchanges = canWrite ? exchanges.filter((item) => item.label.toLowerCase().includes(needle)) : [];
+  const visibleCustodians = canWrite ? custodians.filter((item) => item.label.toLowerCase().includes(needle)) : [];
   const showWallet = "wallet".includes(needle) || needle === "";
   const nothing = !showWallet && visibleExchanges.length === 0 && visibleCustodians.length === 0;
   const markId = panel.kind === "wallet" ? "wallet" : panel.kind === "exchange" ? panel.exchange.key : panel.kind === "custodian" ? panel.custodian.key : null;
@@ -79,7 +82,7 @@ export function ConnectModal({
       }}
     >
       <DialogTrigger asChild>
-        <Button>Connect</Button>
+        <Button>{canWrite ? "Connect" : "Connect a wallet"}</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[min(40rem,calc(100vh-2rem))] overflow-y-auto sm:max-w-lg" aria-labelledby={titleId}>
         <DialogHeader>
@@ -117,8 +120,8 @@ export function ConnectModal({
                 <Choice
                   mark="wallet"
                   title="Wallet"
-                  detail="Connect and sign, or paste an address to watch."
-                  onClick={() => setPanel({ kind: "wallet", method: "sign" })}
+                  detail={canWrite ? "Track a public address, or connect and sign." : "Connect and sign your own wallet."}
+                  onClick={() => setPanel({ kind: "wallet", method: canWrite ? "watch" : "sign" })}
                 />
               </Section>
             ) : null}
@@ -155,7 +158,7 @@ export function ConnectModal({
             {nothing ? <p className="text-sm text-muted-foreground">Nothing matches that search.</p> : null}
           </div>
         ) : panel.kind === "wallet" ? (
-          <WalletPanel method={panel.method} setMethod={(method) => setPanel({ kind: "wallet", method })} books={books} csrf={csrf} next={next} projectId={projectId} />
+          <WalletPanel method={panel.method} setMethod={(method) => setPanel({ kind: "wallet", method })} books={books} csrf={csrf} next={next} projectId={projectId} canWrite={canWrite} />
         ) : panel.kind === "exchange" ? (
           <ExchangePanel
             exchange={panel.exchange}
@@ -245,6 +248,7 @@ function WalletPanel({
   csrf,
   next,
   projectId,
+  canWrite,
 }: {
   method: "sign" | "watch";
   setMethod: (method: "sign" | "watch") => void;
@@ -252,18 +256,21 @@ function WalletPanel({
   csrf: string;
   next: string;
   projectId: string | null;
+  canWrite: boolean;
 }) {
   return (
     <div className="grid gap-4">
-      <MethodTabs
-        value={method}
-        onChange={(value) => setMethod(value === "watch" ? "watch" : "sign")}
-        options={[
-          { id: "sign", label: "Connect and sign" },
-          { id: "watch", label: "Watch an address" },
-        ]}
-      />
-      {method === "sign" ? (
+      {canWrite ? (
+        <MethodTabs
+          value={method}
+          onChange={(value) => setMethod(value === "sign" ? "sign" : "watch")}
+          options={[
+            { id: "watch", label: "Track an address (no signing)" },
+            { id: "sign", label: "Connect and sign" },
+          ]}
+        />
+      ) : null}
+      {method === "sign" || !canWrite ? (
         <>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Sign a one-time message with an installed wallet, or WalletConnect. The signature does not allow a transfer, and no key is stored.
@@ -272,38 +279,11 @@ function WalletPanel({
         </>
       ) : (
         <form action={createConnectionAction} className="grid gap-3 sm:grid-cols-2">
-          <input type="hidden" name="csrf" value={csrf} />
-          <input type="hidden" name="mode" value="watch" />
-          <input type="hidden" name="next" value={next} />
           <p className="text-sm leading-relaxed text-muted-foreground sm:col-span-2">
-            Paste a public address. No signature is required. Use this for a cold address or any wallet you cannot sign with.
+            Paste any public address to track it. No wallet connection and no signature are required — use this for a cold address,
+            a customer wallet, or any address you cannot sign with. Tracking is read-only and stores no key.
           </p>
-          <CompanyField entities={books.entities} />
-          <Field label="Name">
-            <Input name="name" required maxLength={200} />
-          </Field>
-          <Field label="Network">
-            <NativeSelect name="chain" defaultValue="ethereum">
-              {WATCH_VENUES.map((venue) => (
-                <NativeSelectOption key={venue.key} value={venue.key}>
-                  {venue.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field label="Wallet type">
-            <NativeSelect name="role" defaultValue="hot">
-              <NativeSelectOption value="hot">Hot wallet</NativeSelectOption>
-              <NativeSelectOption value="cold">Cold wallet</NativeSelectOption>
-              <NativeSelectOption value="staking">Staking</NativeSelectOption>
-            </NativeSelect>
-          </Field>
-          <Field label="Address" className="sm:col-span-2">
-            <Input name="identifier" required maxLength={200} className="font-mono" />
-          </Field>
-          <div className="sm:col-span-2">
-            <SubmitButton>Watch address</SubmitButton>
-          </div>
+          <WatchWalletFields books={books} csrf={csrf} next={next} />
         </form>
       )}
     </div>

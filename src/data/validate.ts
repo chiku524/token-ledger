@@ -122,6 +122,10 @@ export const userFormSchema = z.object({
   entityScope: z.string().trim().max(500).optional().transform((value) => (value ? value.split(",").map((id) => id.trim()).filter(Boolean) : [])),
 });
 
+export const profileFormSchema = z.object({
+  name: text(80),
+});
+
 export const passwordFormSchema = z.object({
   password: z.string().min(12, "Use at least 12 characters.").max(200),
   confirm: z.string(),

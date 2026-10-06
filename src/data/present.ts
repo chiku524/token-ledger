@@ -157,6 +157,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.role_changed": "Access changed",
   "user.deactivated": "Person turned off",
   "user.invite_accepted": "Invite accepted",
+  "user.name_changed": "Name changed",
   "user.bootstrapped": "Owner created",
   "user.signed_up": "Account created",
   "user.seeded": "Sample person added",

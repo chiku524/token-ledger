@@ -1,15 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { actorName, assertCsrf, AuthError, requirePermission, requireSession, type SessionUser } from "@/auth/current";
+import { cookieSecure, DEMO_COOKIE, sessionCookieOptions } from "@/auth/cookies";
+import { signDemoToken } from "@/auth/demo";
 import { absoluteLink, deliver } from "@/email/links";
 import { inviteEmail, verifyEmail } from "@/email/messages";
 import { canAssignRole, canDeactivate, isRole, removesLastOwner } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
 import { loadBooks } from "@/data/load-books";
-import { firstIssue, userFormSchema } from "@/data/validate";
+import { firstIssue, profileFormSchema, userFormSchema } from "@/data/validate";
 import {
   activeOwnerIds,
   createEmailVerification,
@@ -20,9 +22,10 @@ import {
   insertUser,
   listOrganizationUsers,
   setUserAccess,
+  updateUserName,
   writeAudit,
 } from "@/db/auth-store";
-import { fail, finish, safeMessage } from "./form-state";
+import { fail, finish, save, safeMessage } from "./form-state";
 
 const PATH = "/dashboard/users";
 const READ_ONLY = "Connect a database to add people. This demo does not save them.";
@@ -161,6 +164,48 @@ export async function deactivateUserAction(formData: FormData) {
   }
   revalidatePath("/dashboard", "layout");
   redirect(`${PATH}?saved=${encodeURIComponent(`Deactivated ${target.email}.`)}`);
+}
+
+/**
+ * Change the signed-in user's own display name. It targets `session.id` only, so
+ * no user id is accepted from the form. Live accounts persist to the database;
+ * a demo persona is re-signed into its cookie for the session only.
+ */
+export async function changeNameAction(formData: FormData): Promise<void> {
+  const path = "/dashboard/settings";
+  try {
+    await assertCsrf(formData);
+  } catch (error) {
+    fail(path, error instanceof AuthError ? error.message : "The form expired. Refresh and try again.");
+  }
+  const parsed = profileFormSchema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) fail(path, firstIssue(parsed.error));
+  const session = await requireSession();
+  const name = parsed.data.name;
+
+  if (session.demo) {
+    const token = signDemoToken({
+      role: session.role,
+      name,
+      email: session.email,
+      entityScope: session.entityScope,
+      exp: Date.now() + 12 * 60 * 60 * 1000,
+    });
+    const jar = await cookies();
+    jar.set(DEMO_COOKIE, token, sessionCookieOptions(cookieSecure()));
+    finish(path, "Name updated for this demo session. It is not saved.");
+  }
+
+  await save(path, () => updateUserName(session.id, name));
+  await writeAudit({
+    organizationId: session.organizationId,
+    actor: actorName({ ...session, name }),
+    action: "user.name_changed",
+    subjectType: "user",
+    subjectId: session.id,
+    detail: `Name changed from ${session.name} to ${name}.`,
+  });
+  finish(path, "Your name is updated.");
 }
 
 /**

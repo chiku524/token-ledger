@@ -16,6 +16,11 @@ export interface AssetChainMeta {
   chain: string | null;
 }
 
+export interface AssetClassMeta {
+  code: string;
+  assetClass: string;
+}
+
 export interface CarryingPoint {
   date: string;
   entityId: string;
@@ -146,6 +151,29 @@ export function carryingByChain(
     grouped.set(key, current);
   }
   return [...grouped.values()].sort(byAmountThenLabel((row) => row.chain));
+}
+
+/**
+ * Carrying value grouped by the held asset's class (crypto, stablecoin, RWA,
+ * fiat). The asset model carries the class; holdings only carry the code. An
+ * asset the class registry does not know falls to "unspecified" rather than
+ * being dropped. Same shape as carryingByChain.
+ */
+export function carryingByAssetClass(
+  entries: readonly PostedJournalEntry[],
+  accounts: readonly LedgerAccount[],
+  assets: readonly AssetClassMeta[],
+): Array<{ assetClass: string; entityId: string; currency: string; carryingMinor: bigint }> {
+  const classes = new Map(assets.map((asset) => [asset.code, asset.assetClass.trim() || "unspecified"]));
+  const grouped = new Map<string, { assetClass: string; entityId: string; currency: string; carryingMinor: bigint }>();
+  for (const row of carryingByAsset(entries, accounts)) {
+    const assetClass = classes.get(row.assetCode) ?? "unspecified";
+    const key = `${row.entityId}|${assetClass}|${row.currency}`;
+    const current = grouped.get(key) ?? { assetClass, entityId: row.entityId, currency: row.currency, carryingMinor: 0n };
+    current.carryingMinor += row.carryingMinor;
+    grouped.set(key, current);
+  }
+  return [...grouped.values()].sort(byAmountThenLabel((row) => row.assetClass));
 }
 
 export function carryingValueSeries(

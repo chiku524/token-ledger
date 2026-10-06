@@ -1,6 +1,7 @@
-export { carryingByAsset, carryingByChain, carryingBySource, carryingBySourceKind, carryingValueSeries, assetAccountNets, journalActivityByMonth, percentOf, reconciliationCounts } from "./charts";
+export { carryingByAsset, carryingByAssetClass, carryingByChain, carryingBySource, carryingBySourceKind, carryingValueSeries, assetAccountNets, journalActivityByMonth, percentOf, reconciliationCounts } from "./charts";
 export type {
   AssetChainMeta,
+  AssetClassMeta,
   CarryingPoint,
   JournalMonthActivity,
   ReconciliationCounts,
@@ -28,8 +29,8 @@ export {
   valueHoldings,
 } from "./valuation";
 export type { PriceAge, PricedValue, ValuationSummary } from "./valuation";
-export { proposeRevaluation } from "./revaluation";
-export type { RevaluationHolding, RevaluationLine, RevaluationProposal } from "./revaluation";
+export { proposeRevaluation, revaluationBasis } from "./revaluation";
+export type { RevaluationBasis, RevaluationHolding, RevaluationLine, RevaluationProposal } from "./revaluation";
 export { translateGroupIas21 } from "./translation";
 export type { TranslatedEntity, TranslatedTrialBalance } from "./translation";
 export { formatMinor, minorToNumber, toMinor, toMinorRounded } from "./money";
@@ -39,6 +40,8 @@ export { ledgerQuantityMovements, reconcileMovements } from "./reconcile";
 export type { LedgerQuantityMovement, QuantityMovement, ReconciliationMatch } from "./reconcile";
 export { assetCarryingSchedule, netBalanceMinor, trialBalance } from "./reports";
 export type { CarryingAmountRow, TrialBalance, TrialBalanceRow } from "./reports";
+export { assetClassLabel, financialStatements } from "./statements";
+export type { AssetClassRef, FinancialStatements, StatementLine } from "./statements";
 export { LedgerError } from "./types";
 export type {
   AccountType,
