@@ -26,7 +26,7 @@ function periods(seconds: number): string {
 }
 
 export default async function BillingPage() {
-  const { session, configured, deployment, actionable, entities, bindings, vaults } = await loadBilling();
+  const { session, configured, deployment, actionable, entities, bindings, vaults, merchant } = await loadBilling();
   const csrf = await ensureCsrf();
 
   return (
@@ -93,24 +93,50 @@ export default async function BillingPage() {
         </TableCard>
       )}
 
-      {deployment?.merchantAdmin ? (
-        <section className="mt-10">
-          <SectionHeader
-            title="Merchant plan"
-            description="Publish an immutable plan version: a fixed price per 30-day period. Existing mandates are unaffected. Signed by the merchant admin's wallet."
-          />
-          <div className="mt-4 max-w-2xl">
-            <BillingAction
-              action="create_plan"
-              csrf={csrf}
-              entityId={entities[0]?.id ?? ""}
-              cluster={deployment.cluster}
-              rpcUrl={deployment.rpcUrl}
-              wallet={deployment.merchantAdmin}
-              description="Only the configured merchant admin can publish a plan."
+      {actionable && configured && deployment ? (
+        merchant ? (
+          <section className="mt-10">
+            <SectionHeader
+              title="Merchant plan"
+              description={
+                <>
+                  Publish an immutable plan version: a fixed price per 30-day period. Existing mandates are unaffected.
+                  Signed by the merchant admin wallet{" "}
+                  <span className="font-mono text-xs">{merchant.adminAddress}</span>. Destination{" "}
+                  <span className="font-mono text-xs">{merchant.destination}</span>.
+                </>
+              }
             />
-          </div>
-        </section>
+            <div className="mt-4 max-w-2xl">
+              <BillingAction
+                action="create_plan"
+                csrf={csrf}
+                entityId={entities[0]?.id ?? ""}
+                cluster={deployment.cluster}
+                rpcUrl={deployment.rpcUrl}
+                wallet={merchant.adminAddress}
+                description="Only the merchant admin can publish a plan."
+              />
+            </div>
+          </section>
+        ) : (
+          <section className="mt-10">
+            <SectionHeader
+              title="Initialize merchant"
+              description="Create the merchant config with a connected wallet. That wallet becomes the merchant admin and can publish plans; it can never touch customer funds. This runs once per deployment."
+            />
+            <div className="mt-4 max-w-2xl">
+              <BillingAction
+                action="initialize_merchant"
+                csrf={csrf}
+                entityId={entities[0]?.id ?? ""}
+                cluster={deployment.cluster}
+                rpcUrl={deployment.rpcUrl}
+                wallet=""
+              />
+            </div>
+          </section>
+        )
       ) : null}
 
       <section className="mt-10">

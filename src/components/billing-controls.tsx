@@ -10,7 +10,7 @@
  */
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { prepareCreatePlan, prepareCreateVault, prepareDeposit, prepareRevoke, prepareWithdraw } from "@/app/dashboard/billing-actions";
+import { prepareCreatePlan, prepareCreateVault, prepareDeposit, prepareInitializeMerchant, prepareRevoke, prepareWithdraw } from "@/app/dashboard/billing-actions";
 import { signAndSubmitPlan } from "@/contracts/client/sign-and-submit";
 import { deserializePlan, type SerializablePlan } from "@/contracts/serialize";
 import { previewIsComplete } from "@/contracts/preview";
@@ -33,9 +33,10 @@ declare global {
   }
 }
 
-type Action = "create_vault" | "deposit" | "withdraw" | "revoke" | "create_plan";
+type Action = "initialize_merchant" | "create_vault" | "deposit" | "withdraw" | "revoke" | "create_plan";
 
 const ACTION_LABELS: Record<Action, string> = {
+  initialize_merchant: "Initialize merchant",
   create_vault: "Create vault",
   deposit: "Deposit",
   withdraw: "Withdraw",
@@ -44,6 +45,7 @@ const ACTION_LABELS: Record<Action, string> = {
 };
 
 const PREPARE = {
+  initialize_merchant: prepareInitializeMerchant,
   create_vault: prepareCreateVault,
   deposit: prepareDeposit,
   withdraw: prepareWithdraw,
@@ -129,6 +131,20 @@ export function BillingAction({
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="entityId" value={entityId} />
       {vaultId ? <input type="hidden" name="vaultId" value={vaultId} /> : null}
+      {action === "initialize_merchant" ? (
+        <>
+          <p className="text-sm leading-relaxed text-muted-foreground md:col-span-2">
+            The connected wallet becomes the merchant admin. It can publish plans and pause collection, but can never touch
+            customer funds. This runs once per deployment.
+          </p>
+          <Field label="Collector wallet (optional)" hint="Triggers charges. Defaults to the admin wallet.">
+            <Input name="collector" className="font-mono" />
+          </Field>
+          <Field label="Merchant USDC destination token account">
+            <Input name="destination" required className="font-mono" />
+          </Field>
+        </>
+      ) : null}
       {action === "create_plan" ? (
         <>
           <Field label="Price per 30-day period (USDC)">

@@ -967,6 +967,40 @@ export const walletBindings = pgTable(
   ],
 );
 
+/**
+ * The merchant config for a deployment, created once by the merchant admin. It
+ * is not observed from chain events: the admin's address seeds the merchant PDA,
+ * so storing the admin is enough to derive the merchant. One per organization and
+ * cluster. See `initialize_merchant` in the service_balance program.
+ */
+export const merchantConfigs = pgTable(
+  "merchant_configs",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    entityId: text("entity_id")
+      .notNull()
+      .references(() => entities.id),
+    cluster: text("cluster").notNull(),
+    /** The admin wallet; also the merchant PDA seed. */
+    adminAddress: text("admin_address").notNull(),
+    /** The derived `merchant` PDA, stored for display and lookup. */
+    merchantAddress: text("merchant_address").notNull(),
+    /** Operational key allowed to trigger a collection. */
+    collectorAddress: text("collector_address").notNull(),
+    mint: text("mint").notNull(),
+    /** The fixed USDC token account collected funds are paid to. */
+    destination: text("destination").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("merchant_configs_organization_cluster_unique").on(table.organizationId, table.cluster),
+    index("merchant_configs_entity_idx").on(table.entityId),
+  ],
+);
+
 /** A customer's billing vault, projected from `service_balance`. */
 export const billingVaults = pgTable(
   "billing_vaults",

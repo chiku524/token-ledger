@@ -9,12 +9,13 @@
  */
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { assertCsrf, AuthError, requireSession } from "@/auth/current";
+import { actorName, assertCsrf, AuthError, requireSession } from "@/auth/current";
 import { canAccessEntity } from "@/auth/roles";
 import {
   planCreatePlanVersion,
   planCreateVault,
   planDeposit,
+  planInitializeMerchant,
   planRevokeMandate,
   planWithdraw,
   type BillingPlanContext,
@@ -26,6 +27,7 @@ import { canWriteBooks } from "@/data/authorized-books";
 import { loadBooks } from "@/data/load-books";
 import { toMinor } from "@/ledger";
 import { listActiveWalletBindings } from "@/db/wallet-bindings";
+import { findMerchantForCluster, upsertMerchant } from "@/db/merchant";
 import { billingVaults } from "@/db/schema";
 import { getDb } from "@/db/client";
 
@@ -38,7 +40,10 @@ const READ_ONLY = "Connect a database to prepare transactions. This demo does no
 async function guard(
   formData: FormData,
   entityId: string,
-): Promise<{ ok: true; deployment: SolanaDeployment; organizationId: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; deployment: SolanaDeployment; organizationId: string; actor: string }
+  | { ok: false; error: string }
+> {
   try {
     await assertCsrf(formData);
   } catch (error) {
@@ -56,18 +61,61 @@ async function guard(
   if (!deployment) return { ok: false, error: OFF };
   const books = await loadBooks(session.organizationId as string);
   if (!books.entities.some((entity) => entity.id === entityId)) return { ok: false, error: "Choose a company in this organization." };
-  return { ok: true, deployment, organizationId: session.organizationId as string };
+  return { ok: true, deployment, organizationId: session.organizationId as string, actor: actorName(session) };
 }
 
-/** The merchant PDA every billing action resolves, from the configured merchant admin. */
-async function merchantFor(deployment: SolanaDeployment): Promise<string | null> {
-  if (!deployment.merchantAdmin) return null;
-  const { address } = await findProgramAddress(seedMerchant(deployment.merchantAdmin), deployment.serviceBalanceProgram);
-  return address;
+/**
+ * The merchant PDA every billing action resolves. Prefer the merchant config
+ * created from the app (the admin's own wallet); fall back to the deployment's
+ * `MERCHANT_ADMIN_ADDRESS` for a deployment configured out of band.
+ */
+async function merchantFor(
+  organizationId: string,
+  deployment: SolanaDeployment,
+): Promise<{ merchant: string; admin: string } | null> {
+  const stored = await findMerchantForCluster(organizationId, deployment.cluster);
+  if (stored) return { merchant: stored.merchantAddress, admin: stored.adminAddress };
+  if (deployment.merchantAdmin) {
+    const { address } = await findProgramAddress(seedMerchant(deployment.merchantAdmin), deployment.serviceBalanceProgram);
+    return { merchant: address, admin: deployment.merchantAdmin };
+  }
+  return null;
 }
 
 function plan(planInput: { instructions: Parameters<typeof serializePlan>[0]["instructions"]; preview: Parameters<typeof serializePlan>[0]["preview"]; feePayer: string }): PreparedPlan {
   return { plan: serializePlan(planInput) };
+}
+
+/**
+ * Merchant admin: create the merchant config, turning the connected wallet into
+ * the merchant admin. Signed by that wallet, whose address seeds the merchant
+ * PDA. Run once per deployment.
+ */
+export async function prepareInitializeMerchant(formData: FormData): Promise<PreparedPlan> {
+  const entityId = String(formData.get("entityId") ?? "");
+  const guarded = await guard(formData, entityId);
+  if (!guarded.ok) return { error: guarded.error };
+  const { deployment, organizationId, actor } = guarded;
+  const admin = String(formData.get("controller") ?? "").trim();
+  if (!admin) return { error: "Connect the wallet that will be the merchant admin." };
+  const collector = String(formData.get("collector") ?? "").trim() || admin;
+  const destination = String(formData.get("destination") ?? "").trim();
+  if (!destination) return { error: "Enter the merchant USDC destination token account." };
+
+  const built = await planInitializeMerchant({
+    deployment,
+    admin,
+    collector,
+    mint: deployment.usdcMint,
+    destination,
+  });
+  const merchant = built.preview.subject ?? "";
+  // Record the config so the billing actions resolve this merchant afterwards.
+  await upsertMerchant(
+    { organizationId, entityId, cluster: deployment.cluster, adminAddress: admin, merchantAddress: merchant, collectorAddress: collector, mint: deployment.usdcMint, destination },
+    actor,
+  );
+  return plan({ instructions: built.instructions, preview: built.preview, feePayer: admin });
 }
 
 /**
@@ -78,8 +126,9 @@ export async function prepareCreatePlan(formData: FormData): Promise<PreparedPla
   const entityId = String(formData.get("entityId") ?? "");
   const guarded = await guard(formData, entityId);
   if (!guarded.ok) return { error: guarded.error };
-  const { deployment } = guarded;
-  if (!deployment.merchantAdmin) return { error: "This deployment has no merchant admin configured." };
+  const { deployment, organizationId } = guarded;
+  const merchant = await merchantFor(organizationId, deployment);
+  if (!merchant) return { error: "Initialize the merchant first, or set MERCHANT_ADMIN_ADDRESS." };
   const priceMinor = parseAmount(formData.get("price"));
   if (priceMinor === null || priceMinor <= 0n) return { error: "Enter the price per 30-day period in USDC." };
   const maxPeriods = Number(formData.get("maxPeriods") ?? 0);
@@ -87,13 +136,13 @@ export async function prepareCreatePlan(formData: FormData): Promise<PreparedPla
 
   const built = await planCreatePlanVersion({
     deployment,
-    admin: deployment.merchantAdmin,
+    admin: merchant.admin,
     planId: randomBytes(16),
     version: 1,
     price: priceMinor,
     maxPeriods,
   });
-  return plan({ instructions: built.instructions, preview: built.preview, feePayer: deployment.merchantAdmin });
+  return plan({ instructions: built.instructions, preview: built.preview, feePayer: merchant.admin });
 }
 
 /** Customer: create the billing vault they control. Funded separately by deposit. */
@@ -105,10 +154,10 @@ export async function prepareCreateVault(formData: FormData): Promise<PreparedPl
   const controller = String(formData.get("controller") ?? "").trim();
   const bound = await requireBinding(organizationId, entityId, controller, deployment.cluster);
   if (!bound.ok) return { error: bound.error };
-  const merchant = await merchantFor(deployment);
-  if (!merchant) return { error: "This deployment has no merchant admin configured." };
+  const merchant = await merchantFor(organizationId, deployment);
+  if (!merchant) return { error: "Initialize the merchant first, or set MERCHANT_ADMIN_ADDRESS." };
 
-  const built = await planCreateVault({ deployment, merchant, controller, controllerTokenAccount: "" });
+  const built = await planCreateVault({ deployment, merchant: merchant.merchant, controller, controllerTokenAccount: "" });
   return plan({ instructions: built.instructions, preview: built.preview, feePayer: controller });
 }
 
