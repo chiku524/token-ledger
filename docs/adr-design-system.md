@@ -44,7 +44,7 @@ set and no animation.
 | primary / primary-foreground | Lime `#C8F542` / Night | same |
 | brand / brand-foreground | Cobalt `#2140E6` / white | same |
 | link | `#2140E6` | `#A9B8FF` |
-| ring | Lime | Lime |
+| ring (focus) | Cobalt `#2140E6` | Lime `#C8F542` |
 | destructive | seal `#C0362C` | `#F0A8A2` |
 | success | pine `#0D7A45` | `#7DCEA0` |
 

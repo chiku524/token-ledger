@@ -15,14 +15,6 @@
   --font-mono: var(--font-jetbrains);
   --font-logo: var(--font-poppins);
   --font-heading: var(--font-display);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -114,7 +106,7 @@
      brand colour, so it is a neutral tint rather than cobalt. */
   --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
   --accent-foreground: var(--color-ink);
-  --destructive: var(--color-seal);
+  --destructive: var(--color-danger);
   --border: var(--color-line);
   --input: var(--color-line);
   --ring: var(--color-cobalt);
@@ -175,7 +167,7 @@ h4 {
   textarea:focus-visible,
   summary:focus-visible,
   figure:focus-visible {
-    outline: 2px solid var(--color-lime);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -189,7 +181,7 @@ h4 {
   }
 
   .recharts-surface:focus-visible {
-    outline: 2px solid var(--color-lime);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 }
@@ -199,28 +191,8 @@ a.underline {
   text-underline-offset: 0.18em;
 }
 
-/* shadcn tokens in dark mode, mapped to the brand dark palette set by html.dark. */
 html.dark {
-  --background: var(--color-paper);
-  --foreground: var(--color-ink);
-  --card: var(--color-paper-raised);
-  --card-foreground: var(--color-ink);
-  --popover: var(--color-paper-raised);
-  --popover-foreground: var(--color-ink);
-  --primary: var(--color-lime);
-  --primary-foreground: var(--color-on-lime);
-  --secondary: var(--color-paper-raised);
-  --secondary-foreground: var(--color-ink);
-  --muted: var(--color-paper);
-  --muted-foreground: var(--color-ink-soft);
-  /* shadcn "accent" is a hover/selected surface (menus, ghost buttons), not the
-     brand colour, so it is a neutral tint rather than cobalt. */
-  --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  --accent-foreground: var(--color-ink);
-  --destructive: var(--color-seal);
-  --border: var(--color-line);
-  --input: var(--color-line);
-  --ring: var(--color-accent);
+  --ring: var(--color-lime);
 }
 
 @layer base {
