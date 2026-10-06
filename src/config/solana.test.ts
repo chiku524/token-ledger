@@ -61,6 +61,19 @@ describe("solanaDeployment", () => {
     );
   });
 
+  it("reads optional merchant config, defaulting to null and rejecting a malformed address", () => {
+    expect(solanaDeployment(base)!.merchantAdmin).toBeNull();
+    expect(solanaDeployment(base)!.merchantDestination).toBeNull();
+    const withMerchant = solanaDeployment({
+      ...base,
+      MERCHANT_ADMIN_ADDRESS: PROGRAM_A,
+      MERCHANT_DESTINATION_TOKEN_ACCOUNT: PROGRAM_B,
+    });
+    expect(withMerchant!.merchantAdmin).toBe(PROGRAM_A);
+    expect(withMerchant!.merchantDestination).toBe(PROGRAM_B);
+    expect(() => solanaDeployment({ ...base, MERCHANT_ADMIN_ADDRESS: "not-an-address" })).toThrow(/MERCHANT_ADMIN_ADDRESS/);
+  });
+
   it("treats a set-but-malformed deployment as configured so callers read and see the error", () => {
     expect(contractsConfigured({ SOLANA_CONTRACTS_CLUSTER: "devnet" })).toBe(true);
   });
