@@ -321,7 +321,7 @@ export default async function SourcesPage({
         ) : null}
         {canSource || canImport ? null : (
           <div className="xl:col-span-2">
-            <RoleNote>You can view holdings. Connecting a wallet, exchange, or custodian is done in Settings, and importing activity is not available for this role.</RoleNote>
+            <RoleNote>You can view holdings. Connect and sign your own wallet in Settings. Adding an exchange or custodian, and importing activity, are for an owner or an admin.</RoleNote>
           </div>
         )}
         {canImport ? <CsvImportForm books={books} csrf={csrf} /> : null}

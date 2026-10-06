@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   "audit.read",
   "entity.write",
   "source.write",
+  "source.connect",
   "fx.write",
   "journal.post",
   "journal.reverse",
@@ -26,6 +27,11 @@ export type Permission = (typeof PERMISSIONS)[number];
  * An approver may read and approve a prepared entry, but cannot post directly or
  * reverse: approval is the only way it changes the books. A preparer (accountant)
  * prepares and posts drafts but cannot approve them.
+ *
+ * `source.connect` (add a wallet by signing, which proves ownership of the
+ * address) is held by every role, so any user can bring their own wallet in.
+ * `source.write` (add an arbitrary address without signing, or an exchange or
+ * custodian) stays with owner and admin.
  */
 const MATRIX: Record<Role, readonly Permission[]> = {
   owner: PERMISSIONS,
@@ -39,9 +45,10 @@ const MATRIX: Record<Role, readonly Permission[]> = {
     "journal.prepare",
     "reconciliation.match",
     "source.import",
+    "source.connect",
   ],
-  approver: ["books.read", "books.export", "audit.read", "journal.prepare", "journal.approve"],
-  viewer: ["books.read", "books.export", "audit.read"],
+  approver: ["books.read", "books.export", "audit.read", "journal.prepare", "journal.approve", "source.connect"],
+  viewer: ["books.read", "books.export", "audit.read", "source.connect"],
 };
 
 export function isRole(value: string): value is Role {

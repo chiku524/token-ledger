@@ -39,6 +39,7 @@ export default async function SettingsPage({
   const { session, books } = await loadAuthorizedBooks();
   const writable = booksAreWritable() && !session.demo;
   const canSource = can(session.role, "source.write");
+  const canConnect = can(session.role, "source.connect");
   const csrf = await ensureCsrf();
 
   return (
@@ -115,7 +116,11 @@ export default async function SettingsPage({
         {!writable && canSource ? <div className="mt-4"><ReadOnlyNote demo={session.demo} /></div> : null}
         {!canSource ? (
           <div className="mt-4">
-            <RoleNote>You can view connections. Adding, checking, or disconnecting one is for an owner or an admin.</RoleNote>
+            <RoleNote>
+              {canConnect
+                ? "You can connect and sign your own wallet above. Adding an exchange or custodian, tracking an arbitrary address, checking, or disconnecting is for an owner or an admin."
+                : "You can view connections. Adding, checking, or disconnecting one is for an owner or an admin."}
+            </RoleNote>
           </div>
         ) : null}
         {books.connections.length === 0 ? (
@@ -196,19 +201,20 @@ export default async function SettingsPage({
         )}
       </section>
 
-      {canSource && books.entities.length > 0 ? (
+      {canConnect && books.entities.length > 0 ? (
         <div className="mt-8">
           <ConnectModal
             csrf={csrf}
             next="/dashboard/settings"
             books={books}
             projectId={reownProjectId()}
+            canWrite={canSource}
             exchanges={connectExchanges()}
             custodians={Object.values(CUSTODIANS).map((item) => ({ key: item.key, label: item.label }))}
           />
         </div>
       ) : null}
-      {canSource && books.entities.length === 0 ? (
+      {canConnect && books.entities.length === 0 ? (
         <p className="mt-8 text-sm text-muted-foreground">Add a company before connecting a wallet, exchange, or custodian.</p>
       ) : null}
     </>
