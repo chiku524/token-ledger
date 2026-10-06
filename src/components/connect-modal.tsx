@@ -117,8 +117,8 @@ export function ConnectModal({
                 <Choice
                   mark="wallet"
                   title="Wallet"
-                  detail="Connect and sign, or paste an address to watch."
-                  onClick={() => setPanel({ kind: "wallet", method: "sign" })}
+                  detail="Track a public address, or connect and sign."
+                  onClick={() => setPanel({ kind: "wallet", method: "watch" })}
                 />
               </Section>
             ) : null}
@@ -257,10 +257,10 @@ function WalletPanel({
     <div className="grid gap-4">
       <MethodTabs
         value={method}
-        onChange={(value) => setMethod(value === "watch" ? "watch" : "sign")}
+        onChange={(value) => setMethod(value === "sign" ? "sign" : "watch")}
         options={[
+          { id: "watch", label: "Track an address (no signing)" },
           { id: "sign", label: "Connect and sign" },
-          { id: "watch", label: "Watch an address" },
         ]}
       />
       {method === "sign" ? (
@@ -276,7 +276,8 @@ function WalletPanel({
           <input type="hidden" name="mode" value="watch" />
           <input type="hidden" name="next" value={next} />
           <p className="text-sm leading-relaxed text-muted-foreground sm:col-span-2">
-            Paste a public address. No signature is required. Use this for a cold address or any wallet you cannot sign with.
+            Paste any public address to track it. No wallet connection and no signature are required — use this for a cold address,
+            a customer wallet, or any address you cannot sign with. Tracking is read-only and stores no key.
           </p>
           <CompanyField entities={books.entities} />
           <Field label="Name">
@@ -302,7 +303,7 @@ function WalletPanel({
             <Input name="identifier" required maxLength={200} className="font-mono" />
           </Field>
           <div className="sm:col-span-2">
-            <SubmitButton>Watch address</SubmitButton>
+            <SubmitButton>Track address</SubmitButton>
           </div>
         </form>
       )}
