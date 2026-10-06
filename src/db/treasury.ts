@@ -7,7 +7,16 @@
  */
 import { and, eq } from "drizzle-orm";
 import { getDb } from "./client";
-import { auditEvents, invoices, supplierDestinations, suppliers, treasuryAccounts, treasurySigners } from "./schema";
+import {
+  auditEvents,
+  invoices,
+  paymentApprovals,
+  paymentProposals,
+  supplierDestinations,
+  suppliers,
+  treasuryAccounts,
+  treasurySigners,
+} from "./schema";
 
 function newId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
@@ -87,6 +96,108 @@ export async function createInvoice(input: InvoiceInput, actor: string): Promise
 export async function listInvoices(organizationId: string) {
   const db = getDb();
   return db.select().from(invoices).where(eq(invoices.organizationId, organizationId));
+}
+
+/** Suppliers for an organization, alphabetical. Private data stays server-side. */
+export async function listSuppliers(organizationId: string) {
+  const db = getDb();
+  const rows = await db.select().from(suppliers).where(eq(suppliers.organizationId, organizationId));
+  return rows.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** A treasury account and its signer set, for display. */
+export interface TreasuryView {
+  id: string;
+  entityId: string;
+  treasuryAddress: string;
+  treasuryTokenAccount: string;
+  policyVersion: bigint;
+  threshold: number;
+  approverCount: number;
+  proposerCount: number;
+  perPaymentLimitMinor: bigint;
+  dailyLimitMinor: bigint;
+  executionPaused: boolean;
+  recoveryAddress: string;
+  closed: boolean;
+  finalization: "pending" | "finalized" | "failed";
+  signers: { role: string; address: string }[];
+}
+
+export async function listTreasuries(organizationId: string): Promise<TreasuryView[]> {
+  const db = getDb();
+  const rows = await db.select().from(treasuryAccounts).where(eq(treasuryAccounts.organizationId, organizationId));
+  const views: TreasuryView[] = [];
+  for (const row of rows) {
+    const signers = await db.select().from(treasurySigners).where(eq(treasurySigners.treasuryAccountId, row.id));
+    views.push({
+      id: row.id,
+      entityId: row.entityId,
+      treasuryAddress: row.treasuryAddress,
+      treasuryTokenAccount: row.treasuryTokenAccount,
+      policyVersion: row.policyVersion,
+      threshold: row.threshold,
+      approverCount: row.approverCount,
+      proposerCount: row.proposerCount,
+      perPaymentLimitMinor: row.perPaymentLimitMinor,
+      dailyLimitMinor: row.dailyLimitMinor,
+      executionPaused: row.executionPaused,
+      recoveryAddress: row.recoveryAddress,
+      closed: row.closed,
+      finalization: row.finalization,
+      signers: signers.map((signer) => ({ role: signer.role, address: signer.signerAddress })),
+    });
+  }
+  return views;
+}
+
+/** A payment proposal with its approvals, for the approval inbox. */
+export interface ProposalView {
+  id: string;
+  entityId: string;
+  treasuryAccountId: string;
+  invoiceId: string;
+  proposalAddress: string;
+  invoiceKey: string;
+  revision: number;
+  recipientOwner: string;
+  grossAmountMinor: bigint;
+  expiresAt: Date;
+  cancelled: boolean;
+  executed: boolean;
+  approvals: { approverAddress: string; approvedAt: Date | null; revokedAt: Date | null }[];
+}
+
+export async function listProposals(organizationId: string): Promise<ProposalView[]> {
+  const db = getDb();
+  const rows = await db.select().from(paymentProposals).where(eq(paymentProposals.organizationId, organizationId));
+  const views: ProposalView[] = [];
+  for (const row of rows) {
+    const approvals = await db
+      .select()
+      .from(paymentApprovals)
+      .where(eq(paymentApprovals.paymentProposalId, row.id));
+    views.push({
+      id: row.id,
+      entityId: row.entityId,
+      treasuryAccountId: row.treasuryAccountId,
+      invoiceId: row.invoiceId,
+      proposalAddress: row.proposalAddress,
+      invoiceKey: row.invoiceKey,
+      revision: row.revision,
+      recipientOwner: row.recipientOwner,
+      grossAmountMinor: row.grossAmountMinor,
+      expiresAt: row.expiresAt,
+      cancelled: row.cancelled,
+      executed: row.executed,
+      approvals: approvals.map((approval) => ({
+        approverAddress: approval.approverAddress,
+        approvedAt: approval.approvedAt,
+        revokedAt: approval.revokedAt,
+      })),
+    });
+  }
+  return views;
 }
 
 /** A supplier's verified destination address for a chain, if one exists. */
