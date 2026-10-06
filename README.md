@@ -33,6 +33,8 @@ pnpm test
 pnpm build
 ```
 
+How the tests are organized, and how to test a new server action or page, is in [docs/testing.md](docs/testing.md).
+
 ## Database
 
 Optional until you want to record entities, sources, journals, reversals, or a CSV import. The forms stay read-only when `DATABASE_URL` is unset.
