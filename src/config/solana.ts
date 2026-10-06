@@ -32,6 +32,14 @@ export interface SolanaDeployment {
   usdcMint: string;
   /** The SPL token program; legacy only in version one. */
   tokenProgram: string;
+  /**
+   * The merchant's admin address, whose PDA is the `service_balance` merchant
+   * config. Billing actions (plan, vault, activate) resolve the merchant from it.
+   * Null when this deployment does not offer the merchant's own service plans.
+   */
+  merchantAdmin: string | null;
+  /** The merchant's fixed USDC destination token account, for display. */
+  merchantDestination: string | null;
 }
 
 export interface SolanaContractEnv {
@@ -41,6 +49,8 @@ export interface SolanaContractEnv {
   TREASURY_PAYABLES_PROGRAM_ID?: string;
   USDC_MINT?: string;
   SPL_TOKEN_PROGRAM_ID?: string;
+  MERCHANT_ADMIN_ADDRESS?: string;
+  MERCHANT_DESTINATION_TOKEN_ACCOUNT?: string;
 }
 
 const CLUSTERS: readonly SolanaCluster[] = ["devnet", "mainnet-beta", "localnet"];
@@ -73,12 +83,22 @@ export function solanaDeployment(env: SolanaContractEnv = process.env as SolanaC
     treasuryPayablesProgram: treasuryPayables,
     usdcMint,
     tokenProgram,
+    merchantAdmin: optionalAddress(env.MERCHANT_ADMIN_ADDRESS, "MERCHANT_ADMIN_ADDRESS"),
+    merchantDestination: optionalAddress(env.MERCHANT_DESTINATION_TOKEN_ACCOUNT, "MERCHANT_DESTINATION_TOKEN_ACCOUNT"),
   };
 }
 
 function requireAddress(value: string | undefined, name: string): string {
   const trimmed = value?.trim();
   if (!trimmed) throw new Error(`${name} is required when SOLANA_CONTRACTS_CLUSTER is set.`);
+  if (!isValidSolanaAddress(trimmed)) throw new Error(`${name} is not a valid Solana address.`);
+  return trimmed;
+}
+
+/** A present-but-malformed optional address fails loudly; an absent one is null. */
+function optionalAddress(value: string | undefined, name: string): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
   if (!isValidSolanaAddress(trimmed)) throw new Error(`${name} is not a valid Solana address.`);
   return trimmed;
 }

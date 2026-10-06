@@ -10,6 +10,8 @@ const deployment: SolanaDeployment = {
   treasuryPayablesProgram: "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs",
   usdcMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  merchantAdmin: null,
+  merchantDestination: null,
 };
 
 const ctx: BillingPlanContext = {
