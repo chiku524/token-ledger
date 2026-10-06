@@ -16,6 +16,7 @@ import {
   encodeCreateBillingVault,
   encodeCreatePlanVersion,
   encodeDeposit,
+  encodeInitializeMerchant,
   encodeReplaceMandate,
   encodeRevokeMandate,
   encodeWithdraw,
@@ -349,11 +350,48 @@ export async function planCreatePlanVersion(
 }
 
 /**
+ * Merchant-side: create the merchant config. Signed by the admin wallet, whose
+ * address seeds the merchant PDA, so that wallet becomes the merchant admin. Run
+ * once per deployment; a second call fails because the account already exists.
+ * The `destination` is the fixed USDC token account collected funds are paid to.
+ */
+export async function planInitializeMerchant(
+  ctx: { deployment: SolanaDeployment; admin: string; collector: string; mint: string; destination: string },
+): Promise<BillingPlan> {
+  const programId = ctx.deployment.serviceBalanceProgram;
+  const tokenProgram = ctx.deployment.tokenProgram || SPL_TOKEN_PROGRAM;
+  const { address: merchant } = await findProgramAddress(seedMerchant(ctx.admin), programId);
+  const instruction: PlannedInstruction = {
+    programId,
+    accounts: [
+      account(ctx.admin, { signer: true, writable: true }),
+      account(ctx.collector),
+      account(merchant, { writable: true }),
+      account(ctx.mint),
+      account("11111111111111111111111111111111"),
+    ],
+    data: encodeInitializeMerchant({ mint: ctx.mint, tokenProgram, destination: ctx.destination }),
+  };
+  return {
+    action: "billing.initialize_merchant",
+    instructions: [instruction],
+    preview: {
+      action: "billing.initialize_merchant",
+      cluster: ctx.deployment.cluster,
+      programId,
+      feePayer: ctx.admin,
+      subject: merchant,
+      policyNote:
+        "Creates the merchant config. This wallet becomes the merchant admin and can publish plans and pause collection, but can never touch customer funds.",
+    },
+  };
+}
+
+/**
  * A stable identity for one planned operation, so a retry reuses the same
  * logical operation id rather than creating a second one (see #161's outbox).
  */
 export function billingOperationId(action: PreviewAction, subject: string): string {
   return `${action}:${subject}`;
 }
-
 export { previewLine };

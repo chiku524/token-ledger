@@ -6,6 +6,7 @@ import type { SolanaDeployment } from "@/config/solana";
 import { solanaDeployment } from "@/config/solana";
 import { deriveEntitlement, type Entitlement } from "@/billing/entitlement";
 import { listChargesForMandate, listBillingVaults, mandateViewForVault, type ChargeView, type MandateView } from "@/db/billing";
+import { findPlatformMerchant, type MerchantView } from "@/db/merchant";
 import { listActiveWalletBindings, type WalletBindingView } from "@/db/wallet-bindings";
 import { hasDatabase } from "@/db/availability";
 import { loadAuthorizedBooks } from "./authorized-books";
@@ -32,6 +33,8 @@ export interface BillingData {
   entities: readonly BooksEntity[];
   bindings: WalletBindingView[];
   vaults: BillingVaultRow[];
+  /** The merchant config initialized from the app, if any. */
+  merchant: MerchantView | null;
 }
 
 /**
@@ -56,12 +59,16 @@ export const loadBilling = cache(async (): Promise<BillingData> => {
   const actionable = configured && writable && can(session.role, "source.connect");
 
   if (!writable) {
-    return { session, configured, deployment, actionable, entities: books.entities, bindings: [], vaults: [] };
+    return { session, configured, deployment, actionable, entities: books.entities, bindings: [], vaults: [], merchant: null };
   }
 
-  const [bindings, vaultRows] = await Promise.all([
-    listActiveWalletBindings(session.organizationId as string),
-    listBillingVaults(session.organizationId as string),
+  const organizationId = session.organizationId as string;
+  const [bindings, vaultRows, merchant] = await Promise.all([
+    listActiveWalletBindings(organizationId),
+    listBillingVaults(organizationId),
+    // A local run may not have migrated `merchant_configs`; a missing table means
+    // "not initialized", not a crash.
+    deployment ? findPlatformMerchant(deployment.cluster).catch(() => null) : Promise.resolve(null),
   ]);
 
   const now = new Date();
@@ -77,7 +84,7 @@ export const loadBilling = cache(async (): Promise<BillingData> => {
     });
   }
 
-  return { session, configured, deployment, actionable, entities: books.entities, bindings, vaults };
+  return { session, configured, deployment, actionable, entities: books.entities, bindings, vaults, merchant };
 });
 
 function toMandateState(mandate: MandateView) {

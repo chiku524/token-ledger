@@ -9,6 +9,7 @@
 import type { SolanaDeployment } from "@/config/solana";
 
 export type PreviewAction =
+  | "billing.initialize_merchant"
   | "billing.create_vault"
   | "billing.create_plan"
   | "billing.deposit"
