@@ -2,8 +2,10 @@ import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can, roleLabel } from "@/auth/roles";
 import { changeNameAction } from "@/app/dashboard/user-actions";
+import { createConnectionAction } from "@/app/dashboard/actions";
 import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
 import { ConnectModal } from "@/components/connect-modal";
+import { WatchWalletFields } from "@/components/track-wallet-fields";
 import { connectExchanges } from "@/data/connect-catalog";
 import { EmptyState } from "@/components/app/empty-state";
 import { Field } from "@/components/app/field";
@@ -81,6 +83,22 @@ export default async function SettingsPage({
           </dl>
         </CardContent>
       </Card>
+
+      {canSource ? (
+        <section id="track-wallet" className="mt-10 scroll-mt-6">
+          <SectionHeader
+            title="Track a wallet address"
+            description="Add any public address to track. No wallet connection and no signature are required — paste an address and it is read-only. Use this for a cold address, a customer wallet, or any address you cannot sign with."
+          />
+          {books.entities.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">Add a company before tracking a wallet.</p>
+          ) : (
+            <FormCard action={createConnectionAction} className="mt-4 md:grid-cols-2">
+              <WatchWalletFields books={books} csrf={csrf} next="/dashboard/settings" />
+            </FormCard>
+          )}
+        </section>
+      ) : null}
 
       <section id="connections" className="mt-10 scroll-mt-6">
         <SectionHeader

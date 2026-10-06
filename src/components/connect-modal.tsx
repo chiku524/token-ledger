@@ -8,12 +8,12 @@ import { Field } from "@/components/app/field";
 import { SubmitButton } from "@/components/submit-button";
 import { VenueMark } from "@/components/venue-mark";
 import { WalletVerifyForm } from "@/components/wallet-verify-form";
+import { WatchWalletFields } from "@/components/track-wallet-fields";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { WATCH_VENUES } from "@/data/connections";
 import type { Books } from "@/data/books";
 
 export interface ConnectExchange {
@@ -272,39 +272,11 @@ function WalletPanel({
         </>
       ) : (
         <form action={createConnectionAction} className="grid gap-3 sm:grid-cols-2">
-          <input type="hidden" name="csrf" value={csrf} />
-          <input type="hidden" name="mode" value="watch" />
-          <input type="hidden" name="next" value={next} />
           <p className="text-sm leading-relaxed text-muted-foreground sm:col-span-2">
             Paste any public address to track it. No wallet connection and no signature are required — use this for a cold address,
             a customer wallet, or any address you cannot sign with. Tracking is read-only and stores no key.
           </p>
-          <CompanyField entities={books.entities} />
-          <Field label="Name">
-            <Input name="name" required maxLength={200} />
-          </Field>
-          <Field label="Network">
-            <NativeSelect name="chain" defaultValue="ethereum">
-              {WATCH_VENUES.map((venue) => (
-                <NativeSelectOption key={venue.key} value={venue.key}>
-                  {venue.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field label="Wallet type">
-            <NativeSelect name="role" defaultValue="hot">
-              <NativeSelectOption value="hot">Hot wallet</NativeSelectOption>
-              <NativeSelectOption value="cold">Cold wallet</NativeSelectOption>
-              <NativeSelectOption value="staking">Staking</NativeSelectOption>
-            </NativeSelect>
-          </Field>
-          <Field label="Address" className="sm:col-span-2">
-            <Input name="identifier" required maxLength={200} className="font-mono" />
-          </Field>
-          <div className="sm:col-span-2">
-            <SubmitButton>Track address</SubmitButton>
-          </div>
+          <WatchWalletFields books={books} csrf={csrf} next={next} />
         </form>
       )}
     </div>
