@@ -1,7 +1,6 @@
 # Component inventory
 
-See `README.md` for the rules and `phases.md` for the rollout. Status: **built in
-Phase 2, not yet adopted by pages** unless noted. Pages move over in Phases 3 to 5.
+See `README.md` for the rules and `phases.md` for the rollout. Every page uses these components.
 
 ## Primitives (`src/components/ui/`)
 
@@ -34,11 +33,23 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 | `EmptyRow` | Centred muted message row for a table with no rows. Pass `colSpan` for the column count. Use `EmptyState` when the whole table is absent. |
 | `FormCard` | `grid gap-3 panel p-4` form with a title and description (headings `h2` or `h3`) |
 | `SegmentedLinks` | Company switcher in Reports and Combined |
+| `PageHeader` (`src/components/page-header.tsx`) | Eyebrow, `h1` and description at the top of every dashboard page |
 
-`Flash` (`src/components/flash.tsx`) is rebuilt on `Alert` and **is live** on every
-page that already used it.
+`Flash` (`src/components/flash.tsx`) is rebuilt on `Alert` and reads `saved` / `error`
+on every page that a server action redirects to.
 
-## App shell (Phase 3, live)
+## Charts (`src/components/charts/`)
+
+| File | Role |
+|---|---|
+| `frame.tsx` | `ChartFrame`: the card around a chart, with title, description and an `sr-only` data table for screen readers |
+| `charts.tsx` | `MoneyBars`, `MoneyLine`, `StatusDonut`, `StatusBars`, `ActivityBars` (recharts) |
+| `lazy.tsx` | Client-only (`ssr: false`) entry points. Pages import charts from here so recharts stays out of the server bundle |
+| `use-chart-reveal.ts` | Draws a chart once it is 30% in view; always drawn when printing; no animation under reduced motion |
+
+Colours come from the chart palette in `README.md`.
+
+## App shell
 
 | File | Role |
 |---|---|
@@ -54,10 +65,7 @@ page that already used it.
 
 `LogoMark` renders `public/token-ledger-logo.svg` (the three-bar mark) and `Logo` adds the
 wordmark text. The file is a fixed raster image inside an SVG, so it has no colour variants.
-`wordmark.tsx` re-exports
-them under the old names (`BrandMark`, `Wordmark`) and is **live** in the shell and
-public pages; it goes away in the cleanup phase. `src/app/icon.svg` still uses hex (a
-favicon file cannot read CSS variables) and already matches the brand mark.
+`src/app/icon.svg` uses hex because a favicon file cannot read CSS variables.
 
 ## Motion (`src/components/motion/`)
 
@@ -75,7 +83,7 @@ Use `danger` / `success` for text; the legacy `seal` / `pine` are too dim on Nig
 ## Cleanup notes
 
 - The legacy classes (`.btn`, `.panel`, `.field`, `.ledger-table`, `.num`, `.kicker`, `.skip-link`) and the `wordmark.tsx` shim are gone. Use the components above; `eyebrow` is the small uppercase label.
-- The global lime focus outline now lives in `@layer base`, so shadcn's own ring (`outline-none` plus `ring`) wins and controls no longer show two rings.
+- The global focus outline (`--ring`) lives in `@layer base`, so shadcn's own ring (`outline-none` plus `ring`) wins and controls no longer show two rings.
 - `@media print` forces the light palette, hides the sidebar, forms and buttons, and avoids splitting table rows.
 - In a background browser tab, motion animations are throttled, so screenshots can catch pages mid-fade. Wait a few seconds or focus the tab.
 - Existing `Button` default size grew from 32px to 36px to match the old `.btn`.
