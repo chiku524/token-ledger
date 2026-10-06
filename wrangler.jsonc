@@ -14,7 +14,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "token-ledger",
-  "main": ".open-next/worker.js",
+  "main": "custom-worker.ts",
   "compatibility_date": "2025-03-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -36,10 +36,13 @@
   // ignore the setting. Raising the ceiling is a Workers Paid action; until then
   // per-request CPU must fit the Free budget (see #232 / #233 and
   // docs/adr-cloudflare-deployment.md).
-  // The scheduled sync pass. The free plan permits a daily cron; use */15 on a
-  // paid plan to match DEFAULT_SYNC_INTERVAL_MS.
+  // Scheduled passes, run by the custom worker's `scheduled` handler (OpenNext's
+  // generated worker exports only `fetch`, so a cron trigger needs the wrapper in
+  // custom-worker.ts). The free plan permits daily crons; use finer schedules on a
+  // paid plan. "0 3 * * *" runs both the sync and the indexer; any other tick runs
+  // the indexer (idempotent and bounded).
   "triggers": {
-    "crons": ["0 3 * * *"]
+    "crons": ["0 3 * * *", "0 9 * * *"]
   },
   "hyperdrive": [
     {
