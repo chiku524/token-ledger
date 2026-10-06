@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can, roleLabel } from "@/auth/roles";
+import { changeNameAction } from "@/app/dashboard/user-actions";
 import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
 import { ConnectModal } from "@/components/connect-modal";
 import { connectExchanges } from "@/data/connect-catalog";
 import { EmptyState } from "@/components/app/empty-state";
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
 import { SectionHeader } from "@/components/app/section-header";
 import { connectionStatusTone, StatusBadge } from "@/components/app/status-badge";
 import { TableCard } from "@/components/app/table-card";
+import { SubmitButton } from "@/components/submit-button";
 import { Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
@@ -45,12 +50,22 @@ export default async function SettingsPage({
 
       <Card>
         <CardContent className="grid gap-4">
-          <h2 className="text-lg font-semibold tracking-tight">Account</h2>
-          <dl className="grid gap-3 text-sm md:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Name</dt>
-              <dd className="mt-1">{session.name}</dd>
+          <h2 className="text-lg font-semibold tracking-tight">Your details</h2>
+          <FormCard action={changeNameAction} className="mt-0 md:grid-cols-2">
+            <input type="hidden" name="csrf" value={csrf} />
+            <Field label="Name">
+              <Input name="name" required maxLength={80} defaultValue={session.name} autoComplete="name" />
+            </Field>
+            <div className="flex items-end">
+              <SubmitButton>Save name</SubmitButton>
             </div>
+            <p className="text-sm text-muted-foreground md:col-span-2">
+              {session.demo
+                ? "This demo is read-only, so a change lasts for this session only and is not saved."
+                : "Your email is the sign-in identity and is changed separately."}
+            </p>
+          </FormCard>
+          <dl className="grid gap-3 text-sm md:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Email</dt>
               <dd className="mt-1">{session.email}</dd>
