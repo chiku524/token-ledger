@@ -10,7 +10,7 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { actorName, assertCsrf, AuthError, requireSession } from "@/auth/current";
-import { canAccessEntity } from "@/auth/roles";
+import { can, canAccessEntity } from "@/auth/roles";
 import {
   planCreatePlanVersion,
   planCreateVault,
@@ -27,7 +27,7 @@ import { canWriteBooks } from "@/data/authorized-books";
 import { loadBooks } from "@/data/load-books";
 import { toMinor } from "@/ledger";
 import { listActiveWalletBindings } from "@/db/wallet-bindings";
-import { findMerchantForCluster, upsertMerchant } from "@/db/merchant";
+import { findPlatformMerchant, upsertPlatformMerchant } from "@/db/merchant";
 import { billingVaults } from "@/db/schema";
 import { getDb } from "@/db/client";
 
@@ -65,15 +65,12 @@ async function guard(
 }
 
 /**
- * The merchant PDA every billing action resolves. Prefer the merchant config
- * created from the app (the admin's own wallet); fall back to the deployment's
- * `MERCHANT_ADMIN_ADDRESS` for a deployment configured out of band.
+ * The merchant PDA every billing action resolves. Prefer the platform merchant
+ * config created from the app (the operator's wallet); fall back to the
+ * deployment's `MERCHANT_ADMIN_ADDRESS` for a deployment configured out of band.
  */
-async function merchantFor(
-  organizationId: string,
-  deployment: SolanaDeployment,
-): Promise<{ merchant: string; admin: string } | null> {
-  const stored = await findMerchantForCluster(organizationId, deployment.cluster);
+async function merchantFor(deployment: SolanaDeployment): Promise<{ merchant: string; admin: string } | null> {
+  const stored = await findPlatformMerchant(deployment.cluster);
   if (stored) return { merchant: stored.merchantAddress, admin: stored.adminAddress };
   if (deployment.merchantAdmin) {
     const { address } = await findProgramAddress(seedMerchant(deployment.merchantAdmin), deployment.serviceBalanceProgram);
@@ -87,14 +84,27 @@ function plan(planInput: { instructions: Parameters<typeof serializePlan>[0]["in
 }
 
 /**
- * Merchant admin: create the merchant config, turning the connected wallet into
- * the merchant admin. Signed by that wallet, whose address seeds the merchant
- * PDA. Run once per deployment.
+ * The platform operator: owner or admin. Per the plan, Token Ledger is the
+ * merchant, so only the operator initializes it and publishes plans; customers
+ * just pay. This mirrors `prepareInitializeMerchant`'s server-side gate so the
+ * action cannot be reached by a lesser role even if the UI is bypassed.
+ */
+async function requireOperator(): Promise<boolean> {
+  const session = await requireSession();
+  return can(session.role, "users.manage");
+}
+
+/**
+ * Platform operator: create the merchant config, turning the connected wallet
+ * into the merchant admin. Per the plan Token Ledger is the merchant, so this is
+ * a single platform-wide config, not one per customer. Signed by that wallet,
+ * whose address seeds the merchant PDA. Run once per cluster.
  */
 export async function prepareInitializeMerchant(formData: FormData): Promise<PreparedPlan> {
   const entityId = String(formData.get("entityId") ?? "");
   const guarded = await guard(formData, entityId);
   if (!guarded.ok) return { error: guarded.error };
+  if (!(await requireOperator())) return { error: "Initializing the merchant is for the platform operator (owner or admin)." };
   const { deployment, organizationId, actor } = guarded;
   const admin = String(formData.get("controller") ?? "").trim();
   if (!admin) return { error: "Connect the wallet that will be the merchant admin." };
@@ -110,9 +120,17 @@ export async function prepareInitializeMerchant(formData: FormData): Promise<Pre
     destination,
   });
   const merchant = built.preview.subject ?? "";
-  // Record the config so the billing actions resolve this merchant afterwards.
-  await upsertMerchant(
-    { organizationId, entityId, cluster: deployment.cluster, adminAddress: admin, merchantAddress: merchant, collectorAddress: collector, mint: deployment.usdcMint, destination },
+  // Record the platform config so billing actions resolve this merchant afterwards.
+  await upsertPlatformMerchant(
+    {
+      actorOrganizationId: organizationId,
+      cluster: deployment.cluster,
+      adminAddress: admin,
+      merchantAddress: merchant,
+      collectorAddress: collector,
+      mint: deployment.usdcMint,
+      destination,
+    },
     actor,
   );
   return plan({ instructions: built.instructions, preview: built.preview, feePayer: admin });
@@ -126,8 +144,9 @@ export async function prepareCreatePlan(formData: FormData): Promise<PreparedPla
   const entityId = String(formData.get("entityId") ?? "");
   const guarded = await guard(formData, entityId);
   if (!guarded.ok) return { error: guarded.error };
-  const { deployment, organizationId } = guarded;
-  const merchant = await merchantFor(organizationId, deployment);
+  if (!(await requireOperator())) return { error: "Publishing a plan is for the platform operator (owner or admin)." };
+  const { deployment } = guarded;
+  const merchant = await merchantFor(deployment);
   if (!merchant) return { error: "Initialize the merchant first, or set MERCHANT_ADMIN_ADDRESS." };
   const priceMinor = parseAmount(formData.get("price"));
   if (priceMinor === null || priceMinor <= 0n) return { error: "Enter the price per 30-day period in USDC." };
@@ -154,7 +173,7 @@ export async function prepareCreateVault(formData: FormData): Promise<PreparedPl
   const controller = String(formData.get("controller") ?? "").trim();
   const bound = await requireBinding(organizationId, entityId, controller, deployment.cluster);
   if (!bound.ok) return { error: bound.error };
-  const merchant = await merchantFor(organizationId, deployment);
+  const merchant = await merchantFor(deployment);
   if (!merchant) return { error: "Initialize the merchant first, or set MERCHANT_ADMIN_ADDRESS." };
 
   const built = await planCreateVault({ deployment, merchant: merchant.merchant, controller, controllerTokenAccount: "" });

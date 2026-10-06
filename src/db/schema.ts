@@ -968,21 +968,17 @@ export const walletBindings = pgTable(
 );
 
 /**
- * The merchant config for a deployment, created once by the merchant admin. It
- * is not observed from chain events: the admin's address seeds the merchant PDA,
- * so storing the admin is enough to derive the merchant. One per organization and
- * cluster. See `initialize_merchant` in the service_balance program.
+ * The platform merchant config for a deployment, created once by the operator.
+ * Per the plan, **Token Ledger is the merchant**: customers subscribe to it and
+ * pay it, so there is exactly one merchant per cluster, shared by every
+ * organization — not one per customer. It is not observed from chain events: the
+ * admin's address seeds the merchant PDA, so storing the admin is enough to
+ * derive the merchant. See `initialize_merchant` in the service_balance program.
  */
 export const merchantConfigs = pgTable(
   "merchant_configs",
   {
     id: text("id").primaryKey(),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organizations.id),
-    entityId: text("entity_id")
-      .notNull()
-      .references(() => entities.id),
     cluster: text("cluster").notNull(),
     /** The admin wallet; also the merchant PDA seed. */
     adminAddress: text("admin_address").notNull(),
@@ -995,10 +991,7 @@ export const merchantConfigs = pgTable(
     destination: text("destination").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    uniqueIndex("merchant_configs_organization_cluster_unique").on(table.organizationId, table.cluster),
-    index("merchant_configs_entity_idx").on(table.entityId),
-  ],
+  (table) => [uniqueIndex("merchant_configs_cluster_unique").on(table.cluster)],
 );
 
 /** A customer's billing vault, projected from `service_balance`. */

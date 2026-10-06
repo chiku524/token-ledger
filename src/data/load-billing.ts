@@ -6,7 +6,7 @@ import type { SolanaDeployment } from "@/config/solana";
 import { solanaDeployment } from "@/config/solana";
 import { deriveEntitlement, type Entitlement } from "@/billing/entitlement";
 import { listChargesForMandate, listBillingVaults, mandateViewForVault, type ChargeView, type MandateView } from "@/db/billing";
-import { findMerchantForCluster, type MerchantView } from "@/db/merchant";
+import { findPlatformMerchant, type MerchantView } from "@/db/merchant";
 import { listActiveWalletBindings, type WalletBindingView } from "@/db/wallet-bindings";
 import { hasDatabase } from "@/db/availability";
 import { loadAuthorizedBooks } from "./authorized-books";
@@ -68,9 +68,7 @@ export const loadBilling = cache(async (): Promise<BillingData> => {
     listBillingVaults(organizationId),
     // A local run may not have migrated `merchant_configs`; a missing table means
     // "not initialized", not a crash.
-    deployment
-      ? findMerchantForCluster(organizationId, deployment.cluster).catch(() => null)
-      : Promise.resolve(null),
+    deployment ? findPlatformMerchant(deployment.cluster).catch(() => null) : Promise.resolve(null),
   ]);
 
   const now = new Date();

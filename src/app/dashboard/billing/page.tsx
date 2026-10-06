@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
+import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -28,13 +29,16 @@ function periods(seconds: number): string {
 export default async function BillingPage() {
   const { session, configured, deployment, actionable, entities, bindings, vaults, merchant } = await loadBilling();
   const csrf = await ensureCsrf();
+  // Per the plan, Token Ledger is the merchant: only the platform operator
+  // (owner/admin) initializes it and publishes plans. Customers only pay.
+  const isOperator = can(session.role, "users.manage");
 
   return (
     <>
       <PageHeader
         kicker="Service Balance"
         title="Billing"
-        description="Fund a USDC vault and authorize bounded, recurring 30-day charges. You can cancel renewal and withdraw unspent funds at any time — no merchant signature. Merely connecting a read-only wallet never enables spending."
+        description="Subscribe to Token Ledger: fund a USDC vault and authorize bounded, recurring 30-day charges. You can cancel renewal and withdraw unspent funds at any time — no merchant signature. Merely connecting a read-only wallet never enables spending."
       />
 
       {!configured ? (
@@ -93,15 +97,15 @@ export default async function BillingPage() {
         </TableCard>
       )}
 
-      {actionable && configured && deployment ? (
+      {isOperator && actionable && configured && deployment ? (
         merchant ? (
           <section className="mt-10">
             <SectionHeader
               title="Merchant plan"
               description={
                 <>
-                  Publish an immutable plan version: a fixed price per 30-day period. Existing mandates are unaffected.
-                  Signed by the merchant admin wallet{" "}
+                  Platform merchant, set once for this deployment. Publish an immutable plan version: a fixed price per
+                  30-day period. Signed by the merchant admin wallet{" "}
                   <span className="font-mono text-xs">{merchant.adminAddress}</span>. Destination{" "}
                   <span className="font-mono text-xs">{merchant.destination}</span>.
                 </>
@@ -122,8 +126,8 @@ export default async function BillingPage() {
         ) : (
           <section className="mt-10">
             <SectionHeader
-              title="Initialize merchant"
-              description="Create the merchant config with a connected wallet. That wallet becomes the merchant admin and can publish plans; it can never touch customer funds. This runs once per deployment."
+              title="Initialize the platform merchant"
+              description="Operator setup, done once per deployment. Connect a wallet and it becomes the merchant admin — the address customers pay. It can publish plans and pause collection, but can never touch customer funds."
             />
             <div className="mt-4 max-w-2xl">
               <BillingAction

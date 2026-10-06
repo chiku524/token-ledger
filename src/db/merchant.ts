@@ -1,17 +1,16 @@
 /**
- * Persistence for the Service Balance merchant config.
+ * Persistence for the Service Balance platform merchant config.
  *
- * Unlike a vault or mandate, the merchant config is not observed from chain
- * events — it is created once by the merchant admin and then read by the billing
- * actions to resolve the merchant PDA. So this is a plain record: one merchant
- * per (organization, cluster). It is written when the admin asks to initialize
- * one; the on-chain `initialize_merchant` is idempotent by the PDA, so a retry
- * never creates a second config.
+ * Per the plan, Token Ledger is the merchant: customers subscribe to it and pay
+ * it, so there is exactly **one** merchant per cluster, shared by every
+ * organization. It is not observed from chain events — it is created once by the
+ * operator and then read to resolve the merchant PDA. The admin's address seeds
+ * the merchant PDA, so storing the admin is enough to derive the merchant.
  *
- * The admin's own address seeds the merchant PDA, so storing the admin is enough
- * to derive the merchant; the derived address is stored too, for display.
+ * The audit row is recorded against the acting operator's organization, which is
+ * the only organization context available at initialization time.
  */
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb } from "./client";
 import { auditEvents, merchantConfigs } from "./schema";
 
@@ -21,7 +20,6 @@ function newId(prefix: string): string {
 
 export interface MerchantView {
   id: string;
-  entityId: string;
   cluster: string;
   adminAddress: string;
   merchantAddress: string;
@@ -30,22 +28,17 @@ export interface MerchantView {
   destination: string;
 }
 
-/** The merchant config for an organization and cluster, if one was initialized. */
-export async function findMerchantForCluster(organizationId: string, cluster: string): Promise<MerchantView | null> {
+/** The platform merchant config for a cluster, if one was initialized. */
+export async function findPlatformMerchant(cluster: string): Promise<MerchantView | null> {
   const db = getDb();
-  const [row] = await db
-    .select()
-    .from(merchantConfigs)
-    .where(and(eq(merchantConfigs.organizationId, organizationId), eq(merchantConfigs.cluster, cluster)))
-    .limit(1);
+  const [row] = await db.select().from(merchantConfigs).where(eq(merchantConfigs.cluster, cluster)).limit(1);
   return row ? toView(row) : null;
 }
 
-/** Record the merchant config the admin is about to create. Idempotent by (org, cluster). */
-export async function upsertMerchant(
+/** Record the platform merchant the operator is about to create. Idempotent by cluster. */
+export async function upsertPlatformMerchant(
   input: {
-    organizationId: string;
-    entityId: string;
+    actorOrganizationId: string;
     cluster: string;
     adminAddress: string;
     merchantAddress: string;
@@ -60,13 +53,12 @@ export async function upsertMerchant(
     const [existing] = await tx
       .select({ id: merchantConfigs.id })
       .from(merchantConfigs)
-      .where(and(eq(merchantConfigs.organizationId, input.organizationId), eq(merchantConfigs.cluster, input.cluster)))
+      .where(eq(merchantConfigs.cluster, input.cluster))
       .limit(1);
     if (existing) {
       await tx
         .update(merchantConfigs)
         .set({
-          entityId: input.entityId,
           adminAddress: input.adminAddress,
           merchantAddress: input.merchantAddress,
           collectorAddress: input.collectorAddress,
@@ -77,10 +69,18 @@ export async function upsertMerchant(
       return;
     }
     const id = newId("merchant");
-    await tx.insert(merchantConfigs).values({ id, ...input });
+    await tx.insert(merchantConfigs).values({
+      id,
+      cluster: input.cluster,
+      adminAddress: input.adminAddress,
+      merchantAddress: input.merchantAddress,
+      collectorAddress: input.collectorAddress,
+      mint: input.mint,
+      destination: input.destination,
+    });
     await tx.insert(auditEvents).values({
       id: newId("audit"),
-      organizationId: input.organizationId,
+      organizationId: input.actorOrganizationId,
       occurredAt: new Date(),
       actor,
       action: "billing.merchant.initialized",
@@ -93,7 +93,6 @@ export async function upsertMerchant(
 
 function toView(row: {
   id: string;
-  entityId: string;
   cluster: string;
   adminAddress: string;
   merchantAddress: string;
@@ -103,7 +102,6 @@ function toView(row: {
 }): MerchantView {
   return {
     id: row.id,
-    entityId: row.entityId,
     cluster: row.cluster,
     adminAddress: row.adminAddress,
     merchantAddress: row.merchantAddress,
