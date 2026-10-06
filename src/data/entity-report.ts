@@ -1,6 +1,6 @@
 import type { SessionUser } from "@/auth/current";
 import { can } from "@/auth/roles";
-import { assetCarryingSchedule, trialBalance } from "@/ledger";
+import { assetCarryingSchedule, financialStatements, trialBalance } from "@/ledger";
 import type { Books } from "./books";
 import { reportAssetBars, reportComposition } from "./charts";
 import { booksAreWritable } from "./load-books";
@@ -17,6 +17,7 @@ export function entityReport(input: { books: Books; entityId: string; range: Dat
   const scoped = sliceBooks(books, range);
   const entity = books.entities.find((item) => item.id === entityId);
   const balance = trialBalance(scoped.journalEntries, books.accounts, entityId);
+  const statements = financialStatements(scoped.journalEntries, books.accounts, books.assets, entityId);
   const revaluation =
     input.includeRevaluation && entity
       ? revaluationForEntity({
@@ -35,6 +36,7 @@ export function entityReport(input: { books: Books; entityId: string; range: Dat
   return {
     balance,
     balanced: balance.debitTotal === balance.creditTotal,
+    statements,
     carrying: assetCarryingSchedule(scoped.journalEntries, books.accounts, entityId),
     assetBars: reportAssetBars(entityId, scoped),
     composition: reportComposition(entityId, scoped),

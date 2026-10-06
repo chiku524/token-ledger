@@ -18,6 +18,8 @@ export interface RevaluationHolding {
   quantityScale: number;
   /** Carrying amount in the functional currency's minor units. */
   carryingMinor: bigint;
+  /** Date the position was taken on. On this date cost equals market value. */
+  entryDate?: string;
 }
 
 export interface RevaluationLine {
@@ -26,6 +28,18 @@ export interface RevaluationLine {
   marketMinor: bigint;
   /** marketMinor - carryingMinor. Positive is a gain, negative a loss. */
   differenceMinor: bigint;
+  /** "cost" on the entry date (market pinned to carrying), else "market". */
+  basis: RevaluationBasis;
+}
+
+/**
+ * On the date a position is entered there is no gain or loss: cost equals market
+ * value. From the next day the position is measured against the market.
+ */
+export type RevaluationBasis = "cost" | "market";
+
+export function revaluationBasis(entryDate: string, asOf: string): RevaluationBasis {
+  return asOf.slice(0, 10) <= entryDate.slice(0, 10) ? "cost" : "market";
 }
 
 export interface RevaluationProposal {
@@ -78,9 +92,13 @@ export function proposeRevaluation(input: {
     const holding = carryingByAsset.get(row.assetCode);
     if (!holding) continue;
     if (row.age === "stale") staleAssetCodes.push(row.assetCode);
-    const differenceMinor = row.valueMinor - holding.carryingMinor;
-    if (differenceMinor === 0n) continue;
-    lines.push({ assetCode: row.assetCode, carryingMinor: holding.carryingMinor, marketMinor: row.valueMinor, differenceMinor });
+    // On the entry date cost equals market, so a same-day price move is not a
+    // gain or loss. Only from the next day is the position measured to market.
+    const basis = holding.entryDate ? revaluationBasis(holding.entryDate, input.asOf) : "market";
+    const marketMinor = basis === "cost" ? holding.carryingMinor : row.valueMinor;
+    const differenceMinor = marketMinor - holding.carryingMinor;
+    if (differenceMinor === 0n && basis === "market") continue;
+    lines.push({ assetCode: row.assetCode, carryingMinor: holding.carryingMinor, marketMinor, differenceMinor, basis });
     netMinor += differenceMinor;
   }
 

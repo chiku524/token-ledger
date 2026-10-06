@@ -19,7 +19,8 @@ import {
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
-import { trialBalance } from "@/ledger";
+import { financialStatements, trialBalance } from "@/ledger";
+import { FinancialStatementsCards } from "@/components/app/financial-statements";
 
 export const metadata = { title: "Overview" };
 
@@ -29,6 +30,7 @@ export default async function DashboardPage() {
   const balances = books.entities.map((entity) => ({
     entity,
     report: trialBalance(books.journalEntries, books.accounts, entity.id),
+    statements: financialStatements(books.journalEntries, books.accounts, books.assets, entity.id),
   }));
   const inBalance = balances.every((item) => item.report.debitTotal === item.report.creditTotal);
   const recent = [...books.journalEntries].sort((a, b) => b.entryDate.localeCompare(a.entryDate)).slice(0, 4);
@@ -59,6 +61,27 @@ export default async function DashboardPage() {
         <StatCard label="Unmatched" value={exceptions.length} tone={exceptions.length ? "danger" : "success"} />
         <StatCard label="Books" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "success" : "danger"} />
       </Stagger>
+
+      <section className="mt-10">
+        <SectionHeader
+          title="Balance Sheet and Profit & Loss"
+          description={currencyNote}
+          action={
+            <Link href="/dashboard/reports" className="text-sm text-link underline">
+              Open reports
+            </Link>
+          }
+        />
+        <div className="mt-4 grid gap-6">
+          {balances.map(({ entity, statements }) => (
+            <FinancialStatementsCards
+              key={entity.id}
+              statements={statements}
+              company={`${entity.name} · ${entity.functionalCurrency}`}
+            />
+          ))}
+        </div>
+      </section>
 
       <section className="mt-8 grid gap-4 xl:grid-cols-2">
         {allocation.map((panel) => (

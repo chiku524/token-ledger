@@ -22,6 +22,7 @@ import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
 import { netBalanceMinor } from "@/ledger";
+import { FinancialStatementsCards } from "@/components/app/financial-statements";
 
 export const metadata = { title: "Reports" };
 
@@ -64,7 +65,7 @@ export default async function ReportsPage({
     );
   }
 
-  const { balance, balanced, carrying, assetBars, composition, revaluation } = entityReport({
+  const { balance, balanced, statements, carrying, assetBars, composition, revaluation } = entityReport({
     books,
     entityId: entity.id,
     range,
@@ -106,6 +107,16 @@ export default async function ReportsPage({
           ))}
         </div>
       ) : null}
+
+      <section className="mb-8">
+        <SectionHeader
+          title="Financial statements"
+          description="The Balance Sheet groups assets by kind, and the Profit & Loss covers this company and these dates. The period result is carried into equity so the sheet balances."
+        />
+        <div className="mt-4">
+          <FinancialStatementsCards statements={statements} company={entity.name} />
+        </div>
+      </section>
 
       <div className="mb-8 grid gap-4 xl:grid-cols-2">
         {assetBars.length > 0 ? (
