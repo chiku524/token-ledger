@@ -32,6 +32,13 @@ cargo-build-sbf --tools-version v1.57 --sbf-out-dir target/deploy
 This writes `target/deploy/service_balance.so` and
 `target/deploy/treasury_payables.so`.
 
+The **host** toolchain is pinned in `contracts/rust-toolchain.toml`, which covers
+both the programs workspace and the nested `contracts/tests` litesvm workspace.
+Rust **1.98.1** is the pin: the litesvm test workspace pulls agave/solana 4.3
+crates that require rustc **≥ 1.97.1**, so `stable` is not safe. rustup reads the
+file for any `cargo` command inside `contracts/`, so local runs and CI both use
+it. The SBF build is independent of this pin (its platform-tools are v1.57).
+
 ## Verify before deploying
 
 1. `cargo test` (program invariants) and `(cd tests && cargo test)` (litesvm

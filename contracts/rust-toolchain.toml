@@ -1,0 +1,12 @@
+# Pin the host Rust toolchain for the programs and shared crate. Cargo reads
+# this for the `contracts` workspace, and the nested `contracts/tests` litesvm
+# workspace inherits it. 1.98.1 is a minimum for the litesvm tests (their
+# agave/solana 4.3 deps need rustc >= 1.97.1) and parses the edition2024
+# dependency in the solana-program v2.3 tree that the SBF build uses.
+#
+# The SBF build itself uses its own platform-tools, independent of this pin:
+# `cargo-build-sbf --tools-version v1.57` (see DEPLOYMENTS.md). The `components`
+# list is intentionally omitted so rustup does not try to fetch rust-src/clippy.
+[toolchain]
+channel = "1.98.1"
+profile = "minimal"
