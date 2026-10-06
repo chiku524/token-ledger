@@ -207,3 +207,4 @@ both feeding the existing accounting system.
 - Plan: `docs/token-ledger-solana-contract-plan-2.md`.
 - Deployment record and runbook: `contracts/DEPLOYMENTS.md`.
 - Programs: `contracts/programs/`; tests: `contracts/tests/`.
+- Independent security review checklist: `docs/contract-security-review.md` (#164).

@@ -85,7 +85,8 @@ does not exist yet; it is tracked with CHAIN-01 and the execution boundary in
   governance key.
 - Verify the issuer USDC mint before any mainnet launch; devnet uses a local test
   mint.
-- Independent review of the money-moving code is a mainnet launch gate (#164).
+- Independent review of the money-moving code is a mainnet launch gate (#164);
+  the reviewer checklist is `docs/contract-security-review.md`.
   Do not call the system immutable while upgrades remain possible.
 
 ## Token
