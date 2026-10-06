@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadBilling } from "@/data/load-billing";
+import { accessLabel } from "@/billing/access";
 import { entityName } from "@/data/present";
 import { formatMinor } from "@/ledger";
 import { USDC_DECIMALS } from "@/config/solana";
@@ -27,7 +28,7 @@ function periods(seconds: number): string {
 }
 
 export default async function BillingPage() {
-  const { session, configured, deployment, actionable, entities, bindings, vaults, merchant } = await loadBilling();
+  const { session, configured, deployment, actionable, entities, bindings, vaults, merchant, access } = await loadBilling();
   const csrf = await ensureCsrf();
   // Per the plan, Token Ledger is the merchant: only the platform operator
   // (owner/admin) initializes it and publishes plans. Customers only pay.
@@ -40,6 +41,15 @@ export default async function BillingPage() {
         title="Billing"
         description="Subscribe to Token Ledger: fund a USDC vault and authorize bounded, recurring 30-day charges. You can cancel renewal and withdraw unspent funds at any time — no merchant signature. Merely connecting a read-only wallet never enables spending."
       />
+
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <StatusBadge tone={access.active ? "success" : "neutral"}>{accessLabel(access)}</StatusBadge>
+        <span className="text-sm text-muted-foreground">
+          {access.active
+            ? `Access until ${access.accessUntil?.toISOString().slice(0, 10)}${access.renewing ? "" : " (not renewing)"}.`
+            : "No active subscription. Cancelling or expiring never blocks withdrawing your balance."}
+        </span>
+      </div>
 
       {!configured ? (
         <Alert variant="warning" className="mb-6 max-w-2xl">

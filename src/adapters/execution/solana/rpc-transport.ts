@@ -77,6 +77,41 @@ export class RpcSolanaTransport implements SolanaTransport {
     return result.value;
   }
 
+  /** The current finalized slot height, for the indexer's backfill bound. */
+  async getFinalizedSlot(): Promise<bigint> {
+    const slot = await this.call<number>("getSlot", [{ commitment: "finalized" }]);
+    return BigInt(slot);
+  }
+
+  /**
+   * Recent signatures that touched an address (a program id, for the indexer),
+   * newest first. Paginate with `before` for older pages.
+   */
+  async getSignaturesForAddress(
+    address: string,
+    options: { limit?: number; before?: string } = {},
+  ): Promise<Array<{ signature: string; slot: number; blockTime: number | null }>> {
+    const params: Array<Record<string, unknown>> = [{ limit: options.limit ?? 100, commitment: "finalized" }];
+    if (options.before) params[0]!.before = options.before;
+    return this.call<Array<{ signature: string; slot: number; blockTime: number | null }>>(
+      "getSignaturesForAddress",
+      [address, params[0]!],
+    );
+  }
+
+  /** A finalized transaction's logs and slot, for event decoding. */
+  async getTransactionLogs(
+    signature: string,
+  ): Promise<{ slot: number; blockTime: number | null; logs: string[] } | null> {
+    const result = await this.call<{
+      slot: number;
+      blockTime: number | null;
+      meta: { logMessages: string[] | null; err: unknown } | null;
+    } | null>("getTransaction", [signature, { encoding: "json", commitment: "finalized", maxSupportedTransactionVersion: 0 }]);
+    if (!result) return null;
+    return { slot: result.slot, blockTime: result.blockTime, logs: result.meta?.logMessages ?? [] };
+  }
+
   /**
    * Simulate. `sigVerify: false` so an unsigned message can be checked before a
    * signature. A revert is reported, not thrown: it is an expected outcome.
