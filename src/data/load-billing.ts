@@ -5,6 +5,7 @@ import { can } from "@/auth/roles";
 import type { SolanaDeployment } from "@/config/solana";
 import { solanaDeployment } from "@/config/solana";
 import { deriveEntitlement, type Entitlement } from "@/billing/entitlement";
+import { resolveAccess, type OrganizationAccess } from "@/billing/access";
 import { listChargesForMandate, listBillingVaults, mandateViewForVault, type ChargeView, type MandateView } from "@/db/billing";
 import { findPlatformMerchant, type MerchantView } from "@/db/merchant";
 import { listActiveWalletBindings, type WalletBindingView } from "@/db/wallet-bindings";
@@ -35,6 +36,8 @@ export interface BillingData {
   vaults: BillingVaultRow[];
   /** The merchant config initialized from the app, if any. */
   merchant: MerchantView | null;
+  /** The organization's subscription access, from projected mandates. */
+  access: OrganizationAccess;
 }
 
 /**
@@ -59,7 +62,17 @@ export const loadBilling = cache(async (): Promise<BillingData> => {
   const actionable = configured && writable && can(session.role, "source.connect");
 
   if (!writable) {
-    return { session, configured, deployment, actionable, entities: books.entities, bindings: [], vaults: [], merchant: null };
+    return {
+      session,
+      configured,
+      deployment,
+      actionable,
+      entities: books.entities,
+      bindings: [],
+      vaults: [],
+      merchant: null,
+      access: resolveAccess([], new Date()),
+    };
   }
 
   const organizationId = session.organizationId as string;
@@ -84,7 +97,13 @@ export const loadBilling = cache(async (): Promise<BillingData> => {
     });
   }
 
-  return { session, configured, deployment, actionable, entities: books.entities, bindings, vaults, merchant };
+  // The organization's access is resolved from its projected entitlements.
+  const access = resolveAccess(
+    vaults.map((vault) => vault.entitlement).filter((entitlement): entitlement is Entitlement => entitlement !== null),
+    now,
+  );
+
+  return { session, configured, deployment, actionable, entities: books.entities, bindings, vaults, merchant, access };
 });
 
 function toMandateState(mandate: MandateView) {
