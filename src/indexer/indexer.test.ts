@@ -101,6 +101,15 @@ describe("backfill", () => {
     expect(plan.hasWork).toBe(false);
   });
 
+  it("does not move the cursor backwards when the cursor is ahead of finality", () => {
+    // A reorg can leave the cursor ahead of the canonical finalized height. The
+    // scan must stall, not advance, and never rewind on its own.
+    const cursor = { cluster: "devnet", programId: "p", lastSlot: 300n };
+    const plan = planBackfill(cursor, { finalizedSlot: 260n, maxSpanSlots: 100n });
+    expect(plan).toEqual({ fromSlot: 300n, toSlot: 260n, spanSlots: 0n, hasWork: false });
+    expect(advanceCursor(cursor, plan).lastSlot).toBe(300n);
+  });
+
   it("trusts only at-or-below finality", () => {
     expect(isFinalized(200n, 250n)).toBe(true);
     expect(isFinalized(260n, 250n)).toBe(false);
