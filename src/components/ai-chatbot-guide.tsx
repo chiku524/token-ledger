@@ -4,8 +4,6 @@ import { useState } from "react";
 import { m } from "motion/react";
 import {
   ArrowRight,
-  BookOpen,
-  Bot,
   CheckCircle2,
   ShieldAlert,
   Sparkles,
@@ -308,17 +306,6 @@ export function AiChatbotGuide({ csrf, canRestartTour }: { csrf: string; canRest
 
   return (
     <div className="grid max-w-5xl gap-8">
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 px-3 py-2">
-        <Bot className="size-4 text-muted-foreground" aria-hidden />
-        <p className="text-sm text-muted-foreground">
-          AI chatbot handbook — same actions as the dashboard, when you ask.
-        </p>
-        <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <BookOpen className="size-3.5" aria-hidden />
-          Spec: docs/ai-chatbot.md
-        </span>
-      </div>
-
       <nav aria-label="Guide sections" className="relative flex flex-wrap gap-1 border-b border-border pb-1">
         {GUIDE_SECTIONS.map((item) => {
           const selected = item.id === active;
