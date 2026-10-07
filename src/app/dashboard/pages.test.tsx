@@ -109,7 +109,7 @@ describe("read-only sample (demo owner, no database)", () => {
     ["History", AuditPage as Page, ["History"]],
     ["Operations", OperationsPage as Page, ["Operations", DEMO_NOTE]],
     ["Setup", SetupPage as Page, ["Step 1 of 3", DEMO_NOTE]],
-    ["Guide", GuidePage as Page, ["Guide", "Where a connection sits"]],
+    ["Guide", GuidePage as Page, ["Guide", "AI chatbot handbook", "Observations stay observed"]],
   ])("renders %s from the sample books", async (_name, page, expected) => {
     signInDemo("owner");
     const content = await pageText(page);
@@ -198,13 +198,13 @@ describe("role gating", () => {
 
   it("offers the tour again only to an admin who has dismissed it", async () => {
     signInDemo("admin");
-    expect(await pageText(GuidePage as Page)).not.toContain("Take the tour");
+    expect(await pageText(GuidePage as Page)).not.toContain("Restart getting-started tour");
     setCookie(CONNECTION_TOUR_COOKIE, "1");
-    expect(await pageText(GuidePage as Page)).toContain("Take the tour");
+    expect(await pageText(GuidePage as Page)).toContain("Restart getting-started tour");
     resetRequest();
     signInDemo("owner");
     setCookie(CONNECTION_TOUR_COOKIE, "1");
-    expect(await pageText(GuidePage as Page)).not.toContain("Take the tour");
+    expect(await pageText(GuidePage as Page)).not.toContain("Restart getting-started tour");
   });
 });
 

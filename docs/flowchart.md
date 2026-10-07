@@ -4,6 +4,9 @@ End-to-end flows through the system. Diagrams are Mermaid; GitHub renders them
 inline. The guiding rule throughout: **reads are observations, writes to the
 books are deliberate, and nothing pulled from a source ever posts a journal.**
 
+For the AI chatbot capability handbook (TOC, prompts, refusals), see
+[`docs/ai-chatbot.md`](./ai-chatbot.md) and the in-app Guide at `/dashboard/guide`.
+
 ---
 
 ## 1. System at a glance
