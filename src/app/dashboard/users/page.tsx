@@ -7,7 +7,9 @@ import { can, canAssignRole, canDeactivate, removesLastOwner, roleLabel, ROLES }
 import { EmptyState } from "@/components/app/empty-state";
 import { Field } from "@/components/app/field";
 import { FormCard } from "@/components/app/form-card";
+import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge } from "@/components/app/status-badge";
+import { EmptyRow } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Alert } from "@/components/ui/alert";
@@ -126,75 +128,79 @@ export default async function UsersPage({
           <SubmitButton>Create invite link</SubmitButton>
         </div>
       </FormCard>
-      <TableCard className="mt-0">
-        <Table>
-          <caption className="sr-only">Organization users</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Person</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Companies</TableHead>
-              <TableHead>Access</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {people.map((person) => {
-              const lastOwner = removesLastOwner(owners, person.id, "inactive");
-              const roleChoices = ROLES.filter((role) => canAssignRole(session, role, person) || role === person.role);
-              return (
-                <TableRow key={person.id}>
-                  <TableCell>
-                    {person.name}
-                    <span className="mt-1 block text-xs text-muted-foreground">{person.email}</span>
-                  </TableCell>
-                  <TableCell>{roleLabel(person.role)}</TableCell>
-                  <TableCell>
-                    <StatusBadge tone={person.status === "active" ? "success" : "neutral"} className="capitalize">
-                      {person.status}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>{person.entityScope.length === 0 ? "All companies" : person.entityScope.join(", ")}</TableCell>
-                  <TableCell>
-                    {database && person.status !== "inactive" ? (
-                      <div className="grid gap-2">
-                        <form action={changeAccessAction} className="grid gap-2">
-                          <input type="hidden" name="csrf" value={csrf} />
-                          <input type="hidden" name="userId" value={person.id} />
-                          <label className="sr-only" htmlFor={`role-${person.id}`}>
-                            Role for {person.name}
-                          </label>
-                          <NativeSelect id={`role-${person.id}`} name="role" defaultValue={person.role}>
-                            {roleChoices.map((role) => (
-                              <NativeSelectOption key={role} value={role}>
-                                {roleLabel(role)}
-                              </NativeSelectOption>
-                            ))}
-                          </NativeSelect>
-                          <label className="sr-only" htmlFor={`scope-${person.id}`}>
-                            Companies for {person.name}
-                          </label>
-                          <Input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
-                          <SubmitButton variant="secondary">Save access</SubmitButton>
-                        </form>
-                        {canDeactivate(session, person) && !lastOwner ? (
-                          <form action={deactivateUserAction}>
+      <section>
+        <SectionHeader title="People" />
+        <TableCard>
+          <Table>
+            <caption className="sr-only">Organization users</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Person</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Companies</TableHead>
+                <TableHead>Access</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {people.length === 0 ? <EmptyRow colSpan={5}>No one has been added yet.</EmptyRow> : null}
+              {people.map((person) => {
+                const lastOwner = removesLastOwner(owners, person.id, "inactive");
+                const roleChoices = ROLES.filter((role) => canAssignRole(session, role, person) || role === person.role);
+                return (
+                  <TableRow key={person.id}>
+                    <TableCell>
+                      {person.name}
+                      <span className="mt-1 block text-xs text-muted-foreground">{person.email}</span>
+                    </TableCell>
+                    <TableCell>{roleLabel(person.role)}</TableCell>
+                    <TableCell>
+                      <StatusBadge tone={person.status === "active" ? "success" : "neutral"} className="capitalize">
+                        {person.status}
+                      </StatusBadge>
+                    </TableCell>
+                    <TableCell>{person.entityScope.length === 0 ? "All companies" : person.entityScope.join(", ")}</TableCell>
+                    <TableCell>
+                      {database && person.status !== "inactive" ? (
+                        <div className="grid gap-2">
+                          <form action={changeAccessAction} className="grid gap-2">
                             <input type="hidden" name="csrf" value={csrf} />
                             <input type="hidden" name="userId" value={person.id} />
-                            <SubmitButton variant="secondary">Deactivate</SubmitButton>
+                            <label className="sr-only" htmlFor={`role-${person.id}`}>
+                              Role for {person.name}
+                            </label>
+                            <NativeSelect id={`role-${person.id}`} name="role" defaultValue={person.role}>
+                              {roleChoices.map((role) => (
+                                <NativeSelectOption key={role} value={role}>
+                                  {roleLabel(role)}
+                                </NativeSelectOption>
+                              ))}
+                            </NativeSelect>
+                            <label className="sr-only" htmlFor={`scope-${person.id}`}>
+                              Companies for {person.name}
+                            </label>
+                            <Input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
+                            <SubmitButton variant="secondary">Save access</SubmitButton>
                           </form>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">{database ? "Turned off" : "Sample only"}</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableCard>
+                          {canDeactivate(session, person) && !lastOwner ? (
+                            <form action={deactivateUserAction}>
+                              <input type="hidden" name="csrf" value={csrf} />
+                              <input type="hidden" name="userId" value={person.id} />
+                              <SubmitButton variant="secondary">Deactivate</SubmitButton>
+                            </form>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{database ? "Turned off" : "Sample only"}</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableCard>
+      </section>
     </>
   );
 }

@@ -28,7 +28,8 @@ shadcn (`radix-nova`), branded through the tokens in `globals.css`.
 | `TableCard` | `mt-4 overflow-x-auto panel` |
 | `Amount` | `.num` (add `text-right` on the cell for column alignment) |
 | `Field` | `.field` |
-| `StatCard` | Overview stat tiles; numbers count up (`NumberTicker`) and stagger in. Place inside a `Stagger`. |
+| `StatCard` | Stat tiles on Overview and Operations; numbers count up (`NumberTicker`) and stagger in. Place inside a `Stagger`. Optional `hint` shows a short line of context under the value. |
+| `ConnectionsTable` | The read-only connections table (Holdings, Settings). Pass `controls={{ csrf }}` to add the Actions column. |
 | `NumberHead`, `NumberCell` | `.num` table columns. `NumberCell align="left"` for dates and addresses (pair it with a plain `TableHead`). |
 | `EmptyRow` | Centred muted message row for a table with no rows. Pass `colSpan` for the column count. Use `EmptyState` when the whole table is absent. |
 | `FormCard` | `grid gap-3 panel p-4` form with a title and description (headings `h2` or `h3`) |
@@ -42,7 +43,7 @@ on every page that a server action redirects to.
 
 | File | Role |
 |---|---|
-| `frame.tsx` | `ChartFrame`: the card around a chart, with title, description and an `sr-only` data table for screen readers |
+| `frame.tsx` | `ChartFrame`: a `Card` around a chart, with title, description and an `sr-only` data table for screen readers. Shows `empty` text (default "Nothing to chart for these dates.") when `rows` is empty. Lazy charts show a skeleton while they load |
 | `charts.tsx` | `MoneyBars`, `MoneyLine`, `StatusDonut`, `StatusBars`, `ActivityBars` (recharts) |
 | `lazy.tsx` | Client-only (`ssr: false`) entry points. Pages import charts from here so recharts stays out of the server bundle |
 | `use-chart-reveal.ts` | Draws a chart once it is 30% in view; always drawn when printing; no animation under reduced motion |
@@ -53,10 +54,11 @@ Colours come from the chart palette in `README.md`.
 
 | File | Role |
 |---|---|
-| `dashboard-shell.tsx` | Desktop sidebar, mobile top bar, unverified-email `Alert` |
-| `dashboard-nav.tsx` | lucide icons, one shared `layoutId` pill for the active link |
-| `mobile-nav.tsx` | `Sheet` menu below `md`, closes on navigation |
-| `user-menu.tsx` | `DropdownMenu` with email, scope, and sign out |
+| `dashboard-shell.tsx` | Composes `TooltipProvider`, `SidebarProvider`, `AppSidebar` and the `SidebarInset`; renders the unverified-email `Alert` |
+| `app-sidebar.tsx` | shadcn `Sidebar` (icon-rail collapse); below `md` it is a `Sheet` that closes on navigation |
+| `nav-main.tsx` | collapsible groups, lucide icons, one shared `layoutId` pill for the active link |
+| `nav-user.tsx` | initials avatar and `DropdownMenu` with email, scope, and sign out |
+| `dashboard-header.tsx` | sticky top bar: sidebar trigger, breadcrumb, theme toggle |
 | `theme-toggle.tsx` | Icon `Button`; same `tl-theme` key and no-flash script |
 | `app/dashboard/template.tsx` | `PageTransition` fade on every dashboard navigation |
 | `app/dashboard/loading.tsx` | `Skeleton` placeholder |

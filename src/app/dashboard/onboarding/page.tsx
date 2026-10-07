@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { loadOnboardingHiddenTabs } from "@/data/onboarding";
-import { ALWAYS_VISIBLE, ONBOARDING_SECTIONS } from "@/data/onboarding-sections";
+import { ALWAYS_VISIBLE_SECTIONS, ONBOARDING_SECTIONS } from "@/data/onboarding-sections";
 import { one } from "@/data/query";
 
 export const metadata = { title: "Onboarding" };
@@ -40,10 +40,6 @@ export default async function OnboardingPage({
   const csrf = await ensureCsrf();
   const hidden = writable ? await loadOnboardingHiddenTabs(session.organizationId) : [];
   const hiddenSet = new Set(hidden);
-  const alwaysVisible = [
-    { href: "/dashboard", label: "Overview" },
-    { href: "/dashboard/settings", label: "Settings" },
-  ];
 
   return (
     <>
@@ -93,7 +89,7 @@ export default async function OnboardingPage({
       <section className="mt-6">
         <h2 className="text-sm font-medium text-muted-foreground">Always visible</h2>
         <ul className="mt-2 flex flex-wrap gap-2">
-          {alwaysVisible.map((item) => (
+          {ALWAYS_VISIBLE_SECTIONS.map((item) => (
             <li key={item.href}>
               <StatusBadge tone="neutral">
                 {item.label} · {item.href}
@@ -102,7 +98,7 @@ export default async function OnboardingPage({
           ))}
         </ul>
         <p className="mt-2 text-xs text-muted-foreground">
-          These cannot be hidden. {ALWAYS_VISIBLE.size} sections are fixed.
+          These cannot be hidden. {ALWAYS_VISIBLE_SECTIONS.length} sections are fixed.
         </p>
       </section>
     </>

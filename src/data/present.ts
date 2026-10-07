@@ -1,4 +1,5 @@
 import { formatMinor } from "@/ledger";
+import { USDC_DECIMALS } from "@/config/solana";
 import { watchVenueLabel } from "./connections";
 import { assetByCode, exampleAccounts, exampleAssets, exampleEntities, exampleSources } from "./example-books";
 
@@ -10,6 +11,10 @@ export function formatMoney(amountMinor: bigint, currency: string): string {
     throw new Error(`No display scale configured for ${currency}.`);
   }
   return `${currency} ${formatMinor(amountMinor, scale, { minFraction: scale, maxFraction: scale })}`;
+}
+
+export function formatUsdc(amountMinor: bigint): string {
+  return `USDC ${formatMinor(amountMinor, USDC_DECIMALS, { minFraction: 2, maxFraction: 2 })}`;
 }
 
 export function formatQuantity(

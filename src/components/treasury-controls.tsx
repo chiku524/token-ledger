@@ -18,6 +18,7 @@ import { previewIsComplete } from "@/contracts/preview";
 import type { InjectedTransactionProvider } from "@/auth/wallet-transaction";
 import { Button } from "@/components/ui/button";
 import { FormCard } from "@/components/app/form-card";
+import { SubmitButton } from "@/components/submit-button";
 
 interface SolanaInjected {
   publicKey?: { toString(): string } | null;
@@ -146,9 +147,9 @@ export function RecordForm({
       <input type="hidden" name="csrf" value={csrf} />
       {children}
       <div className="md:col-span-2">
-        <Button type="submit" variant="secondary">
+        <SubmitButton variant="secondary" pendingLabel="Saving">
           Save
-        </Button>
+        </SubmitButton>
       </div>
     </FormCard>
   );

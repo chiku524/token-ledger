@@ -24,6 +24,13 @@ const MODES = [
   },
 ];
 
+const HIERARCHY = [
+  ["Company", "The legal entity that holds the asset."],
+  ["Connection", "Read-only. Scopes are balances and movements."],
+  ["Account", "One address, exchange account, or vault."],
+  ["Observation", "A balance at a moment, plus the movements since the last cursor."],
+];
+
 const LIFE = [
   { title: "Add", detail: "Signup can connect a wallet, an exchange, a custodian, or all of them. Later, an owner or admin adds another from Settings. The connection starts as Waiting." },
   { title: "Check", detail: "The reader for that venue is asked for balances and movements. A stub reader sends nothing." },
@@ -42,22 +49,30 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
           The connection is consent for a company. Accounts hang off it. What was read stays separate from what was posted.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <ol className="grid gap-2" aria-label="From the company down to an observation">
-            {[
-              ["Company", "The legal entity that holds the asset."],
-              ["Connection", "Read-only. Scopes are balances and movements."],
-              ["Account", "One address, exchange account, or vault."],
-              ["Observation", "A balance at a moment, plus the movements since the last cursor."],
-            ].map(([title, detail], index) => (
-              <li key={title} className="rounded-xl border border-border bg-card px-4 py-3" style={{ marginLeft: `${index * 0.75}rem` }}>
-                <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{index + 1}</p>
-                <p className="mt-1 font-medium">{title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-              </li>
-            ))}
+          <ol className="rounded-xl border border-border bg-card p-5" aria-label="From the company down to an observation">
+            {HIERARCHY.map(([title, detail], index) => {
+              const last = index === HIERARCHY.length - 1;
+              return (
+                <li key={title} className="relative flex gap-4 pb-6 last:pb-0">
+                  {last ? null : <span aria-hidden className="absolute left-4 top-9 bottom-1 w-px -translate-x-1/2 bg-border" />}
+                  <span
+                    aria-hidden
+                    className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-medium tabular-nums ${
+                      last ? "border-success bg-success/10 text-success" : "border-border bg-background text-muted-foreground"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="font-medium leading-tight">{title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{detail}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">Beside the read, not inside it</p>
+            <p className="label-caps">Beside the read, not inside it</p>
             <ul className="mt-3 grid gap-3 text-sm">
               <li>
                 <span className="font-medium">Observed balance</span>
@@ -95,15 +110,15 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
               <h3 className="font-medium">{mode.title}</h3>
               <dl className="mt-3 grid gap-3 text-sm">
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Stored</dt>
+                  <dt className="label-caps">Stored</dt>
                   <dd className="mt-1">{mode.stores}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Read</dt>
+                  <dt className="label-caps">Read</dt>
                   <dd className="mt-1">{mode.reads}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Secret</dt>
+                  <dt className="label-caps">Secret</dt>
                   <dd className="mt-1">{mode.secret}</dd>
                 </div>
               </dl>
@@ -119,7 +134,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         <ol className="mt-4 grid gap-3 md:grid-cols-4" aria-label="Connection lifecycle">
           {LIFE.map((step, index) => (
             <li key={step.title} className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs tracking-[0.14em] text-success uppercase">{index + 1}</p>
+              <p className="label-caps text-success">{index + 1}</p>
               <h3 className="mt-2 font-medium">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
             </li>

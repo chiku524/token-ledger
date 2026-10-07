@@ -1,4 +1,4 @@
-import { BookOpen } from "lucide-react";
+import { BookOpen, Calendar } from "lucide-react";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
@@ -7,7 +7,8 @@ import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
-import { PeriodForm } from "@/components/period-form";
+import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/submit-button";
 import { JournalForm, ReadOnlyNote, ReverseJournalForm, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
@@ -42,13 +43,26 @@ export default async function LedgerPage({
 
   return (
     <>
-      <PageHeader
-        kicker="Entries"
-        title="Journal"
-        description="Posted entries stay as they were written. To fix one, post a correction. A token amount on a line says which wallet, exchange, or custodian moved."
-      />
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Journal</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Posted entries · {range.from} – {range.to}
+        </p>
+      </header>
+
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
-      <PeriodForm path="/dashboard/ledger" range={range} />
+
+      <div className="mb-8 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm">
+        <form method="get" action="/dashboard/ledger" className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="size-3.5 shrink-0" />
+            <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+            <span className="text-muted-foreground/60">—</span>
+            <Input type="date" name="to" aria-label="To date" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+          </div>
+          <SubmitButton variant="ghost" size="sm">Update</SubmitButton>
+        </form>
+      </div>
       {canPost ? (
         <>
           {writable ? null : <ReadOnlyNote demo={session.demo} />}

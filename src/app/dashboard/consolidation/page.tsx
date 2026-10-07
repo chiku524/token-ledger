@@ -1,15 +1,15 @@
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
-import { SegmentedLinks } from "@/components/app/segmented-links";
 import { StatusBadge } from "@/components/app/status-badge";
 import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
-import { PeriodForm } from "@/components/period-form";
+import { SubmitButton } from "@/components/submit-button";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { FxRateForm, ReadOnlyNote } from "@/components/record-forms";
@@ -21,6 +21,9 @@ import { sliceBooks } from "@/data/slice-books";
 import { formatMoney } from "@/data/present";
 import { consolidateTrialBalances, formatFxRate, formatInverseRate, translateGroupIas21 } from "@/ledger";
 import { requireSectionAccess } from "@/data/section-access";
+import { Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export const metadata = { title: "Combined" };
 
@@ -69,23 +72,50 @@ export default async function ConsolidationPage({
 
   return (
     <>
-      <PageHeader
-        kicker={books.organization.name}
-        title="Combined"
-        description="Each company keeps its own currency until this page. Amounts are converted with the saved rate on or before the end date. Sample rates are not a market price."
-      />
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Combined</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {books.organization.name} · {presentation}
+        </p>
+      </header>
+
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
-      <SegmentedLinks
-        label="Currency"
-        className="mb-6"
-        items={currencies.map((currency) => ({
-          key: currency,
-          href: `/dashboard/consolidation?currency=${currency}&from=${range.from}&to=${range.to}`,
-          label: `Show in ${currency}`,
-          current: currency === presentation,
-        }))}
-      />
-      <PeriodForm path="/dashboard/consolidation" range={range} hidden={{ currency: presentation }} />
+
+      <div className="mb-8 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          {/* Currency picker */}
+          {currencies.length > 1 && (
+            <nav aria-label="Currency" className="flex flex-wrap items-center gap-1">
+              {currencies.map((currency) => (
+                <Link
+                  key={currency}
+                  href={`/dashboard/consolidation?currency=${currency}&from=${range.from}&to=${range.to}`}
+                  aria-current={currency === presentation ? "page" : undefined}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    currency === presentation
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  {currency}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          <form method="get" action="/dashboard/consolidation" className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="currency" value={presentation} />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Calendar className="size-3.5 shrink-0" />
+              <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+              <span className="text-muted-foreground/60">—</span>
+              <Input type="date" name="to" aria-label="To date" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+            </div>
+            <SubmitButton variant="ghost" size="sm">Update</SubmitButton>
+          </form>
+        </div>
+      </div>
 
       <section>
         <SectionHeader title="Rates" />

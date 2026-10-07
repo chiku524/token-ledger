@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { TableCard } from "@/components/app/table-card";
-import { NumberCell } from "@/components/app/table-cells";
+import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { Field } from "@/components/app/field";
 import { RecordForm, TreasuryAction } from "@/components/treasury-controls";
 import {
@@ -20,16 +20,11 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadTreasury } from "@/data/load-treasury";
-import { entityName } from "@/data/present";
-import { formatMinor } from "@/ledger";
-import { USDC_DECIMALS } from "@/config/solana";
+import { entityName, formatUsdc as usdc } from "@/data/present";
+import { Card, CardContent } from "@/components/ui/card";
 import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Payables" };
-
-function usdc(amountMinor: bigint): string {
-  return `USDC ${formatMinor(amountMinor, USDC_DECIMALS, { minFraction: 2, maxFraction: 2 })}`;
-}
 
 function proposalStatus(proposal: { executed: boolean; cancelled: boolean; expiresAt: Date }): { label: string; tone: "success" | "danger" | "neutral" | "warning" } {
   if (proposal.executed) return { label: "Paid", tone: "success" };
@@ -39,8 +34,8 @@ function proposalStatus(proposal: { executed: boolean; cancelled: boolean; expir
 }
 
 export default async function PayablesPage() {
-  const { configured, deployment, actionable, entities, treasuries, suppliers, invoices, proposals } = await loadTreasury();
   await requireSectionAccess("/dashboard/payables");
+  const { configured, deployment, actionable, entities, treasuries, suppliers, invoices, proposals } = await loadTreasury();
   const csrf = await ensureCsrf();
   const supplierName = (id: string) => suppliers.find((supplier) => supplier.id === id)?.name ?? id;
   const defaultTreasury = treasuries[0]?.id ?? "";
@@ -76,7 +71,7 @@ export default async function PayablesPage() {
                   <TableHead>Company</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead>Reference</TableHead>
-                  <TableHead>Amount</TableHead>
+                  <NumberHead>Amount</NumberHead>
                   <TableHead>Status</TableHead>
                   {actionable ? <TableHead>Propose</TableHead> : null}
                 </TableRow>
@@ -161,32 +156,34 @@ export default async function PayablesPage() {
             const status = proposalStatus(proposal);
             const approved = proposal.approvals.filter((approval) => approval.approvedAt && !approval.revokedAt).length;
             return (
-              <div key={proposal.id} className="mt-6 rounded-xl border border-border bg-card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">
-                      {usdc(proposal.grossAmountMinor)} to <span className="font-mono text-xs">{proposal.recipientOwner}</span>
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Revision {proposal.revision} · {approved} of {treasuries.find((t) => t.id === proposal.treasuryAccountId)?.threshold ?? "?"} approvals · expires{" "}
-                      {proposal.expiresAt.toISOString().slice(0, 10)}
-                    </p>
+              <Card key={proposal.id} className="mt-6">
+                <CardContent>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">
+                        {usdc(proposal.grossAmountMinor)} to <span className="font-mono text-xs">{proposal.recipientOwner}</span>
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Revision {proposal.revision} · {approved} of {treasuries.find((t) => t.id === proposal.treasuryAccountId)?.threshold ?? "?"} approvals · expires{" "}
+                        {proposal.expiresAt.toISOString().slice(0, 10)}
+                      </p>
+                    </div>
+                    <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
                   </div>
-                  <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                </div>
-                {actionable && !proposal.executed && !proposal.cancelled ? (
-                  <div className="mt-4 grid gap-3 xl:grid-cols-3">
-                    <TreasuryAction prepare={prepareApprovePayment} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Approve" />
-                    <TreasuryAction prepare={prepareRevokeApproval} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Withdraw approval" />
-                    <TreasuryAction prepare={prepareExecutePayment} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Execute payment">
-                      <Field label="Supplier USDC account" className="md:col-span-2">
-                        <Input name="recipientTokenAccount" required className="font-mono" />
-                      </Field>
-                    </TreasuryAction>
-                    <TreasuryAction prepare={prepareCancelPayment} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Cancel proposal" />
-                  </div>
-                ) : null}
-              </div>
+                  {actionable && !proposal.executed && !proposal.cancelled ? (
+                    <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                      <TreasuryAction prepare={prepareApprovePayment} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Approve" />
+                      <TreasuryAction prepare={prepareRevokeApproval} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Withdraw approval" />
+                      <TreasuryAction prepare={prepareExecutePayment} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Execute payment">
+                        <Field label="Supplier USDC account" className="md:col-span-2">
+                          <Input name="recipientTokenAccount" required className="font-mono" />
+                        </Field>
+                      </TreasuryAction>
+                      <TreasuryAction prepare={prepareCancelPayment} csrf={csrf} entityId={proposal.entityId} treasuryId={proposal.treasuryAccountId} proposalId={proposal.id} cluster={deployment!.cluster} rpcUrl={deployment!.rpcUrl} label="Cancel proposal" />
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
             );
           })
         )}

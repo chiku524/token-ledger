@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -96,19 +96,12 @@ export function MoneyBars({ rows, currency }: { rows: MoneyRow[]; currency: stri
 
 export function MoneyLine({ panel }: { panel: LinePanel }) {
   const { ref, show, animate } = useChartReveal();
-  const gradient = `area-${useId().replace(/:/g, "")}`;
   const last = panel.points.length - 1;
   return (
     <div ref={ref} className="h-52 w-full" role="img" aria-label={panel.title}>
       {show ? (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={panel.points} margin={{ top: 10, right: 14, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={ACCENT} stopOpacity={0.24} />
-                <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <CartesianGrid stroke={LINE} vertical={false} />
             <XAxis dataKey="axisLabel" tick={tick} axisLine={{ stroke: LINE }} tickLine={false} minTickGap={28} />
             <YAxis tick={tick} axisLine={false} tickLine={false} width={44} tickFormatter={axisAmount} />
@@ -128,7 +121,8 @@ export function MoneyLine({ panel }: { panel: LinePanel }) {
               strokeWidth={2}
               strokeLinecap="round"
               strokeLinejoin="round"
-              fill={`url(#${gradient})`}
+              fill={ACCENT}
+              fillOpacity={0.1}
               dot={(props: { cx?: number; cy?: number; index?: number }) =>
                 props.index === last && props.cx !== undefined && props.cy !== undefined ? (
                   <circle key="end" cx={props.cx} cy={props.cy} r={4} fill={ACCENT} stroke={SURFACE} strokeWidth={2} />

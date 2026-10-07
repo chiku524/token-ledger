@@ -26,7 +26,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     session.entityScope.length > 0
       ? `Limited to ${books.entities.map((entity) => entity.name).join(", ") || "no companies"}`
       : null;
-  const dismissed = session.demo && (await cookies()).get(CONNECTION_TOUR_COOKIE)?.value === "1";
+  const cookieStore = await cookies();
+  const dismissed = session.demo && cookieStore.get(CONNECTION_TOUR_COOKIE)?.value === "1";
+  const sidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
   const showConnectionTour = shouldShowConnectionTour({
     role: session.role,
     completedAt: session.connectionTourCompletedAt,
@@ -45,6 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       hiddenTabs={hiddenTabs}
       scopeLabel={scopeLabel}
       showConnectionTour={showConnectionTour}
+      sidebarOpen={sidebarOpen}
     >
       {children}
     </DashboardShell>

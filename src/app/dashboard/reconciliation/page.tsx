@@ -1,4 +1,4 @@
-import { GitCompare } from "lucide-react";
+import { Calendar, GitCompare } from "lucide-react";
 import { EmptyState } from "@/components/app/empty-state";
 import { Pagination } from "@/components/app/pagination";
 import { SectionHeader } from "@/components/app/section-header";
@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/app/status-badge";
 import { NumberCell } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SubmitButton } from "@/components/submit-button";
 import { StatusBars, StatusDonut } from "@/components/charts/lazy";
@@ -15,7 +16,6 @@ import { reopenPeriodAction } from "@/app/dashboard/actions";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { PageHeader } from "@/components/page-header";
-import { PeriodForm } from "@/components/period-form";
 import { reconciliationBySource, reconciliationStatus } from "@/data/charts";
 import { candidateJournalLines } from "@/data/reconciliation";
 import { paginate, parsePage } from "@/data/pagination";
@@ -64,13 +64,26 @@ export default async function ReconciliationPage({
 
   return (
     <>
-      <PageHeader
-        kicker={`${range.from} – ${range.to}`}
-        title="Matching"
-        description="Activity from each wallet, exchange, and custodian is compared with the journal. Same company, place, asset, direction, and amount. Anything left over is unmatched."
-      />
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Matching</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Wallet activity vs. journal · {range.from} – {range.to}
+        </p>
+      </header>
+
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
-      <PeriodForm path="/dashboard/reconciliation" range={range} />
+
+      <div className="mb-8 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm">
+        <form method="get" action="/dashboard/reconciliation" className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="size-3.5 shrink-0" />
+            <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+            <span className="text-muted-foreground/60">—</span>
+            <Input type="date" name="to" aria-label="To date" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+          </div>
+          <SubmitButton variant="ghost" size="sm">Update</SubmitButton>
+        </form>
+      </div>
       {!writable ? <div className="mb-4"><ReadOnlyNote demo={session.demo} /></div> : null}
       {!canMatch ? (
         <div className="mb-4">

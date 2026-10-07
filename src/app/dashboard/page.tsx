@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TriangleAlert } from "lucide-react";
 import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { SectionHeader } from "@/components/app/section-header";
@@ -7,6 +8,7 @@ import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Stagger } from "@/components/motion/stagger";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -145,10 +147,10 @@ export default async function DashboardPage() {
         {balances.map(({ entity, report }) => (
           <Card key={entity.id}>
             <CardContent>
-              <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
+              <p className="label-caps">
                 {entity.jurisdiction} · {entity.functionalCurrency}
               </p>
-              <h2 className="mt-2 text-lg font-semibold tracking-tight">{entity.name}</h2>
+              <SectionHeader title={entity.name} className="mt-2" />
               <p className="mt-3 text-sm text-muted-foreground">
                 {entity.reportingFramework}
                 {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId, books.entities)}` : " · parent company"}
@@ -164,20 +166,16 @@ export default async function DashboardPage() {
       </section>
 
       {exceptions[0] ? (
-        <Card className="mt-8 border-danger/40">
-          <CardContent>
-            <h2 className="font-medium text-danger">Unmatched activity</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
-              <Link
-                href={`/dashboard/reconciliation?from=${exceptions[0].periodStart}&to=${exceptions[0].periodEnd}`}
-                className="text-foreground underline"
-              >
-                See what did not match
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+        <Alert variant="destructive" role="status" className="mt-8">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>Unmatched activity</AlertTitle>
+          <AlertDescription>
+            {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
+            <Link href={`/dashboard/reconciliation?from=${exceptions[0].periodStart}&to=${exceptions[0].periodEnd}`}>
+              See what did not match
+            </Link>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <section className="mt-10">
