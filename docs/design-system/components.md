@@ -54,7 +54,7 @@ Colours come from the chart palette in `README.md`.
 
 | File | Role |
 |---|---|
-| `dashboard-shell.tsx` | Desktop sidebar, mobile top bar, unverified-email `Alert` |
+| `dashboard-shell.tsx` | Composes `TooltipProvider`, `SidebarProvider`, `AppSidebar` and the `SidebarInset`; renders the unverified-email `Alert` |
 | `app-sidebar.tsx` | shadcn `Sidebar` (icon-rail collapse); below `md` it is a `Sheet` that closes on navigation |
 | `nav-main.tsx` | collapsible groups, lucide icons, one shared `layoutId` pill for the active link |
 | `nav-user.tsx` | initials avatar and `DropdownMenu` with email, scope, and sign out |

@@ -172,7 +172,9 @@ export function NavMain(access: NavAccess) {
           <Collapsible
             key={group.label}
             open={iconRail || !closed.has(group.label)}
-            onOpenChange={(open) => setGroupOpen(group.label as string, open)}
+            onOpenChange={(open) => {
+              if (!iconRail) setGroupOpen(group.label as string, open);
+            }}
             className="group/collapsible"
           >
             <SidebarGroup role="group" aria-label={group.label}>
