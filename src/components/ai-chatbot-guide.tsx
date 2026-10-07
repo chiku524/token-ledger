@@ -216,7 +216,7 @@ function RefusalsPanel() {
   );
 }
 
-function ConnectionsPanel({ csrf, canRestartTour }: { csrf: string; canRestartTour: boolean }) {
+function ConnectionsPanel() {
   return (
     <div className="grid gap-8">
       <FlowDiagram
@@ -281,26 +281,11 @@ function ConnectionsPanel({ csrf, canRestartTour }: { csrf: string; canRestartTo
           </TableBody>
         </Table>
       </TableCard>
-      {canRestartTour ? (
-        <form action={reopenConnectionTourAction} className="flex items-center gap-3">
-          <input type="hidden" name="csrf" value={csrf} />
-          <SubmitButton>Restart getting-started tour</SubmitButton>
-          <p className="text-sm text-muted-foreground">Opens the coach again for Connect → Check → Holdings.</p>
-        </form>
-      ) : null}
     </div>
   );
 }
 
-function SectionBody({
-  id,
-  csrf,
-  canRestartTour,
-}: {
-  id: GuideSectionId;
-  csrf: string;
-  canRestartTour: boolean;
-}) {
+function SectionBody({ id }: { id: GuideSectionId }) {
   switch (id) {
     case "doctrine":
       return <DoctrinePanel />;
@@ -313,7 +298,7 @@ function SectionBody({
     case "refusals":
       return <RefusalsPanel />;
     case "connections":
-      return <ConnectionsPanel csrf={csrf} canRestartTour={canRestartTour} />;
+      return <ConnectionsPanel />;
   }
 }
 
@@ -385,9 +370,17 @@ export function AiChatbotGuide({ csrf, canRestartTour }: { csrf: string; canRest
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{section.blurb}</p>
           </div>
-          <SectionBody id={active} csrf={csrf} canRestartTour={canRestartTour} />
+          <SectionBody id={active} />
         </m.section>
       </Presence>
+
+      {canRestartTour ? (
+        <form action={reopenConnectionTourAction} className="flex flex-wrap items-center gap-3">
+          <input type="hidden" name="csrf" value={csrf} />
+          <SubmitButton>Restart getting-started tour</SubmitButton>
+          <p className="text-sm text-muted-foreground">Opens the coach again for Connect → Check → Holdings.</p>
+        </form>
+      ) : null}
     </div>
   );
 }

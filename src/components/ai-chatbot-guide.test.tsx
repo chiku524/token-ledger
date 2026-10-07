@@ -14,9 +14,8 @@ describe("AiChatbotGuide", () => {
   });
 
   it("offers the tour again to an admin who has already finished it", () => {
-    // Connections section is not mounted by default; restart control lives there.
-    // Smoke the prop path by ensuring the component accepts canRestartTour without throwing.
     const html = renderToStaticMarkup(<AiChatbotGuide csrf="csrf" canRestartTour />);
     expect(html).toContain("AI chatbot handbook");
+    expect(html).toContain("Restart getting-started tour");
   });
 });
