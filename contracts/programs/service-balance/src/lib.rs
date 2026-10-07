@@ -14,7 +14,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb");
+declare_id!("GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo");
 
 #[program]
 pub mod service_balance {

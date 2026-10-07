@@ -13,7 +13,7 @@ use solana_instruction::{account_meta::AccountMeta, Instruction};
 use solana_signer::Signer;
 use token_ledger_contract_tests::{discriminator, initialize_merchant_ix, Harness};
 
-const SERVICE_BALANCE: &str = "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb";
+const SERVICE_BALANCE: &str = "GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo";
 const USDC: u64 = 1_000_000;
 
 fn load() -> Option<Harness> {
