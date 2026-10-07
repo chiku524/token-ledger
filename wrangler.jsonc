@@ -28,7 +28,14 @@
     "NEXT_PUBLIC_REOWN_PROJECT_ID": "840841f806a3e3d48403f5a51478e358",
     // Absolute base for links in emails. Must be the production domain so a
     // verification or reset link never depends on the request host.
-    "APP_URL": "https://app.tokenledger.win"
+    "APP_URL": "https://app.tokenledger.win",
+    // Solana contract deployment. Public, non-secret addresses resolved
+    // server-side only (src/config/solana.ts). Devnet IDs are the committed
+    // targets in contracts/DEPLOYMENTS.md; all four are required together.
+    "SOLANA_CONTRACTS_CLUSTER": "devnet",
+    "SERVICE_BALANCE_PROGRAM_ID": "GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo",
+    "TREASURY_PAYABLES_PROGRAM_ID": "5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi",
+    "USDC_MINT": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
   },
   // NOTE: do not set `limits.cpu_ms` here while this account is on the Workers
   // Free plan. The Cloudflare API rejects the deploy outright on Free with
