@@ -3,9 +3,10 @@ import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
+import { ConnectionsTable } from "@/components/app/connections-table";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
-import { connectionStatusTone, StatusBadge } from "@/components/app/status-badge";
+import { StatusBadge } from "@/components/app/status-badge";
 import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
@@ -24,19 +25,14 @@ import { one } from "@/data/query";
 import { requireSectionAccess } from "@/data/section-access";
 import {
   ageLabel,
-  connectionModeLabel,
-  connectionStatusLabel,
   entityName,
   formatMoney,
   formatQuantity,
   formatTimestamp,
   freshnessLabel,
   originLabel,
-  ownershipLabel,
   placeTypeLabel,
-  scopeLabel,
   sourceName,
-  venueLabel,
   walletRoleLabel,
 } from "@/data/present";
 
@@ -141,60 +137,7 @@ export default async function SourcesPage({
         {books.connections.length === 0 ? (
           <EmptyState className="mt-4">No connections yet.</EmptyState>
         ) : (
-          <TableCard>
-            <Table>
-              <caption className="sr-only">Read-only connections</caption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead scope="col">Company</TableHead>
-                  <TableHead scope="col">Connection</TableHead>
-                  <TableHead scope="col">Access</TableHead>
-                  <TableHead scope="col">Ownership</TableHead>
-                  <TableHead scope="col">Status</TableHead>
-                  <TableHead scope="col">Last checked</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {books.connections.map((connection) => {
-                  const accounts = books.sources.filter((source) => source.connectionId === connection.id);
-                  return (
-                    <TableRow key={connection.id}>
-                      <TableCell className="min-w-36">{entityName(connection.entityId, books.entities)}</TableCell>
-                      <TableCell className="min-w-44">
-                        <span className="block">{connection.name}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {accounts.length === 0 ? "No account yet" : accounts.map((source) => source.name).join(", ")}
-                        </span>
-                      </TableCell>
-                      <TableCell className="min-w-40">
-                        <span className="block">{connectionModeLabel(connection.mode)}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {venueLabel(connection.venue)} · {scopeLabel(connection.scopes)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge tone={connection.ownership === "verified" ? "success" : "neutral"}>
-                          {ownershipLabel(connection.ownership)}
-                        </StatusBadge>
-                        {connection.verifiedAddress ? (
-                          <span className="mt-1 block font-mono text-xs text-muted-foreground">{connection.verifiedAddress}</span>
-                        ) : (
-                          <span className="mt-1 block text-xs text-muted-foreground">Not signed</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="min-w-56">
-                        <StatusBadge tone={connectionStatusTone(connection.status)}>
-                          {connectionStatusLabel(connection.status)}
-                        </StatusBadge>
-                        {connection.lastError ? <span className="mt-1 block text-xs text-danger">{connection.lastError}</span> : null}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableCard>
+          <ConnectionsTable books={books} />
         )}
       </section>
 
@@ -382,7 +325,7 @@ export default async function SourcesPage({
           <li key={connector.name}>
             <Card className="h-full border-success/40">
               <CardContent>
-                <p className="text-xs tracking-[0.14em] text-success uppercase">
+                <p className="label-caps text-success">
                   Live · {connectionKind[connector.category] ?? connector.category}
                 </p>
                 <h3 className="mt-2 font-medium">{connector.name}</h3>
@@ -395,7 +338,7 @@ export default async function SourcesPage({
           <li key={connector.name}>
             <Card className="h-full">
               <CardContent>
-                <p className="text-xs tracking-[0.14em] text-danger uppercase">
+                <p className="label-caps text-danger">
                   Not connected · {connectionKind[connector.category] ?? connector.category}
                 </p>
                 <h3 className="mt-2 font-medium">{connector.name}</h3>

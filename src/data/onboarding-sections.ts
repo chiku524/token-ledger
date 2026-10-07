@@ -36,7 +36,12 @@ export const ONBOARDING_SECTIONS: readonly OnboardingSection[] = [
 const HIDEABLE = new Set(ONBOARDING_SECTIONS.map((section) => section.href));
 
 /** Hrefs that are never hideable, whatever the stored value says. */
-export const ALWAYS_VISIBLE = new Set(["/dashboard", "/dashboard/settings"]);
+export const ALWAYS_VISIBLE_SECTIONS: readonly OnboardingSection[] = [
+  { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/settings", label: "Settings" },
+];
+
+export const ALWAYS_VISIBLE = new Set(ALWAYS_VISIBLE_SECTIONS.map((section) => section.href));
 
 /**
  * Keep only known, hideable hrefs. Drops unknown paths, empties, duplicates and

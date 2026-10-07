@@ -54,8 +54,6 @@
   --color-ink-soft: #5c6578;
   --color-line: #e3e6ef;
   --color-cobalt: #2140e6;
-  --color-accent: #2140e6;
-  --color-on-accent: #ffffff;
   --color-lime: #c8f542;
   --color-on-lime: #0c0f1f;
   --color-seal: #c0362c;
@@ -120,8 +118,6 @@ html.dark {
   --color-ink: #f7f8fc;
   --color-ink-soft: #a7b0c4;
   --color-line: #2a3148;
-  --color-accent: #a9b8ff;
-  --color-on-accent: #ffffff;
   --color-link: #a9b8ff;
   --color-success: #7dcea0;
   --color-danger: #f0a8a2;
@@ -139,6 +135,7 @@ html.dark {
   --chart-3: #d361b4;
   --chart-4: #d4782a;
   --chart-5: #00a896;
+  --ring: var(--color-lime);
 }
 
 body {
@@ -146,20 +143,25 @@ body {
   color: var(--color-ink);
 }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-
 ::selection {
   background: var(--selection);
 }
 
 @layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  a.underline {
+    color: var(--color-link);
+    text-underline-offset: 0.18em;
+  }
+
   a:focus-visible,
   button:focus-visible,
   input:focus-visible,
@@ -186,15 +188,6 @@ h4 {
   }
 }
 
-a.underline {
-  color: var(--color-accent);
-  text-underline-offset: 0.18em;
-}
-
-html.dark {
-  --ring: var(--color-lime);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -212,6 +205,15 @@ html.dark {
   }
   .eyebrow {
     @apply text-[10px] font-semibold uppercase tracking-[0.23em] text-muted-foreground sm:text-[11px];
+  }
+  .label-caps {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .page-stack {
+    @apply space-y-10;
+  }
+  .section-stack {
+    @apply space-y-4;
   }
   .section-title {
     @apply text-3xl font-semibold leading-[1.12] tracking-[-0.045em] sm:text-4xl lg:text-[46px];

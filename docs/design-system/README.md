@@ -42,6 +42,9 @@ Print always uses the light set.
 - Page title (`PageHeader` h1): `text-3xl`, semibold, tight tracking
 - Section title (`SectionHeader` h2, chart titles): `text-lg`, semibold, tight tracking
 - Eyebrow (small label above a page title): `.eyebrow`, 10px (11px from `sm`), 600, uppercase, 0.23em tracking
+- Small label inside a card or chart: `.label-caps`, `text-xs`, 600, uppercase, 0.14em tracking. Do not write `tracking-[...]` by hand.
+- Headings default to weight 600 in `@layer base`, so a utility such as `font-medium` on a heading applies. Global heading and `a.underline` rules must stay inside a layer, or they override utilities.
+- Page rhythm: `.page-stack` between sections of a page, `.section-stack` inside a section.
 
 ## Shape and space
 

@@ -145,7 +145,7 @@ export function FinancialStatementsCards({
 function GroupRow({ label }: { label: string }) {
   return (
     <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={2} className="pt-4 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+      <TableCell colSpan={2} className="pt-4 label-caps">
         {label}
       </TableCell>
     </TableRow>

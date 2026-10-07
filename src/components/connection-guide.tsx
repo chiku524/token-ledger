@@ -50,14 +50,14 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
               ["Observation", "A balance at a moment, plus the movements since the last cursor."],
             ].map(([title, detail], index) => (
               <li key={title} className="rounded-xl border border-border bg-card px-4 py-3" style={{ marginLeft: `${index * 0.75}rem` }}>
-                <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{index + 1}</p>
+                <p className="label-caps">{index + 1}</p>
                 <p className="mt-1 font-medium">{title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
               </li>
             ))}
           </ol>
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">Beside the read, not inside it</p>
+            <p className="label-caps">Beside the read, not inside it</p>
             <ul className="mt-3 grid gap-3 text-sm">
               <li>
                 <span className="font-medium">Observed balance</span>
@@ -95,15 +95,15 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
               <h3 className="font-medium">{mode.title}</h3>
               <dl className="mt-3 grid gap-3 text-sm">
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Stored</dt>
+                  <dt className="label-caps">Stored</dt>
                   <dd className="mt-1">{mode.stores}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Read</dt>
+                  <dt className="label-caps">Read</dt>
                   <dd className="mt-1">{mode.reads}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs tracking-[0.12em] text-muted-foreground uppercase">Secret</dt>
+                  <dt className="label-caps">Secret</dt>
                   <dd className="mt-1">{mode.secret}</dd>
                 </div>
               </dl>
@@ -119,7 +119,7 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
         <ol className="mt-4 grid gap-3 md:grid-cols-4" aria-label="Connection lifecycle">
           {LIFE.map((step, index) => (
             <li key={step.title} className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs tracking-[0.14em] text-success uppercase">{index + 1}</p>
+              <p className="label-caps text-success">{index + 1}</p>
               <h3 className="mt-2 font-medium">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
             </li>

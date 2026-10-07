@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ALWAYS_VISIBLE,
+  ALWAYS_VISIBLE_SECTIONS,
   isHiddenForRole,
   normalizeHiddenTabs,
   ONBOARDING_SECTIONS,
@@ -9,6 +10,11 @@ import {
 } from "./onboarding-sections";
 
 describe("onboarding section catalog", () => {
+  it("labels exactly the always-visible hrefs", () => {
+    expect(new Set(ALWAYS_VISIBLE_SECTIONS.map((section) => section.href))).toEqual(ALWAYS_VISIBLE);
+    expect(ALWAYS_VISIBLE_SECTIONS.map((section) => section.label)).toEqual(["Overview", "Settings"]);
+  });
+
   it("never lists Overview or Settings as hideable", () => {
     const hrefs = ONBOARDING_SECTIONS.map((section) => section.href);
     for (const always of ALWAYS_VISIBLE) {

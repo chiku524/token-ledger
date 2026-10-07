@@ -14,20 +14,14 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadTreasury } from "@/data/load-treasury";
-import { entityName } from "@/data/present";
-import { formatMinor } from "@/ledger";
-import { USDC_DECIMALS } from "@/config/solana";
+import { entityName, formatUsdc as usdc } from "@/data/present";
 import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Treasury" };
 
-function usdc(amountMinor: bigint): string {
-  return `USDC ${formatMinor(amountMinor, USDC_DECIMALS, { minFraction: 2, maxFraction: 2 })}`;
-}
-
 export default async function TreasuryPage() {
-  const { configured, deployment, actionable, entities, treasuries, suppliers } = await loadTreasury();
   await requireSectionAccess("/dashboard/treasury");
+  const { configured, deployment, actionable, entities, treasuries, suppliers } = await loadTreasury();
   const csrf = await ensureCsrf();
 
   return (

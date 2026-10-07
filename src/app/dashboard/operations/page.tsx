@@ -3,10 +3,12 @@ import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
+import { StatCard } from "@/components/app/stat-card";
 import { StatusBadge, type StatusTone } from "@/components/app/status-badge";
 import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
+import { Stagger } from "@/components/motion/stagger";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
@@ -37,32 +39,6 @@ function executionLabel(finalizedAt: Date | null, error: string | null, signatur
   return signature ? "Awaiting finality" : "Queued";
 }
 
-function StatusCard({
-  title,
-  value,
-  label,
-  detail,
-  tone,
-}: {
-  title: string;
-  value: number | string;
-  label: string;
-  detail: string;
-  tone: StatusTone;
-}) {
-  return (
-    <Card className="gap-2">
-      <CardContent className="grid gap-2">
-        <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{title}</p>
-        <p className="text-2xl font-semibold tracking-tight">
-          {value} <span className="text-sm font-normal text-muted-foreground">{label}</span>
-        </p>
-        <StatusBadge tone={tone}>{detail}</StatusBadge>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default async function OperationsPage({
   searchParams,
 }: {
@@ -85,12 +61,12 @@ export default async function OperationsPage({
 
       {chain ? (
         <section className="mt-8">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatusCard title="Execution" detail={`${chain.execution.finalized} finalized`} value={chain.execution.awaitingFinality + chain.execution.awaitingSubmission} label="in flight" tone={chain.execution.failed > 0 ? "danger" : "neutral"} />
-            <StatusCard title="Failed runs" detail="execution attempts that errored" value={chain.execution.failed} label="failed" tone={chain.execution.failed > 0 ? "danger" : "success"} />
-            <StatusCard title="Job queue" detail={`${chain.outbox.leased} leased, ${chain.outbox.completed} done`} value={chain.outbox.pending + chain.outbox.failed} label="pending" tone={chain.outbox.failed > 0 ? "danger" : "neutral"} />
-            <StatusCard title="Indexer lag" detail={chain.indexer.worstLagSeconds === null ? "no cursors" : `worst ${chain.indexer.worstLagSeconds}s`} value={chain.indexer.stale ? "Stale" : "Fresh"} label="" tone={chain.indexer.stale ? "danger" : "success"} />
-          </div>
+          <Stagger className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Execution in flight" value={chain.execution.awaitingFinality + chain.execution.awaitingSubmission} tone={chain.execution.failed > 0 ? "danger" : undefined} hint={`${chain.execution.finalized} finalized`} />
+            <StatCard label="Failed runs" value={chain.execution.failed} tone={chain.execution.failed > 0 ? "danger" : "success"} hint="Execution attempts that errored" />
+            <StatCard label="Job queue pending" value={chain.outbox.pending + chain.outbox.failed} tone={chain.outbox.failed > 0 ? "danger" : undefined} hint={`${chain.outbox.leased} leased, ${chain.outbox.completed} done`} />
+            <StatCard label="Indexer lag" value={chain.indexer.stale ? "Stale" : "Fresh"} tone={chain.indexer.stale ? "danger" : "success"} hint={chain.indexer.worstLagSeconds === null ? "No cursors" : `Worst ${chain.indexer.worstLagSeconds}s`} />
+          </Stagger>
 
           {chain.execution.rows.length > 0 ? (
             <div className="mt-6">
@@ -164,7 +140,7 @@ export default async function OperationsPage({
         </section>
       ) : null}
 
-      <Card>
+      <Card className={chain ? "mt-8" : undefined}>
         <CardContent className="grid gap-2">
           <h2 className="text-lg font-semibold tracking-tight">How scheduled sync works</h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">

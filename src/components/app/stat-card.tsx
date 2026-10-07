@@ -6,10 +6,12 @@ export function StatCard({
   label,
   value,
   tone,
+  hint,
 }: {
   label: string;
   value: string | number;
   tone?: "success" | "danger";
+  hint?: React.ReactNode;
 }) {
   return (
     <StaggerItem className="@container min-w-0 rounded-xl border border-border bg-card px-2.5 py-2.5 sm:px-4 sm:py-3">
@@ -27,6 +29,7 @@ export function StatCard({
         >
           {typeof value === "number" ? <NumberTicker value={value} maximumFractionDigits={0} className="font-display" /> : value}
         </dd>
+        {hint ? <dd className="min-w-0 text-xs text-muted-foreground">{hint}</dd> : null}
       </dl>
     </StaggerItem>
   );
