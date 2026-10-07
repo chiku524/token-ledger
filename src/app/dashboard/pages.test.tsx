@@ -98,7 +98,7 @@ describe("read-only sample (demo owner, no database)", () => {
   it.each<[string, Page, string[]]>([
     ["Overview", OverviewPage as Page, ["Harbourline Digital", "Companies", "Recent entries"]],
     ["Journal", LedgerPage as Page, ["Journal", DEMO_NOTE, "Post an entry", "JE-2026-001"]],
-    ["Reports", ReportsPage as Page, ["Reports", "Account balances and crypto values for one company."]],
+    ["Reports", ReportsPage as Page, ["Reports", "Harbourline Digital Sdn. Bhd.", "IFRS"]],
     ["Matching", ReconciliationPage as Page, ["Matching", DEMO_NOTE]],
     ["Approvals", ApprovalsPage as Page, ["Approvals", DEMO_NOTE, "Nothing is waiting for approval."]],
     ["Holdings", SourcesPage as Page, ["Holdings", DEMO_NOTE, "Treasury hot wallet", "Import activity"]],
