@@ -55,9 +55,10 @@ Colours come from the chart palette in `README.md`.
 | File | Role |
 |---|---|
 | `dashboard-shell.tsx` | Desktop sidebar, mobile top bar, unverified-email `Alert` |
-| `dashboard-nav.tsx` | lucide icons, one shared `layoutId` pill for the active link |
-| `mobile-nav.tsx` | `Sheet` menu below `md`, closes on navigation |
-| `user-menu.tsx` | `DropdownMenu` with email, scope, and sign out |
+| `app-sidebar.tsx` | shadcn `Sidebar` (icon-rail collapse); below `md` it is a `Sheet` that closes on navigation |
+| `nav-main.tsx` | collapsible groups, lucide icons, one shared `layoutId` pill for the active link |
+| `nav-user.tsx` | initials avatar and `DropdownMenu` with email, scope, and sign out |
+| `dashboard-header.tsx` | sticky top bar: sidebar trigger, breadcrumb, theme toggle |
 | `theme-toggle.tsx` | Icon `Button`; same `tl-theme` key and no-flash script |
 | `app/dashboard/template.tsx` | `PageTransition` fade on every dashboard navigation |
 | `app/dashboard/loading.tsx` | `Skeleton` placeholder |

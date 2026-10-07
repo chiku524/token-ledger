@@ -1,11 +1,19 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { DashboardNav } from "./dashboard-nav";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { NavMain } from "./nav-main";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard/ledger" }));
 
-function render(props: Partial<Parameters<typeof DashboardNav>[0]> = {}): string {
-  return renderToStaticMarkup(<DashboardNav showUsers={false} showOnboarding={false} role="accountant" {...props} />);
+function render(props: Partial<Parameters<typeof NavMain>[0]> = {}): string {
+  return renderToStaticMarkup(
+    <TooltipProvider>
+      <SidebarProvider>
+        <NavMain showUsers={false} showOnboarding={false} role="accountant" {...props} />
+      </SidebarProvider>
+    </TooltipProvider>,
+  );
 }
 
 function labels(html: string): string[] {
@@ -13,10 +21,10 @@ function labels(html: string): string[] {
 }
 
 function groupNames(html: string): string[] {
-  return [...html.matchAll(/<p class="label-caps[^"]*">([^<]*)<\/p>/g)].map((match) => match[1]);
+  return [...html.matchAll(/data-slot="sidebar-group-label"[^>]*><span>([^<]*)<\/span>/g)].map((match) => match[1]);
 }
 
-describe("DashboardNav", () => {
+describe("NavMain", () => {
   it("groups the sections and keeps every link", () => {
     const html = render();
     expect(groupNames(html)).toEqual(["Books", "Payments", "Reporting", "Workspace", "Account"]);

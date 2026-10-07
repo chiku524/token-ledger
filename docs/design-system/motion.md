@@ -17,7 +17,7 @@ Library: `motion` (`import { m } from "motion/react"`). Subtle, product-led.
   server-rendered as an inline style, so the page ships invisible and stays blank
   if JS never runs; a CSS keyframe cannot leave content hidden. Keep `m.*` for
   animations that react to state or interaction, never for the first paint.
-- Animate `opacity` and `transform` only. Never animate width, height or table layout.
+- Animate `opacity` and `transform` only. Never animate width, height or table layout. The only exceptions are the sidebar's icon-rail collapse (width, 200ms linear, from shadcn) and the nav group fold (height, 200ms), both in `docs/design-system/sidebar.md`.
 - Everything must work with reduced motion on (`reducedMotion="user"` disables
   transforms; opacity changes are still allowed). The CSS entrances drop to a
   fade-only keyframe under `prefers-reduced-motion: reduce`.
@@ -40,7 +40,7 @@ Library: `motion` (`import { m } from "motion/react"`). Subtle, product-led.
   components over the `rise-in` / `stagger` classes; `Stagger` delays its direct
   children by 40ms each up to the eighth.
 - `NumberTicker`: KPI and balance figures, on first render only.
-- Nav: shared `layoutId` pill for the active item.
+- Nav: shared `layoutId` pill for the active item (`nav-main.tsx`).
 - Dialog, Sheet, Dropdown: use the shadcn animation classes (`tw-animate-css`).
 
 ## Landing page
