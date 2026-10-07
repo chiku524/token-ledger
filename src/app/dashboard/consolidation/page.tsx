@@ -108,9 +108,9 @@ export default async function ConsolidationPage({
             <input type="hidden" name="currency" value={presentation} />
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Calendar className="size-3.5 shrink-0" />
-              <Input type="date" name="from" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+              <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
               <span className="text-muted-foreground/60">—</span>
-              <Input type="date" name="to" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+              <Input type="date" name="to" aria-label="To date" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
             </div>
             <SubmitButton variant="ghost" size="sm">Update</SubmitButton>
           </form>
