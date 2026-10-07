@@ -3,6 +3,9 @@ import { prerenderToNodeStream } from "react-dom/static";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONNECTION_TOUR_COOKIE } from "@/auth/cookies";
 import type { Role } from "@/auth/roles";
+import { loadBooks } from "@/data/load-books";
+import { exampleBooks } from "@/data/example-books";
+import { PAGE_SIZE } from "@/data/pagination";
 import { listOrganizationUsers } from "@/db/auth-store";
 import { listOpenDrafts, type DraftRow } from "@/db/drafts";
 import { listPeriodLocks } from "@/db/period-locks";
@@ -304,6 +307,52 @@ describe("writable books (live owner, database configured)", () => {
     signInLive("owner");
     vi.mocked(listOrganizationUsers).mockResolvedValue([accountUser("owner"), accountUser("viewer", { email: "dee@harbourline.example" })]);
     expect(await pageText(UsersPage as Page)).toContain("dee@harbourline.example");
+  });
+});
+
+describe("bounded tables", () => {
+  function manyAuditEvents(count: number) {
+    const base = exampleBooks.auditEvents[0]!;
+    return Array.from({ length: count }, (_, index) => ({
+      ...base,
+      id: `audit_${index}`,
+      occurredAt: `2026-01-${String((index % 28) + 1).padStart(2, "0")}T00:00:00.000Z`,
+      detail: `Event ${index}`,
+    }));
+  }
+
+  it("renders only one page of History for an organization with 100+ events", async () => {
+    signInLive("owner");
+    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, auditEvents: manyAuditEvents(137) });
+    const first = await pageText(AuditPage as Page);
+    expect(first).toContain("Page 1 of 3");
+    expect(first).toContain("of 137");
+    // Exactly one page of rows is rendered, proving the rest are not.
+    expect((first.match(/Event \d+/g) ?? []).length).toBe(PAGE_SIZE);
+
+    const second = await pageText(AuditPage as Page, { page: "2" });
+    expect(second).toContain("Page 2 of 3");
+    expect((second.match(/Event \d+/g) ?? []).length).toBe(PAGE_SIZE);
+
+    const last = await pageText(AuditPage as Page, { page: "3" });
+    expect(last).toContain("Page 3 of 3");
+    expect((last.match(/Event \d+/g) ?? []).length).toBe(137 - 2 * PAGE_SIZE);
+  });
+
+  it("clamps an out-of-range page to the last one", async () => {
+    signInLive("owner");
+    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, auditEvents: manyAuditEvents(60) });
+    expect(await pageText(AuditPage as Page, { page: "99" })).toContain("Page 2 of 2");
+  });
+
+  it("keeps the filter on next/previous links", async () => {
+    signInLive("owner");
+    const events = manyAuditEvents(60).map((event) => ({ ...event, actor: "Amina" }));
+    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, auditEvents: events });
+    const html = await renderPage(AuditPage as Page, { page: "2", actor: "Amina" });
+    // Previous drops the page param but keeps the filter; next advances it.
+    expect(html).toContain('href="/dashboard/audit?actor=Amina"');
+    expect(html).toContain('href="/dashboard/audit?actor=Amina&amp;page=3"');
   });
 });
 

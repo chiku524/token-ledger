@@ -1,5 +1,6 @@
 import { GitCompare } from "lucide-react";
 import { EmptyState } from "@/components/app/empty-state";
+import { Pagination } from "@/components/app/pagination";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { NumberCell } from "@/components/app/table-cells";
@@ -17,6 +18,7 @@ import { PageHeader } from "@/components/page-header";
 import { PeriodForm } from "@/components/period-form";
 import { reconciliationBySource, reconciliationStatus } from "@/data/charts";
 import { candidateJournalLines } from "@/data/reconciliation";
+import { paginate, parsePage } from "@/data/pagination";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { parseDateRange } from "@/data/period";
@@ -30,7 +32,7 @@ export const metadata = { title: "Matching" };
 export default async function ReconciliationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
+  searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[]; page?: string | string[] }>;
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
@@ -44,6 +46,7 @@ export default async function ReconciliationPage({
     if (a.status !== b.status) return a.status === "exception" ? -1 : 1;
     return a.periodStart.localeCompare(b.periodStart) || a.id.localeCompare(b.id);
   });
+  const records = paginate(ordered, parsePage(one(params.page)));
   const externalId = new Map(books.sourceTransactions.map((transaction) => [transaction.id, transaction.externalId]));
   const status = reconciliationStatus(scoped);
   const bySource = reconciliationBySource(scoped);
@@ -111,7 +114,7 @@ export default async function ReconciliationPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ordered.map((record) => {
+                {records.items.map((record) => {
                   const transaction = record.sourceTransactionId ? transactionById.get(record.sourceTransactionId) : undefined;
                   const candidates = transaction ? candidateJournalLines(transaction, movements, referenceOf) : [];
                   return (
@@ -148,6 +151,12 @@ export default async function ReconciliationPage({
               </TableBody>
             </Table>
           </TableCard>
+          <Pagination
+            page={records}
+            base="/dashboard/reconciliation"
+            query={{ from: range.from, to: range.to }}
+            label="Matching pages"
+          />
         </>
       )}
 

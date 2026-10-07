@@ -4,6 +4,7 @@ import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
 import { Field } from "@/components/app/field";
 import { FormCard } from "@/components/app/form-card";
+import { Pagination } from "@/components/app/pagination";
 import { NumberCell } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { auditSubjectTypes, filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
+import { paginate, parsePage } from "@/data/pagination";
 import { actionLabel, subjectLabel } from "@/data/present";
 
 export const metadata = { title: "History" };
@@ -39,6 +41,14 @@ export default async function AuditPage({
   const subjectTypes = auditSubjectTypes(books.auditEvents);
   const exportQuery = queryString(filter);
   const canExport = can(session.role, "books.export");
+  const page = paginate(events, parsePage(params.page));
+  const hrefQuery: Record<string, string> = {
+    actor: filter.actor,
+    action: filter.action,
+    subjectType: filter.subjectType,
+    from: filter.from,
+    to: filter.to,
+  };
 
   return (
     <>
@@ -99,7 +109,7 @@ export default async function AuditPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {events.map((event) => (
+              {page.items.map((event) => (
                 <TableRow key={event.id}>
                   <NumberCell align="left">{event.occurredAt.slice(0, 16).replace("T", " ")}</NumberCell>
                   <TableCell>{event.actor}</TableCell>
@@ -115,6 +125,9 @@ export default async function AuditPage({
           </Table>
         </TableCard>
       )}
+      {events.length > 0 ? (
+        <Pagination page={page} base="/dashboard/audit" query={hrefQuery} label="History pages" />
+      ) : null}
     </>
   );
 }

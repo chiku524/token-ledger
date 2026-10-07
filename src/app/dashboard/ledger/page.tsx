@@ -2,6 +2,7 @@ import { BookOpen } from "lucide-react";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
+import { Pagination } from "@/components/app/pagination";
 import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Flash } from "@/components/flash";
@@ -10,6 +11,7 @@ import { PeriodForm } from "@/components/period-form";
 import { JournalForm, ReadOnlyNote, ReverseJournalForm, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
+import { paginate, parsePage } from "@/data/pagination";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { Card } from "@/components/ui/card";
@@ -22,13 +24,14 @@ export const metadata = { title: "Journal" };
 export default async function LedgerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
+  searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[]; page?: string | string[] }>;
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
   const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, { from: books.period.start, to: books.period.end });
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
   const visible = sliceBooks(books, range).journalEntries;
+  const entries = paginate(visible, parsePage(one(params.page)));
   const writable = booksAreWritable() && !session.demo;
   const canPost = can(session.role, "journal.post");
   const canReverse = can(session.role, "journal.reverse");
@@ -56,7 +59,7 @@ export default async function LedgerPage({
         <EmptyState icon={BookOpen}>No entries in these dates. Widen the dates above to see more.</EmptyState>
       ) : (
         <div className="space-y-6">
-          {visible.map((entry) => (
+          {entries.items.map((entry) => (
             <Card key={entry.id} className="gap-0 py-0">
               <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-4 py-3">
                 <div>
@@ -113,6 +116,7 @@ export default async function LedgerPage({
           ))}
         </div>
       )}
+      <Pagination page={entries} base="/dashboard/ledger" query={{ from: range.from, to: range.to }} label="Journal pages" />
     </>
   );
 }
