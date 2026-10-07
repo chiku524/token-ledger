@@ -61,7 +61,7 @@ export function DashboardShell({
           <DashboardHeader showUsers={showUsers} showOnboarding={showOnboarding} role={session.role} hiddenTabs={hiddenTabs} />
           <ExampleBanner origin={origin} notice={notice} />
           {!session.emailVerified && !session.demo ? (
-            <div className="px-4 pt-4 md:px-8">
+            <div className="dashboard-width px-4 pt-4 md:px-8">
               <Alert variant="warning" className="max-w-3xl">
                 <TriangleAlert aria-hidden />
                 <AlertDescription>
@@ -76,7 +76,7 @@ export function DashboardShell({
               </Alert>
             </div>
           ) : null}
-          <main id="content" className="px-4 py-6 md:px-8 md:py-8">
+          <main id="content" className="dashboard-width px-4 py-6 md:px-8 md:py-8">
             {children}
           </main>
           {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}

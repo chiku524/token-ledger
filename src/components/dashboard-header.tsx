@@ -30,27 +30,29 @@ export function DashboardHeader(access: NavAccess) {
   return (
     <header
       data-print="hide"
-      className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur"
+      className="sticky top-0 z-20 h-12 shrink-0 border-b border-border bg-background/80 backdrop-blur"
     >
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-1 data-vertical:h-4 data-vertical:self-center" />
-      <Link href="/" className="md:hidden">
-        <Logo size="sm" />
-      </Link>
-      <Breadcrumb className="hidden min-w-0 sm:block">
-        <BreadcrumbList>
-          {trail.map((label, index) => (
-            <Fragment key={label}>
-              {index > 0 ? <BreadcrumbSeparator /> : null}
-              <BreadcrumbItem>
-                {index === trail.length - 1 ? <BreadcrumbPage>{label}</BreadcrumbPage> : <span className="text-muted-foreground">{label}</span>}
-              </BreadcrumbItem>
-            </Fragment>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="ml-auto">
-        <ThemeToggle />
+      <div className="dashboard-width flex h-full items-center gap-2 px-4 md:px-8">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-1 data-vertical:h-4 data-vertical:self-center" />
+        <Link href="/" className="md:hidden">
+          <Logo size="sm" />
+        </Link>
+        <Breadcrumb className="hidden min-w-0 sm:block">
+          <BreadcrumbList>
+            {trail.map((label, index) => (
+              <Fragment key={label}>
+                {index > 0 ? <BreadcrumbSeparator /> : null}
+                <BreadcrumbItem>
+                  {index === trail.length - 1 ? <BreadcrumbPage>{label}</BreadcrumbPage> : <span className="text-muted-foreground">{label}</span>}
+                </BreadcrumbItem>
+              </Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
