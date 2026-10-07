@@ -2,6 +2,7 @@ import { ed25519 } from "@noble/curves/ed25519.js";
 import { base58 } from "@scure/base";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { listActiveWalletBindings } from "@/db/wallet-bindings";
+import { upsertPlatformMerchant } from "@/db/merchant";
 import {
   challengeTable,
   CROSS_SITE,
@@ -20,6 +21,7 @@ import {
   prepareCreatePlan,
   prepareCreateVault,
   prepareDeposit,
+  prepareInitializeMerchant,
   prepareRevoke,
   prepareWithdraw,
   type PreparedPlan,
@@ -39,9 +41,18 @@ vi.mock("@/db/wallet-bindings", async (importOriginal) => ({
   listActiveWalletBindings: vi.fn(async () => []),
 }));
 
+// The merchant config lives behind `src/db/merchant`. Stub it so the actions
+// resolve a merchant (or the lack of one) without a database, and so a test can
+// assert that initializing the merchant persists the platform config.
+vi.mock("@/db/merchant", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/db/merchant")>()),
+  findPlatformMerchant: vi.fn(async () => null),
+  upsertPlatformMerchant: vi.fn(async () => undefined),
+}));
+
 const READ_ONLY = "Connect a database to prepare transactions. This demo does not save them.";
 const NOT_CONFIGURED = "The contract features are not configured on this deployment.";
-const NO_MERCHANT = "This deployment has no merchant admin configured.";
+const NO_MERCHANT = "Initialize the merchant first, or set MERCHANT_ADMIN_ADDRESS.";
 
 const address = (seed: number) => base58.encode(ed25519.getPublicKey(new Uint8Array(32).fill(seed)));
 const SERVICE_BALANCE = address(1);
@@ -85,6 +96,7 @@ function planOf(result: PreparedPlan) {
 const vaultFields = { entityId: MY, vaultId: VAULT, controller: CONTROLLER, tokenAccount: TOKEN_ACCOUNT, amount: "25" };
 
 const actions = [
+  ["prepareInitializeMerchant", prepareInitializeMerchant, { entityId: MY, controller: CONTROLLER, destination: TOKEN_ACCOUNT }],
   ["prepareCreatePlan", prepareCreatePlan, { entityId: MY, price: "10", maxPeriods: "12" }],
   ["prepareCreateVault", prepareCreateVault, { entityId: MY, controller: CONTROLLER }],
   ["prepareDeposit", prepareDeposit, vaultFields],
@@ -146,6 +158,51 @@ describe.each(actions)("%s guards", (_name, action, fields) => {
   it("refuses a company that is not in the organization", async () => {
     signInLive("owner");
     expect(await action(form({ ...fields, entityId: "ent_elsewhere" }))).toEqual({ error: "Choose a company in this organization." });
+  });
+});
+
+describe("prepareInitializeMerchant", () => {
+  it("creates a plan paid by the wallet becoming the merchant admin", async () => {
+    signInLive("owner");
+    const plan = planOf(
+      await prepareInitializeMerchant(
+        form({ entityId: MY, controller: CONTROLLER, destination: TOKEN_ACCOUNT }),
+      ),
+    );
+    expect(plan.action).toBe("billing.initialize_merchant");
+    expect(plan.feePayer).toBe(CONTROLLER);
+    expect(plan.instructions.every((instruction) => instruction.programId === SERVICE_BALANCE)).toBe(true);
+    expect(upsertPlatformMerchant).toHaveBeenCalled();
+  });
+
+  it("defaults the collector to the admin", async () => {
+    signInLive("owner");
+    await prepareInitializeMerchant(form({ entityId: MY, controller: CONTROLLER, destination: TOKEN_ACCOUNT }));
+    expect(upsertPlatformMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({ adminAddress: CONTROLLER, collectorAddress: CONTROLLER }),
+      expect.any(String),
+    );
+  });
+
+  it("needs the wallet that will be the merchant admin", async () => {
+    signInLive("owner");
+    expect(await prepareInitializeMerchant(form({ entityId: MY, destination: TOKEN_ACCOUNT }))).toEqual({
+      error: "Connect the wallet that will be the merchant admin.",
+    });
+  });
+
+  it("needs a USDC destination token account", async () => {
+    signInLive("owner");
+    expect(await prepareInitializeMerchant(form({ entityId: MY, controller: CONTROLLER }))).toEqual({
+      error: "Enter the merchant USDC destination token account.",
+    });
+  });
+
+  it("is for the platform operator only", async () => {
+    signInLive("accountant");
+    expect(await prepareInitializeMerchant(form({ entityId: MY, controller: CONTROLLER, destination: TOKEN_ACCOUNT }))).toEqual({
+      error: "Initializing the merchant is for the platform operator (owner or admin).",
+    });
   });
 });
 
