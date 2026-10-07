@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/service_balance.json`.
  */
 export type ServiceBalance = {
-  "address": "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb",
+  "address": "GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo",
   "metadata": {
     "name": "serviceBalance",
     "version": "0.1.0",

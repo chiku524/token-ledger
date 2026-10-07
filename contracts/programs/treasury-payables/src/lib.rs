@@ -14,7 +14,7 @@ pub mod state;
 use instructions::*;
 use state::GovernanceKind;
 
-declare_id!("33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs");
+declare_id!("5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi");
 
 #[program]
 pub mod treasury_payables {

@@ -5,18 +5,21 @@ Authority model, invariants and the seed table live in
 
 ## Devnet
 
-Both programs are deployed and upgradeable. The upgrade authority is the local
-deployer keypair; production will use a separate multi-party governance key.
-
 | Program | Program ID | Upgrade authority |
 | --- | --- | --- |
-| `service_balance` | `DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb` | `7hobWVCH1mVBtedRndouStN2ku5UF6E2Zb1gCHqexeRp` |
-| `treasury_payables` | `33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs` | `7hobWVCH1mVBtedRndouStN2ku5UF6E2Zb1gCHqexeRp` |
+| `service_balance` | `GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo` | `7b9TAu16LR9eqs1R9WUdKHtfq7auaxhzF2SPtSHXLP6w` |
+| `treasury_payables` | `5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi` | `7b9TAu16LR9eqs1R9WUdKHtfq7auaxhzF2SPtSHXLP6w` |
 
-> **Devnet is stale as of the charge-receipt change.** The deployed bytecode
-> predates the `collect_cycle(cycle)` signature and the `ChargeReceipt` account
-> (#187). Rebuild and redeploy before relying on `contracts/scripts/*.ts` on
-> devnet; the IDL/types and the litesvm suite already reflect the new shape.
+**Status:** program IDs and `declare_id!` are committed for a fresh deploy under
+the authority above. Confirm on-chain with `solana program show` after
+`solana program deploy` (see below); fill in deploy signatures in the PR once
+live.
+
+Previous devnet IDs (`DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb`,
+`33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs`) remain on-chain under upgrade
+authority `7hobWVCH1mVBtedRndouStN2ku5UF6E2Zb1gCHqexeRp` but are no longer the
+committed client targets. New program keypairs were chosen so charge-receipt /
+`collect_cycle` bytecode can ship without that prior authority.
 
 ## Build
 
@@ -68,16 +71,16 @@ commit deploy keypairs.
 After a redeploy, confirm the on-chain program data length changed:
 
 ```bash
-solana program show DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb --url devnet
-solana program show 33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs --url devnet
+solana program show GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo --url devnet
+solana program show 5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi --url devnet
 ```
 
 ## Client configuration
 
 The app must resolve the cluster, program IDs, mint and token program from
-server configuration recorded here, never from user input. That config module
-does not exist yet; it is tracked with CHAIN-01 and the execution boundary in
-#170.
+server configuration recorded here, never from user input. Set
+`SOLANA_CONTRACTS_CLUSTER`, `SERVICE_BALANCE_PROGRAM_ID`,
+`TREASURY_PAYABLES_PROGRAM_ID`, and `USDC_MINT` (see `.env.example`).
 
 ## Production (not done)
 
