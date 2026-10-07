@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { ensureCsrf } from "@/auth/current";
 import { CONNECTION_TOUR_COOKIE } from "@/auth/cookies";
 import { shouldShowConnectionTour } from "@/auth/tour";
-import { ConnectionGuide } from "@/components/connection-guide";
+import { AiChatbotGuide } from "@/components/ai-chatbot-guide";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { requireSectionAccess } from "@/data/section-access";
@@ -23,11 +23,11 @@ export default async function GuidePage() {
   return (
     <>
       <PageHeader
-        kicker="How a connection works"
+        kicker="AI chatbot handbook"
         title="Guide"
-        description="Read-only access for a wallet, an exchange, or a custodian. Observations stay beside the journal until someone posts them."
+        description="Ask for reports, matching, connections, and more — the assistant can do anything you can, under your role. Observations stay observed; journals stay deliberate."
       />
-      <ConnectionGuide csrf={csrf} canRestartTour={session.role === "admin" && !tourPending} />
+      <AiChatbotGuide csrf={csrf} canRestartTour={session.role === "admin" && !tourPending} />
     </>
   );
 }
