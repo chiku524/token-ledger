@@ -5,7 +5,7 @@
  * posted entry is still corrected by a reversal, not an edit.
  */
 import { and, desc, eq } from "drizzle-orm";
-import { blocksSelfApproval } from "@/auth/roles";
+import { blocksSelfApproval, type Role } from "@/auth/roles";
 import { getDb } from "./client";
 import { assertPeriodOpen } from "./period-locks";
 import {
@@ -168,7 +168,7 @@ export async function approveDraft(input: {
   organizationId: string;
   draftId: string;
   approverActor: string;
-  approverRole: "owner" | "admin" | "accountant" | "approver" | "viewer";
+  approverRole: Role;
   overrideNote?: string | null;
 }): Promise<string> {
   const db = getDb();

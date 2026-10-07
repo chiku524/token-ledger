@@ -15,6 +15,7 @@ import { accessLabel } from "@/billing/access";
 import { entityName } from "@/data/present";
 import { formatMinor } from "@/ledger";
 import { USDC_DECIMALS } from "@/config/solana";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Billing" };
 
@@ -29,6 +30,7 @@ function periods(seconds: number): string {
 
 export default async function BillingPage() {
   const { session, configured, deployment, actionable, entities, bindings, vaults, merchant, access } = await loadBilling();
+  await requireSectionAccess("/dashboard/billing");
   const csrf = await ensureCsrf();
   // Per the plan, Token Ledger is the merchant: only the platform operator
   // (owner/admin) initializes it and publishes plans. Customers only pay.

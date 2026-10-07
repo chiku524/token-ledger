@@ -118,7 +118,7 @@ export const fxRateFormSchema = z.object({
 export const userFormSchema = z.object({
   name: text(80),
   email: z.string().trim().email("Enter an email address.").max(200),
-  role: z.enum(["owner", "admin", "accountant", "approver", "viewer"]),
+  role: z.enum(["owner", "admin", "accountant", "approver", "viewer", "onboarding"]),
   entityScope: z.string().trim().max(500).optional().transform((value) => (value ? value.split(",").map((id) => id.trim()).filter(Boolean) : [])),
 });
 

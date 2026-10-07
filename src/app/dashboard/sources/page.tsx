@@ -21,6 +21,7 @@ import { latestSnapshots, valueBooksHoldings } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
+import { requireSectionAccess } from "@/data/section-access";
 import {
   ageLabel,
   connectionModeLabel,
@@ -96,6 +97,7 @@ export default async function SourcesPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/sources");
   const { session, books } = await loadAuthorizedBooks();
   const writable = booksAreWritable() && !session.demo;
   const canSource = can(session.role, "source.write");

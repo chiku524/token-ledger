@@ -23,6 +23,7 @@ import { one } from "@/data/query";
 import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
 import { netBalanceMinor } from "@/ledger";
 import { FinancialStatementsCards } from "@/components/app/financial-statements";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Reports" };
 
@@ -38,6 +39,7 @@ export default async function ReportsPage({
   }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/reports");
   const { session, books } = await loadAuthorizedBooks();
   const requested = one(params.entity);
   const entity = books.entities.find((item) => item.id === requested) ?? books.entities[0];

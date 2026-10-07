@@ -23,6 +23,7 @@ import { loadTreasury } from "@/data/load-treasury";
 import { entityName } from "@/data/present";
 import { formatMinor } from "@/ledger";
 import { USDC_DECIMALS } from "@/config/solana";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Payables" };
 
@@ -39,6 +40,7 @@ function proposalStatus(proposal: { executed: boolean; cancelled: boolean; expir
 
 export default async function PayablesPage() {
   const { configured, deployment, actionable, entities, treasuries, suppliers, invoices, proposals } = await loadTreasury();
+  await requireSectionAccess("/dashboard/payables");
   const csrf = await ensureCsrf();
   const supplierName = (id: string) => suppliers.find((supplier) => supplier.id === id)?.name ?? id;
   const defaultTreasury = treasuries[0]?.id ?? "";

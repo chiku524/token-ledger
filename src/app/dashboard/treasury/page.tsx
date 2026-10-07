@@ -17,6 +17,7 @@ import { loadTreasury } from "@/data/load-treasury";
 import { entityName } from "@/data/present";
 import { formatMinor } from "@/ledger";
 import { USDC_DECIMALS } from "@/config/solana";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Treasury" };
 
@@ -26,6 +27,7 @@ function usdc(amountMinor: bigint): string {
 
 export default async function TreasuryPage() {
   const { configured, deployment, actionable, entities, treasuries, suppliers } = await loadTreasury();
+  await requireSectionAccess("/dashboard/treasury");
   const csrf = await ensureCsrf();
 
   return (

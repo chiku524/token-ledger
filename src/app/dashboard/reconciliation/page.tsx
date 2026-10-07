@@ -26,6 +26,7 @@ import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { ledgerQuantityMovements } from "@/ledger";
 import { entityName, formatQuantity, movementLabel, sourceName } from "@/data/present";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Matching" };
 
@@ -35,6 +36,7 @@ export default async function ReconciliationPage({
   searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[]; page?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/reconciliation");
   const { session, books } = await loadAuthorizedBooks();
   const canMatch = can(session.role, "reconciliation.match");
   const writable = booksAreWritable() && !session.demo;

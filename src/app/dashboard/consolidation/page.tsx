@@ -20,6 +20,7 @@ import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { formatMoney } from "@/data/present";
 import { consolidateTrialBalances, formatFxRate, formatInverseRate, translateGroupIas21 } from "@/ledger";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Combined" };
 
@@ -35,6 +36,7 @@ export default async function ConsolidationPage({
   }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/consolidation");
   const { session, books } = await loadAuthorizedBooks();
   const canFx = can(session.role, "fx.write");
   const parent = books.entities.find((entity) => entity.parentEntityId === null) ?? books.entities[0];

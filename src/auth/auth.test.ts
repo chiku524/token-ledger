@@ -68,6 +68,14 @@ describe("permission matrix", () => {
     expect(can("admin", "fx.write")).toBe(true);
     expect(can("admin", "users.manageOwners")).toBe(false);
     expect(can("owner", "users.manageOwners")).toBe(true);
+    // The onboarding role reads and connects a wallet, but never writes, and it
+    // is the only role whose nav is narrowed (see data/onboarding-sections).
+    expect(can("onboarding", "books.read")).toBe(true);
+    expect(can("onboarding", "journal.post")).toBe(false);
+    expect(can("onboarding", "users.manage")).toBe(false);
+    expect(can("onboarding", "onboarding.manage")).toBe(false);
+    expect(can("admin", "onboarding.manage")).toBe(true);
+    expect(can("accountant", "onboarding.manage")).toBe(false);
     for (const permission of PERMISSIONS) {
       expect(can("owner", permission)).toBe(true);
     }

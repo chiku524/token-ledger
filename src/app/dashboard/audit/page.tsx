@@ -16,6 +16,7 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { auditSubjectTypes, filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
 import { paginate, parsePage } from "@/data/pagination";
 import { actionLabel, subjectLabel } from "@/data/present";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "History" };
 
@@ -35,6 +36,7 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/audit");
   const { session, books } = await loadAuthorizedBooks();
   const filter = parseAuditFilter(params);
   const events = filterAuditEvents(books.auditEvents, filter);

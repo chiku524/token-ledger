@@ -22,4 +22,12 @@ export const DEMO_PREVIEWS: readonly {
     name: "Elena Khoo",
     entityScope: ["ent_harbourline_sg"],
   },
+  {
+    id: "onboarding",
+    label: "Onboarding",
+    role: "onboarding",
+    email: "onboarding@harbourline.example",
+    name: "Priya Nair",
+    entityScope: [],
+  },
 ];

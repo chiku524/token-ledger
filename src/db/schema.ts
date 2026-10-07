@@ -56,7 +56,7 @@ export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", 
 export const journalDraftStatus = pgEnum("journal_draft_status", ["draft", "pending", "posted"]);
 /** "match" pairs a transaction with a line; "unmatch" rejects an automatic match. */
 export const reconciliationOverrideKind = pgEnum("reconciliation_override_kind", ["match", "unmatch"]);
-export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer"]);
+export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer", "onboarding"]);
 export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
 export const syncRunStatus = pgEnum("sync_run_status", ["running", "ok", "partial", "failed", "not_live"]);
 export const syncRunTrigger = pgEnum("sync_run_trigger", ["manual", "scheduled", "webhook", "cli"]);
@@ -621,6 +621,21 @@ export const users = pgTable(
     index("users_organization_id_idx").on(table.organizationId),
   ],
 );
+
+/**
+ * Per-organization dashboard settings. Currently the onboarding experience:
+ * which navigation sections are hidden from the `onboarding` role. A section is
+ * a nav href (for example "/dashboard/ledger"). An empty string means nothing is
+ * hidden. Only an owner or admin (`onboarding.manage`) may change this.
+ */
+export const organizationSettings = pgTable("organization_settings", {
+  organizationId: text("organization_id")
+    .primaryKey()
+    .references(() => organizations.id),
+  /** Comma-separated nav hrefs hidden from the onboarding role. */
+  onboardingHiddenTabs: text("onboarding_hidden_tabs").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const sessions = pgTable(
   "sessions",

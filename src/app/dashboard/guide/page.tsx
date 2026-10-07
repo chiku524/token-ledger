@@ -5,11 +5,13 @@ import { shouldShowConnectionTour } from "@/auth/tour";
 import { ConnectionGuide } from "@/components/connection-guide";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Guide" };
 
 export default async function GuidePage() {
   const { session } = await loadAuthorizedBooks();
+  await requireSectionAccess("/dashboard/guide");
   const csrf = await ensureCsrf();
   const dismissed = session.demo && (await cookies()).get(CONNECTION_TOUR_COOKIE)?.value === "1";
   const tourPending = shouldShowConnectionTour({

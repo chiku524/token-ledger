@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, formatMoney, formatQuantity, movementLabel, sourceName } from "@/data/present";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Journal" };
 
@@ -27,6 +28,7 @@ export default async function LedgerPage({
   searchParams: Promise<{ from?: string | string[]; to?: string | string[]; error?: string | string[]; saved?: string | string[]; page?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/ledger");
   const { session, books } = await loadAuthorizedBooks();
   const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, { from: books.period.start, to: books.period.end });
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };

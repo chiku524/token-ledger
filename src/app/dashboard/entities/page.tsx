@@ -11,6 +11,7 @@ import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { entityName } from "@/data/present";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Companies" };
 
@@ -20,6 +21,7 @@ export default async function EntitiesPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/entities");
   const { session, books } = await loadAuthorizedBooks();
   const allowed = can(session.role, "entity.write");
   const writable = booksAreWritable() && !session.demo;

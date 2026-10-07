@@ -20,6 +20,8 @@ export function DashboardShell({
   session,
   csrf,
   showUsers,
+  showOnboarding,
+  hiddenTabs,
   scopeLabel,
   showConnectionTour,
 }: {
@@ -30,6 +32,8 @@ export function DashboardShell({
   session: SessionUser;
   csrf: string;
   showUsers: boolean;
+  showOnboarding: boolean;
+  hiddenTabs: readonly string[];
   scopeLabel: string | null;
   showConnectionTour: boolean;
 }) {
@@ -53,7 +57,7 @@ export function DashboardShell({
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <MobileNav showUsers={showUsers} footer={userMenu} />
+          <MobileNav showUsers={showUsers} showOnboarding={showOnboarding} role={session.role} hiddenTabs={hiddenTabs} footer={userMenu} />
         </div>
       </header>
       <aside className="hidden flex-col border-r border-border bg-card md:sticky md:top-0 md:flex md:h-screen">
@@ -67,7 +71,7 @@ export function DashboardShell({
           <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-          <DashboardNav showUsers={showUsers} />
+          <DashboardNav showUsers={showUsers} showOnboarding={showOnboarding} role={session.role} hiddenTabs={hiddenTabs} />
         </div>
         <div className="border-t border-border p-3">{userMenu}</div>
       </aside>

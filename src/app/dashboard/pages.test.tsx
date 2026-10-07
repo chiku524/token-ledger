@@ -5,6 +5,7 @@ import { CONNECTION_TOUR_COOKIE } from "@/auth/cookies";
 import type { Role } from "@/auth/roles";
 import { loadBooks } from "@/data/load-books";
 import { exampleBooks } from "@/data/example-books";
+import { loadOnboardingHiddenTabs } from "@/data/onboarding";
 import { PAGE_SIZE } from "@/data/pagination";
 import { listOrganizationUsers } from "@/db/auth-store";
 import { listOpenDrafts, type DraftRow } from "@/db/drafts";
@@ -25,6 +26,7 @@ import SettingsPage from "./settings/page";
 import SetupPage from "./setup/page";
 import SourcesPage from "./sources/page";
 import UsersPage from "./users/page";
+import OnboardingPage from "./onboarding/page";
 
 vi.mock("next/headers", async () => (await import("@/test/server-harness")).headersMock);
 vi.mock("next/navigation", async () => (await import("@/test/server-harness")).navigationMock);
@@ -42,6 +44,10 @@ vi.mock("@/db/drafts", async (importOriginal) => ({
 vi.mock("@/db/period-locks", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/db/period-locks")>()),
   listPeriodLocks: vi.fn(async () => []),
+}));
+vi.mock("@/data/onboarding", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/data/onboarding")>()),
+  loadOnboardingHiddenTabs: vi.fn(async () => []),
 }));
 
 type Page = (props: { searchParams: Promise<Record<string, string>> }) => Promise<ReactNode>;
@@ -380,4 +386,61 @@ describe("dashboard layout", () => {
     signInLive("viewer");
     expect(await layoutText()).toContain("Sample, saved");
   });
+
+  it("shows the Onboarding tab to an owner and admin, not to a viewer", async () => {
+    signInDemo("owner");
+    expect(await layoutText()).toContain("Onboarding");
+    resetRequest();
+    signInDemo("admin");
+    expect(await layoutText()).toContain("Onboarding");
+    resetRequest();
+    signInDemo("viewer");
+    expect(await layoutText()).not.toContain("Onboarding");
+  });
+
+  it("hides a tab from an onboarding user and keeps their home and account tabs", async () => {
+    signInLive("onboarding");
+    vi.mocked(loadOnboardingHiddenTabs).mockResolvedValue(["/dashboard/ledger", "/dashboard/audit"]);
+    const content = await layoutText();
+    // Overview and Settings always stay.
+    expect(content).toContain("Overview");
+    expect(content).toContain("Settings");
+    // The two hidden sections are gone from the nav.
+    expect(content).not.toContain("Journal");
+    expect(content).not.toContain("History");
+  });
+
+  it("shows an onboarding user every section when nothing is hidden", async () => {
+    signInLive("onboarding");
+    vi.mocked(loadOnboardingHiddenTabs).mockResolvedValue([]);
+    const content = await layoutText();
+    expect(content).toContain("Journal");
+    expect(content).toContain("History");
+  });
+});
+
+describe("onboarding access page", () => {
+  it("lets an owner toggle sections and lists what is always visible", async () => {
+    signInLive("owner");
+    vi.mocked(loadOnboardingHiddenTabs).mockResolvedValue(["/dashboard/ledger"]);
+    const html = await renderPage(OnboardingPage as Page);
+    const content = text(html);
+    expect(content).toContain("Hidden sections");
+    expect(content).toContain("Save onboarding tabs");
+    // The saved selection is pre-ticked.
+    expect(html).toMatch(/name="hidden" checked="" value="\/dashboard\/ledger"/);
+    expect(content).toContain("Always visible");
+    expect(content).toContain("Overview");
+    expect(content).toContain("Settings");
+  });
+
+  it.each<Role>(["accountant", "approver", "viewer", "onboarding"])(
+    "refuses the onboarding settings to a %s",
+    async (role) => {
+      signInLive(role);
+      const content = await pageText(OnboardingPage as Page);
+      expect(content).toContain("You do not have permission to change onboarding access.");
+      expect(content).not.toContain("Save onboarding tabs");
+    },
+  );
 });

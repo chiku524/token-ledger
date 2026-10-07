@@ -14,6 +14,7 @@ import { ConnectionControls, ReadOnlyNote, RoleNote } from "@/components/record-
 import { loadOperations } from "@/data/load-operations";
 import { actionLabel, entityName, syncRunStatusLabel, syncRunTriggerLabel, venueLabel } from "@/data/present";
 import { one } from "@/data/query";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Operations" };
 
@@ -68,6 +69,7 @@ export default async function OperationsPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/operations");
   const { session, writable, entities, queuedEvents, rows, chain } = await loadOperations();
   const canSource = can(session.role, "source.write");
   const csrf = await ensureCsrf();

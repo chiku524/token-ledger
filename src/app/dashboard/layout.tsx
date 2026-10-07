@@ -6,10 +6,15 @@ import { shouldShowConnectionTour } from "@/auth/tour";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
+import { loadOnboardingHiddenTabs } from "@/data/onboarding";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { session, books } = await loadAuthorizedBooks();
   const csrf = await ensureCsrf();
+  // The example books have no stored settings, and demo sign-in has no database.
+  const hiddenTabs = session.role === "onboarding" && !session.demo
+    ? await loadOnboardingHiddenTabs(session.organizationId)
+    : [];
   const subtitle = session.demo
     ? "Demo"
     : books.organization.origin === "live"
@@ -36,6 +41,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       session={session}
       csrf={csrf}
       showUsers={can(session.role, "users.manage")}
+      showOnboarding={can(session.role, "onboarding.manage")}
+      hiddenTabs={hiddenTabs}
       scopeLabel={scopeLabel}
       showConnectionTour={showConnectionTour}
     >

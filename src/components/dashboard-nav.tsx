@@ -19,11 +19,14 @@ import {
   Landmark,
   Receipt,
   Settings,
+  UserPlus,
   Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isHiddenForRole } from "@/data/onboarding-sections";
+import type { Role } from "@/auth/roles";
 
 type NavLink = { href: string; label: string; icon: LucideIcon };
 
@@ -44,12 +47,25 @@ const links: NavLink[] = [
   { href: "/dashboard/audit", label: "History", icon: History },
 ];
 
-export function DashboardNav({ showUsers, onNavigate }: { showUsers: boolean; onNavigate?: () => void }) {
+export function DashboardNav({
+  showUsers,
+  showOnboarding,
+  role,
+  hiddenTabs = [],
+  onNavigate,
+}: {
+  showUsers: boolean;
+  showOnboarding: boolean;
+  role: Role;
+  hiddenTabs?: readonly string[];
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const pillId = useId();
   const items: NavLink[] = [
-    ...links,
+    ...links.filter((link) => !isHiddenForRole(role, link.href, hiddenTabs)),
     ...(showUsers ? [{ href: "/dashboard/users", label: "Users", icon: Users }] : []),
+    ...(showOnboarding ? [{ href: "/dashboard/onboarding", label: "Onboarding", icon: UserPlus }] : []),
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 

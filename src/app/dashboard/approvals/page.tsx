@@ -14,6 +14,7 @@ import { one } from "@/data/query";
 import { entityName, formatMoney } from "@/data/present";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DraftRow } from "@/db/drafts";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Approvals" };
 
@@ -23,6 +24,7 @@ export default async function ApprovalsPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/approvals");
   const { session, books } = await loadAuthorizedBooks();
   const canApprove = can(session.role, "journal.approve");
   const canPrepare = can(session.role, "journal.prepare");
