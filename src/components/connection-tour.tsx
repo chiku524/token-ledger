@@ -129,13 +129,6 @@ export function ConnectionTour({
     document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, [open, pathname, step.href]);
 
-  // When Check succeeds and balances appear, keep the coach on Holdings until the user confirms.
-  useEffect(() => {
-    if (phase === "holdings" && progress.observedBalanceCount > 0 && pathname.startsWith("/dashboard/sources")) {
-      setOpen(true);
-    }
-  }, [phase, pathname, progress.observedBalanceCount]);
-
   if (pathname.startsWith("/dashboard/setup")) return null;
 
   async function finish() {
