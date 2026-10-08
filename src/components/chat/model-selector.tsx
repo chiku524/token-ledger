@@ -26,8 +26,9 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load once on mount, so the trigger (which shows the active model) can render.
   useEffect(() => {
-    if (!open || settings) return;
+    if (settings) return;
     void (async () => {
       try {
         setSettings(await getAiSettingsAction());
@@ -35,7 +36,7 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
         setError("Could not load the model list.");
       }
     })();
-  }, [open, settings]);
+  }, [settings]);
 
   async function choose(provider: string, model: string) {
     setPending(true);
@@ -68,21 +69,23 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
     setSettings(await getAiSettingsAction());
   }
 
-  if (!settings || settings.options.length === 0) return null;
-  const active = settings.options.find((option) => option.key === settings.provider);
+  // The trigger always renders, even before the settings resolve: it is the only
+  // way in, so it must not depend on its own click to appear.
+  const active = settings?.options.find((option) => option.key === settings.provider);
+  const label = settings?.model || active?.name || "Model";
 
   return (
     <div className="relative">
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
-        className="gap-1.5 text-xs text-muted-foreground"
+        className="gap-1.5 text-xs"
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
         <Bot className="size-3.5" aria-hidden />
-        <span className="max-w-[10rem] truncate">{settings.model || active?.name || "Model"}</span>
+        <span className="max-w-[10rem] truncate">{label}</span>
       </Button>
       {open ? (
         <div
@@ -90,7 +93,13 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
           className="absolute right-0 z-50 mt-1 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
         >
           <p className="label-caps px-2 py-1.5 text-muted-foreground">Assistant model · owner &amp; admin</p>
-          {settings.options.map((option) => (
+          {!settings ? (
+            <p className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+              Loading…
+            </p>
+          ) : null}
+          {settings?.options.map((option) => (
             <div key={option.key} className="mb-1">
               <p className="px-2 py-1 text-xs font-medium text-foreground">{option.name}</p>
               {option.models.map((model) => {
@@ -122,7 +131,7 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
               })}
             </div>
           ))}
-          {settings.customized ? (
+          {settings?.customized ? (
             <button
               type="button"
               disabled={pending}

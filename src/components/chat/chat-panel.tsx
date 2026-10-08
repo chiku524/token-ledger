@@ -101,15 +101,17 @@ function ChatThread({ speech }: { speech: boolean }) {
                     }}
                   />
                   {speech ? (
-                    <ActionBarPrimitive.Root hideWhenRunning autohide="not-last" className="mt-1 flex items-center gap-1">
+                    <ActionBarPrimitive.Root hideWhenRunning autohide="not-last" className="mt-2 flex items-center gap-1.5">
                       <ActionBarPrimitive.Speak asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label="Read aloud">
-                          <Volume2 className="size-3.5" aria-hidden />
+                        <Button variant="success" size="sm" className="gap-1.5 px-3 font-medium" aria-label="Read aloud">
+                          <Volume2 className="size-4" aria-hidden />
+                          Read aloud
                         </Button>
                       </ActionBarPrimitive.Speak>
                       <ActionBarPrimitive.StopSpeaking asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label="Stop reading">
-                          <Square className="size-3 w-3" aria-hidden />
+                        <Button variant="secondary" size="sm" className="gap-1.5 px-2.5" aria-label="Stop reading">
+                          <Square className="size-3.5" aria-hidden />
+                          Stop
                         </Button>
                       </ActionBarPrimitive.StopSpeaking>
                     </ActionBarPrimitive.Root>
