@@ -149,6 +149,7 @@ export function accountUser(role: Role, overrides: Partial<AccountUser> = {}): A
     name: `Test ${role}`,
     role,
     status: "active",
+    platformAdmin: false,
     entityScope: [],
     passwordHash: null,
     connectionTourCompletedAt: null,

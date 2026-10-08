@@ -11,6 +11,7 @@ function session(role: SessionUser["role"] = "owner"): SessionUser {
     email: "owner@harbourline.example",
     name: "Owner",
     role,
+    platformAdmin: false,
     entityScope: [],
     demo: false,
     connectionTourCompletedAt: null,

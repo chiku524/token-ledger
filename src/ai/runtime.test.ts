@@ -35,6 +35,7 @@ function session(role: Role, entityScope: string[] = []): SessionUser {
     email: `${role}@harbourline.example`,
     name: `Test ${role}`,
     role,
+    platformAdmin: false,
     entityScope,
     demo: false,
     connectionTourCompletedAt: null,

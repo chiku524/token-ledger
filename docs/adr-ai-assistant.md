@@ -192,10 +192,15 @@ every organization with its user/entity counts and owners, and every user with
 the organization they belong to, role, status, verification, and last sign-in.
 
 Platform admin is **not** an organization role — an org owner or admin must not
-see other tenants. It is an explicit allowlist of emails
-(`PLATFORM_ADMIN_EMAILS`, server-only). `isPlatformAdmin`/`requirePlatformAdmin`
-gate the panel and its actions; an email not on the list is redirected home. The
-panel can deactivate/reactivate any user, and each change is audited in the
+see other tenants. It is a stored **system role**: `users.platform_admin`
+(migration 0023), carried on the session. It is granted and revoked from the
+panel itself (audited), so an operator can promote another person without a
+redeploy. `PLATFORM_ADMIN_EMAILS` remains as a **bootstrap** allowlist so the
+first admin can reach the panel before anyone holds the flag;
+`isPlatformAdmin` is true when either the stored flag or the allowlist matches.
+`requirePlatformAdmin` gates the panel and its actions; a non-admin is
+redirected home. The panel can deactivate/reactivate any user and grant/revoke
+the platform role (but not revoke its own), and each change is audited in the
 affected user's organization.
 
 ## Why

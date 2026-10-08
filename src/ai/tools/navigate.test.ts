@@ -12,6 +12,7 @@ function ctx(role: SessionUser["role"], hiddenTabs: readonly string[] = []): Too
       email: "u@harbourline.example",
       name: "Test",
       role,
+      platformAdmin: false,
       entityScope: [],
       demo: false,
       connectionTourCompletedAt: null,

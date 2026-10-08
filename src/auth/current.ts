@@ -16,6 +16,8 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
+  /** Cross-organization operator role, from the stored flag or the env allowlist. */
+  platformAdmin: boolean;
   entityScope: string[];
   demo: boolean;
   /** Null until this admin finishes or skips the connection tour. */
@@ -42,6 +44,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
         email: demo.email,
         name: demo.name,
         role: demo.role,
+        platformAdmin: false,
         entityScope: demo.entityScope,
         demo: true,
         connectionTourCompletedAt: null,
@@ -70,10 +73,15 @@ export async function requirePermission(permission: Permission): Promise<Session
   return session;
 }
 
-/** Whether the signed-in session is a platform admin (cross-organization). */
+/**
+ * Whether the signed-in session is a platform admin. True when the user holds
+ * the stored `platform_admin` flag, or their email is on the `PLATFORM_ADMIN_EMAILS`
+ * allowlist — the allowlist is the bootstrap that lets the first admin in before
+ * anyone holds the flag. Not available in demo mode.
+ */
 export function isPlatformAdmin(session: SessionUser | null): boolean {
   if (!session || session.demo) return false;
-  return isPlatformAdminEmail(session.email);
+  return session.platformAdmin || isPlatformAdminEmail(session.email);
 }
 
 /**
@@ -119,6 +127,7 @@ function toSession(user: AccountUser): SessionUser {
     email: user.email,
     name: user.name,
     role: user.role,
+    platformAdmin: user.platformAdmin,
     entityScope: user.entityScope,
     demo: false,
     connectionTourCompletedAt: user.connectionTourCompletedAt ? user.connectionTourCompletedAt.toISOString() : null,

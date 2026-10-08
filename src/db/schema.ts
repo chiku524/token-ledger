@@ -604,6 +604,13 @@ export const users = pgTable(
     passwordHash: text("password_hash"),
     role: userRole("role").notNull(),
     status: userStatus("status").notNull(),
+    /**
+     * Platform admin: a cross-organization operator role, separate from the
+     * organization role above. Only a platform admin may open
+     * `/dashboard/platform` and manage users across every organization. Granted
+     * from the panel (audited) or bootstrapped via `PLATFORM_ADMIN_EMAILS`.
+     */
+    platformAdmin: boolean("platform_admin").notNull().default(false),
     /** Comma-separated entity ids. Empty means every entity in the organization. */
     entityScope: text("entity_scope").notNull().default(""),
     /** Set when an admin finishes or skips the connection tour. Null means a new admin still needs it. */

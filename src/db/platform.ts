@@ -7,7 +7,7 @@
  * only through a platform-admin session (see `requirePlatformAdmin`). They are
  * read-only except `setUserStatus`.
  */
-import { and, count, desc, eq, max } from "drizzle-orm";
+import { count, desc, eq, max } from "drizzle-orm";
 import { getDb } from "./client";
 import { entities, organizations, sessions, users } from "./schema";
 
@@ -30,6 +30,7 @@ export interface PlatformUser {
   name: string;
   role: string;
   status: "active" | "invited" | "inactive";
+  platformAdmin: boolean;
   emailVerified: boolean;
   createdAt: string;
   lastSignedInAt: string | null;
@@ -100,6 +101,7 @@ export async function listPlatformUsers(): Promise<PlatformUser[]> {
     name: user.name,
     role: user.role,
     status: user.status,
+    platformAdmin: user.platformAdmin,
     emailVerified: user.emailVerifiedAt !== null,
     createdAt: user.createdAt.toISOString(),
     lastSignedInAt: seen.get(user.id) ? seen.get(user.id)!.toISOString() : null,
@@ -119,5 +121,11 @@ export async function platformTotals(): Promise<{ organizations: number; users: 
 /** Set a user's status (active/inactive) platform-wide. Audited by the caller. */
 export async function setPlatformUserStatus(userId: string, status: "active" | "inactive"): Promise<void> {
   const db = getDb();
-  await db.update(users).set({ status }).where(and(eq(users.id, userId)));
+  await db.update(users).set({ status }).where(eq(users.id, userId));
+}
+
+/** Grant or revoke the platform-admin role. Audited by the caller. */
+export async function setPlatformUserAdmin(userId: string, platformAdmin: boolean): Promise<void> {
+  const db = getDb();
+  await db.update(users).set({ platformAdmin }).where(eq(users.id, userId));
 }
