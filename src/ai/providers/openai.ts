@@ -47,7 +47,7 @@ export function openRouterProvider(options: ProviderOptions): LlmProvider {
     },
     baseUrl: options.baseUrl ?? OPENROUTER_BASE_URL,
     apiKey: options.apiKey,
-    defaultModel: options.defaultModel ?? "openai/gpt-4o-mini",
+    defaultModel: options.defaultModel ?? "nvidia/nemotron-3-super-120b-a12b:free",
     transport: options.transport,
     requireApiKey: true,
     headers: { "http-referer": "https://app.tokenledger.win", "x-title": "Token Ledger" },

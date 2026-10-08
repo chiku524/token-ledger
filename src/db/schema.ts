@@ -634,6 +634,14 @@ export const organizationSettings = pgTable("organization_settings", {
     .references(() => organizations.id),
   /** Comma-separated nav hrefs hidden from the onboarding role. */
   onboardingHiddenTabs: text("onboarding_hidden_tabs").notNull().default(""),
+  /**
+   * The assistant provider an owner/admin selected for this organization, e.g.
+   * "openrouter". Empty means use the deployment's `AI_PROVIDER`. See
+   * `src/ai/settings.ts`.
+   */
+  aiProvider: text("ai_provider").notNull().default(""),
+  /** The assistant model override, e.g. "nvidia/nemotron-3-super-120b-a12b:free". */
+  aiModel: text("ai_model").notNull().default(""),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

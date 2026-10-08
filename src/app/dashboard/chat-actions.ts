@@ -11,9 +11,8 @@
  * `solanaDeployment()`.
  */
 import { actorName, assertCsrf, AuthError, requireSession } from "@/auth/current";
-import { aiConfig } from "@/ai/config";
-import { configuredProvider } from "@/ai/registry";
 import { configuredEmbedder } from "@/ai/embeddings/config";
+import { providerForOrganization } from "@/ai/settings";
 import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
 import { assistantReply, toHistory } from "@/ai/service";
 import { toolByName } from "@/ai/tools/registry";
@@ -31,16 +30,6 @@ export type ChatActionResult =
   | { status: "error"; text: string };
 
 const OFF = "The assistant is not configured on this deployment.";
-
-/** Sampling tuning from the deployment config, tolerant of a misconfiguration. */
-function tuning(): { temperature: number | null; maxTokens: number | null } {
-  try {
-    const config = aiConfig();
-    return { temperature: config?.temperature ?? null, maxTokens: config?.maxTokens ?? null };
-  } catch {
-    return { temperature: null, maxTokens: null };
-  }
-}
 
 /** A short thread title from the first user message. */
 function titleFrom(text: string): string {
@@ -63,14 +52,16 @@ export async function sendMessageAction(formData: FormData): Promise<ChatActionR
   if (!can(session.role, "books.read")) return { status: "error", text: "You do not have permission to use the assistant." };
   if (!hasDatabase()) return { status: "error", text: "The assistant needs a database to keep a conversation." };
 
-  let provider;
+  if (!session.organizationId) return { status: "error", text: "No organization on this session." };
+
+  let resolved;
   try {
-    provider = configuredProvider();
+    resolved = await providerForOrganization(session.organizationId);
   } catch (error) {
     return { status: "error", text: error instanceof Error ? error.message : OFF };
   }
-  if (!provider) return { status: "off", text: OFF };
-  if (!session.organizationId) return { status: "error", text: "No organization on this session." };
+  if (!resolved) return { status: "off", text: OFF };
+  const { provider, config: providerConfig } = resolved;
 
   const userText = String(formData.get("message") ?? "").trim();
   if (!userText) return { status: "error", text: "Type a message." };
@@ -98,7 +89,7 @@ export async function sendMessageAction(formData: FormData): Promise<ChatActionR
   let turn;
   try {
     turn = await assistantReply({
-      deps: { provider, embedder: configuredEmbedder(), memory: formData.get("memory") !== "off", excludeMessageId: userMessageId, ...tuning() },
+      deps: { provider, embedder: configuredEmbedder(), memory: formData.get("memory") !== "off", excludeMessageId: userMessageId, temperature: providerConfig.temperature, maxTokens: providerConfig.maxTokens },
       ctx,
       history,
       userText,
@@ -167,19 +158,19 @@ export async function confirmToolCallAction(formData: FormData): Promise<ChatAct
     return { status: "error", text: "You do not have permission to do that." };
   }
 
-  let provider;
+  let resolved;
   try {
-    provider = configuredProvider();
+    resolved = await providerForOrganization(session.organizationId);
   } catch {
-    provider = null;
+    resolved = null;
   }
-  if (!provider) return { status: "off", text: OFF };
+  if (!resolved) return { status: "off", text: OFF };
 
   const ctx = await loadToolContext(String(formData.get("csrf") ?? "") || null);
   if (!ctx) return { status: "error", text: "Your session ended. Sign in again." };
 
   const turn = await assistantReply({
-    deps: { provider, embedder: null, memory: false, ...tuning() },
+    deps: { provider: resolved.provider, embedder: null, memory: false, temperature: resolved.config.temperature, maxTokens: resolved.config.maxTokens },
     ctx,
     history: [],
     userText: "confirm",

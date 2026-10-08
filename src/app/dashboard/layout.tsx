@@ -54,6 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       assistantEnabled={assistantConfigured()}
       assistantMemory={embeddingConfigured()}
       assistantSpeech={speechConfigured()}
+      assistantManage={can(session.role, "ai.manage")}
     >
       {children}
     </DashboardShell>

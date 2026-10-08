@@ -7,8 +7,12 @@ vi.mock("next/cache", async () => (await import("@/test/server-harness")).cacheM
 vi.mock("@/db/auth-store", async () => (await import("@/test/server-harness")).authStoreMock());
 vi.mock("@/db/availability", () => ({ hasDatabase: () => true }));
 
-vi.mock("@/ai/registry", () => ({
-  configuredProvider: vi.fn(() => ({ key: "openai-compatible", descriptor: {}, complete: vi.fn() })),
+vi.mock("@/ai/settings", () => ({
+  providerForOrganization: vi.fn(async () => ({
+    provider: { key: "openai-compatible", descriptor: {}, complete: vi.fn() },
+    config: { provider: "openai-compatible", model: "m", temperature: null, maxTokens: null },
+    selection: { provider: "", model: "" },
+  })),
 }));
 vi.mock("@/ai/embeddings/config", () => ({ configuredEmbedder: () => null }));
 vi.mock("@/ai/context", () => ({
@@ -136,8 +140,8 @@ describe("POST /api/chat", () => {
   });
 
   it("returns 503 when no provider is configured", async () => {
-    const registry = await import("@/ai/registry");
-    vi.mocked(registry.configuredProvider).mockReturnValueOnce(null);
+    const settings = await import("@/ai/settings");
+    vi.mocked(settings.providerForOrganization).mockResolvedValueOnce(null);
     signInLive("owner");
     const response = await POST(request({ message: "hi", csrf: CSRF }));
     expect(response.status).toBe(503);

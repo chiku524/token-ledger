@@ -44,7 +44,7 @@ export const PROVIDER_DESCRIPTORS: LlmDescriptor[] = [
     name: "OpenRouter",
     system: "OpenRouter",
     implemented: true,
-    summary: "One key to many hosted models through an OpenAI-compatible gateway.",
+    summary: "One key to many hosted models through an OpenAI-compatible gateway. Free tool-calling models available.",
   },
   {
     key: "cloudflare",

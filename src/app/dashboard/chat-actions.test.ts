@@ -17,8 +17,12 @@ vi.mock("@/db/auth-store", async () => (await import("@/test/server-harness")).a
 
 vi.mock("@/db/availability", () => ({ hasDatabase: () => true }));
 
-vi.mock("@/ai/registry", () => ({
-  configuredProvider: () => ({ key: "ollama", descriptor: {}, complete: vi.fn() }),
+vi.mock("@/ai/settings", () => ({
+  providerForOrganization: vi.fn(async () => ({
+    provider: { key: "ollama", descriptor: {}, complete: vi.fn() },
+    config: { provider: "ollama", model: "m", temperature: null, maxTokens: null },
+    selection: { provider: "", model: "" },
+  })),
 }));
 vi.mock("@/ai/config", () => ({ aiConfig: () => ({ provider: "ollama", model: "llama3.1" }) }));
 vi.mock("@/ai/embeddings/config", () => ({ configuredEmbedder: () => null }));
@@ -122,8 +126,8 @@ describe("sendMessageAction", () => {
   });
 
   it("reports the assistant off when no provider is configured", async () => {
-    const registry = await import("@/ai/registry");
-    vi.spyOn(registry, "configuredProvider").mockReturnValueOnce(null);
+    const settings = await import("@/ai/settings");
+    vi.mocked(settings.providerForOrganization).mockResolvedValueOnce(null);
     signInDemo("owner");
     const result = await sendMessageAction(form({ message: "hi" }));
     expect(result.status).toBe("off");
