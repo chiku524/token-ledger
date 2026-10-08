@@ -185,6 +185,19 @@ header, without a redeploy.
 The chat route and actions resolve the provider through
 `providerForOrganization`, so a switch takes effect on the next turn.
 
+### Platform administration (#290)
+
+`/dashboard/platform` is a cross-organization view for **platform admins**:
+every organization with its user/entity counts and owners, and every user with
+the organization they belong to, role, status, verification, and last sign-in.
+
+Platform admin is **not** an organization role — an org owner or admin must not
+see other tenants. It is an explicit allowlist of emails
+(`PLATFORM_ADMIN_EMAILS`, server-only). `isPlatformAdmin`/`requirePlatformAdmin`
+gate the panel and its actions; an email not on the list is redirected home. The
+panel can deactivate/reactivate any user, and each change is audited in the
+affected user's organization.
+
 ## Why
 
 - **No new dependency.** A port plus `fetch` adapters keeps the default install

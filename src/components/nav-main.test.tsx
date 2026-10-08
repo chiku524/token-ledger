@@ -10,7 +10,7 @@ function render(props: Partial<Parameters<typeof NavMain>[0]> = {}): string {
   return renderToStaticMarkup(
     <TooltipProvider>
       <SidebarProvider>
-        <NavMain showUsers={false} showOnboarding={false} role="accountant" {...props} />
+        <NavMain showUsers={false} showOnboarding={false} showPlatform={false} role="accountant" {...props} />
       </SidebarProvider>
     </TooltipProvider>,
   );
@@ -56,6 +56,11 @@ describe("NavMain", () => {
 
   it("adds Users and Onboarding to the account group when allowed", () => {
     expect(labels(render({ showUsers: true, showOnboarding: true })).slice(-3)).toEqual(["Users", "Onboarding", "Settings"]);
+  });
+
+  it("adds Platform only for a platform admin", () => {
+    expect(labels(render({ showPlatform: false }))).not.toContain("Platform");
+    expect(labels(render({ showPlatform: true })).slice(-2)).toEqual(["Platform", "Settings"]);
   });
 
   it("hides sections an operator turned off for the onboarding role", () => {

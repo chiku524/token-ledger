@@ -202,6 +202,8 @@ Set `AI_PROVIDER` to turn it on (see `.env.example`); unset means the assistant
 is off and the rest of the app is unaffected. `pnpm ai:embed-backfill` embeds
 existing message history for retrieval.
 
+Every sign-up creates its own organization with the registrant as its owner, so the dashboard's **Users** page lists only *your* organization's people. To see everyone across every organization, set `PLATFORM_ADMIN_EMAILS` (a comma-separated email allowlist) and open **Platform** in the account menu: it lists each organization with its user/company counts, and every user with their organization, role, status, verification, and last sign-in. This cross-organization view is separate from any organization role — an org owner or admin does not get it.
+
 ## Scheduled sync and operations
 
 Connections pull on a schedule, not only on a click. Every pull goes through one path (`runConnectionSync`) and leaves a row in `sync_runs` with its outcome, trigger, and counts. Raw adapter payloads are retained as JSONB for the most recent runs and then age out. A failing connection is retried with a growing backoff (5m, 30m, 2h, 6h) and marked degraded after a failure that follows a success.
@@ -213,7 +215,6 @@ Connections pull on a schedule, not only on a click. Every pull goes through one
 Sources that can push post a signed JSON event to `POST /api/webhooks/source`. The signature header is Stripe-like: `X-Token-Ledger-Signature: t=<unix seconds>,v1=<hex hmac-sha256>` over `${t}.${rawBody}`, with the per-source secret derived from `WEBHOOK_SIGNING_SECRET`. A timestamp outside five minutes is rejected, and the unique `(source, external id)` key makes a redelivery a no-op. `pnpm webhook:send <SOURCE_ID> <ASSET_CODE> <in|out> <QUANTITY>` sends a signed event for local verification. See `docs/adr-scheduled-ingestion.md`.
 
 ## Layout
-
 ```text
 src/app                 Landing page, sign-in, and dashboard
 src/auth                Passwords, sessions, roles, demo sign-in, and the owner bootstrap
