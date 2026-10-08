@@ -171,6 +171,27 @@ See `docs/adr-market-data.md`.
 
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
 
+## AI assistant
+
+An assistant that can do anything a signed-in user can do — open the right page,
+explain a number, and prepare an entry — under the user's real role and entity
+scope. It drives the **same server actions the UI calls**; it is not a second
+accounting system and cannot escalate privilege. The capability handbook is
+`docs/ai-chatbot.md`; the decision is `docs/adr-ai-assistant.md`.
+
+- **Providers.** One interface covers Ollama, Anthropic Claude, OpenAI ChatGPT,
+  Hugging Face, OpenRouter, and any OpenAI-compatible endpoint. No LLM SDK is in
+  the default install — each provider is a `fetch` adapter, tested offline.
+- **Reads run; writes wait.** A read tool runs immediately. A write (post,
+  match, close, prepare an on-chain payment) is proposed and does nothing until
+  the user confirms it explicitly; every write is audited.
+- **Retrieval (RAG).** With `AI_EMBEDDING_PROVIDER` set, the assistant recalls
+  relevant earlier messages, org- and entity-scoped, with citations.
+
+Set `AI_PROVIDER` to turn it on (see `.env.example`); unset means the assistant
+is off and the rest of the app is unaffected. `pnpm ai:embed-backfill` embeds
+existing message history for retrieval.
+
 ## Scheduled sync and operations
 
 Connections pull on a schedule, not only on a click. Every pull goes through one path (`runConnectionSync`) and leaves a row in `sync_runs` with its outcome, trigger, and counts. Raw adapter payloads are retained as JSONB for the most recent runs and then age out. A failing connection is retried with a growing backoff (5m, 30m, 2h, 6h) and marked degraded after a failure that follows a success.
@@ -191,6 +212,8 @@ src/ledger              Double-entry posting, reversals, FX, trial balance, reco
 src/db                  Drizzle schema, client, seed, read, and write
 src/adapters            Source readers (chains, exchanges, custodians), a shared adapter contract
                         (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
+src/ai                  The assistant: LLM provider port and adapters, the tool registry over
+                        the server actions, the tool-calling runtime, and RAG over message history
 src/data                Example books, validation, the Postgres-or-example loader, sync policy, and valuation
 src/adapters/market     Keyless price (CoinGecko) and FX (ECB) providers
 src/app/api             Route handlers: the scheduled cron pass and the signed webhook receiver

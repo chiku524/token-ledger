@@ -1544,3 +1544,134 @@ export const chainCursors = pgTable(
   },
   (table) => [uniqueIndex("chain_cursors_cluster_program_unique").on(table.cluster, table.programId)],
 );
+
+/** The role of one message in an assistant thread. */
+export const aiMessageRole = pgEnum("ai_message_role", ["system", "user", "assistant", "tool"]);
+/** The lifecycle of a tool call the assistant proposed: it never runs without a confirm. */
+export const aiToolStatus = pgEnum("ai_tool_status", ["proposed", "confirmed", "rejected", "ran", "failed"]);
+
+/**
+ * An assistant conversation. Org- and user-scoped: a thread is only ever read
+ * back by the user and organization that created it, and the entity scope in
+ * force at creation is snapshotted so retrieval can never widen it. See
+ * docs/adr-ai-assistant.md.
+ */
+export const aiThreads = pgTable(
+  "ai_threads",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    title: text("title").notNull(),
+    /** Comma-separated entity ids in scope when the thread was created. Empty means every entity. */
+    entityScope: text("entity_scope").notNull().default(""),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("ai_threads_organization_user_idx").on(table.organizationId, table.userId, table.updatedAt),
+  ],
+);
+
+/**
+ * One turn in a thread. `content` is the plain text the user sees and the model
+ * produced; it is never a place secrets are written. Tool calls hang off an
+ * assistant message (via `ai_tool_calls.message_id`) or a tool result message.
+ */
+export const aiMessages = pgTable(
+  "ai_messages",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => aiThreads.id),
+    role: aiMessageRole("role").notNull(),
+    content: text("content").notNull().default(""),
+    /** The provider and model that produced an assistant turn, when known. */
+    provider: text("provider"),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("ai_messages_thread_created_idx").on(table.threadId, table.createdAt),
+    index("ai_messages_organization_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * A tool call the assistant proposed and its outcome. A write tool is recorded
+ * as `proposed` and does nothing until a confirm turn sets it `confirmed` and it
+ * runs; when it runs it links the `audit_events` row so the action is traceable.
+ * `arguments` and `result` hold only non-secret data — a prepared transaction
+ * plan, a count, an error string.
+ */
+export const aiToolCalls = pgTable(
+  "ai_tool_calls",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => aiThreads.id),
+    /** The assistant message this call belongs to, when there is one. */
+    messageId: text("message_id").references(() => aiMessages.id),
+    toolName: text("tool_name").notNull(),
+    arguments: jsonb("arguments").notNull(),
+    result: jsonb("result"),
+    status: aiToolStatus("status").notNull(),
+    /** True for a tool that changes books or moves money: it needs a confirm. */
+    requiresConfirm: boolean("requires_confirm").notNull().default(false),
+    /** The audit event written when the tool ran. */
+    auditEventId: text("audit_event_id"),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("ai_tool_calls_thread_created_idx").on(table.threadId, table.createdAt),
+    index("ai_tool_calls_organization_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * A vector for one message, for retrieval over chat history. Stored as JSONB
+ * (an array of numbers) so the schema does not depend on the pgvector extension
+ * being present; at this scale a cosine scan in Postgres is enough. The model
+ * and dimensions are recorded so a re-embed is possible when the embedder
+ * changes. See issue #268.
+ */
+export const aiMessageEmbeddings = pgTable(
+  "ai_message_embeddings",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => aiThreads.id),
+    messageId: text("message_id")
+      .notNull()
+      .references(() => aiMessages.id),
+    model: text("model").notNull(),
+    dimensions: integer("dimensions").notNull(),
+    vector: jsonb("vector").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("ai_message_embeddings_message_unique").on(table.messageId),
+    index("ai_message_embeddings_organization_idx").on(table.organizationId),
+  ],
+);
