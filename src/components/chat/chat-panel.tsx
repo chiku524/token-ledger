@@ -1,19 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
-import { ArrowUp, MessageSquare, PanelRightClose, Sparkles, Square } from "lucide-react";
+import { ArrowUp, History, MessageSquare, PanelRightClose, Plus, Sparkles, Square } from "lucide-react";
 import {
   AuiIf,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  type ThreadMessageLike,
   type ToolCallMessagePartComponent,
 } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatRuntimeProvider } from "./chat-runtime-provider";
+import {
+  listThreadsAction,
+  loadThreadMessagesAction,
+  type ChatThreadSummary,
+} from "@/app/dashboard/chat-actions";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -36,7 +42,7 @@ function AssistantMark() {
   );
 }
 
-function AssistantAvatarSlot() {
+function UserMark() {
   return (
     <span className="label-caps flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
       You
@@ -77,12 +83,10 @@ function ChatThread() {
               <MessagePrimitive.Root className="mb-4 flex items-start justify-end gap-2">
                 <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">
                   <MessagePrimitive.Parts
-                    components={{
-                      Text: ({ text }) => <p className="whitespace-pre-wrap">{text}</p>,
-                    }}
+                    components={{ Text: ({ text }) => <p className="whitespace-pre-wrap">{text}</p> }}
                   />
                 </div>
-                <AssistantAvatarSlot />
+                <UserMark />
               </MessagePrimitive.Root>
             ) : (
               <MessagePrimitive.Root className="mb-4 flex items-start gap-2">
@@ -133,6 +137,48 @@ function ChatThread() {
   );
 }
 
+/** The history list: pick a past conversation, or start a new one. */
+function HistoryList({
+  threads,
+  activeId,
+  onPick,
+  onNew,
+}: {
+  threads: ChatThreadSummary[];
+  activeId: string | null;
+  onPick: (thread: ChatThreadSummary) => void;
+  onNew: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+      <Button variant="secondary" className="mb-3 justify-start" onClick={onNew}>
+        <Plus className="size-4" aria-hidden />
+        New conversation
+      </Button>
+      {threads.length === 0 ? (
+        <p className="px-1 text-sm text-muted-foreground">No conversations yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {threads.map((thread) => (
+            <li key={thread.id}>
+              <button
+                type="button"
+                onClick={() => onPick(thread)}
+                className={cn(
+                  "w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
+                  thread.id === activeId ? "bg-muted font-medium text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {thread.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export interface ChatPanelProps {
   csrf: string;
   /** Whether a provider is configured; when false the panel explains it is off. */
@@ -159,14 +205,96 @@ function AssistantOff() {
  * (mounted from the shell). On a small screen it is a bottom-right floating
  * window; on `lg` and up it docks as a right-hand sidebar. Motion is
  * opacity/transform only and respects reduced motion via the app's MotionConfig.
+ *
+ * The panel restores the user's history from our store (AI-07) and offers a
+ * thread list and a new conversation. Switching threads remounts the runtime via
+ * a key so a conversation swaps cleanly.
  */
 export function ChatPanel({ csrf, enabled = true, memory = true }: ChatPanelProps) {
   const [open, setOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [initialMessages, setInitialMessages] = useState<readonly ThreadMessageLike[]>([]);
+  const [ready, setReady] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+
+  // On first open, load the latest thread and its messages so history persists.
+  useEffect(() => {
+    if (!open || ready || !enabled) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const list = await listThreadsAction();
+        if (cancelled) return;
+        setThreads(list);
+        const latest = list[0];
+        if (latest) {
+          const messages = await loadThreadMessagesAction(latest.id);
+          if (cancelled) return;
+          setActiveThreadId(latest.id);
+          setInitialMessages(
+            messages.map((message) => ({
+              role: message.role,
+              content: [{ type: "text" as const, text: message.content }],
+              createdAt: new Date(message.createdAt),
+            })),
+          );
+        }
+      } catch {
+        // History is best-effort; a failure just starts a fresh conversation.
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, ready, enabled]);
+
+  const switchTo = useCallback(async (thread: ChatThreadSummary | null) => {
+    if (!thread) {
+      setActiveThreadId(null);
+      setInitialMessages([]);
+      setShowHistory(false);
+      return;
+    }
+    const messages = await loadThreadMessagesAction(thread.id);
+    setActiveThreadId(thread.id);
+    setInitialMessages(
+      messages.map((message) => ({
+        role: message.role,
+        content: [{ type: "text" as const, text: message.content }],
+        createdAt: new Date(message.createdAt),
+      })),
+    );
+    setShowHistory(false);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
+    const panel = panelRef.current;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !panel) return;
+      // A focus trap, so Tab cycles within the panel while it is open.
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -174,8 +302,10 @@ export function ChatPanel({ csrf, enabled = true, memory = true }: ChatPanelProp
 
   const panel = (
     <m.aside
+      ref={panelRef}
       key="panel"
       role="dialog"
+      aria-modal="true"
       aria-label="Token Ledger assistant"
       data-print="hide"
       initial={{ opacity: 0, y: 12 }}
@@ -195,37 +325,67 @@ export function ChatPanel({ csrf, enabled = true, memory = true }: ChatPanelProp
           <AssistantMark />
           <span className="font-heading text-sm font-medium">Assistant</span>
         </div>
-        <Button variant="ghost" size="icon-sm" aria-label="Close the assistant" onClick={() => setOpen(false)}>
-          <PanelRightClose className="size-4" aria-hidden />
-        </Button>
+        <div className="flex items-center gap-1">
+          {enabled ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={showHistory ? "Back to chat" : "Show conversations"}
+              aria-pressed={showHistory}
+              onClick={() => setShowHistory((value) => !value)}
+            >
+              <History className="size-4" aria-hidden />
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="icon-sm" aria-label="Close the assistant" onClick={() => setOpen(false)}>
+            <PanelRightClose className="size-4" aria-hidden />
+          </Button>
+        </div>
       </header>
-      {enabled ? <ChatThread /> : <AssistantOff />}
+      {!enabled ? (
+        <AssistantOff />
+      ) : showHistory ? (
+        <HistoryList
+          threads={threads}
+          activeId={activeThreadId}
+          onPick={(thread) => void switchTo(thread)}
+          onNew={() => void switchTo(null)}
+        />
+      ) : (
+        <ChatRuntimeProvider
+          key={activeThreadId ?? "new"}
+          csrf={csrf}
+          memory={memory}
+          initialThreadId={activeThreadId}
+          initialMessages={initialMessages}
+        >
+          <ChatThread />
+        </ChatRuntimeProvider>
+      )}
     </m.aside>
   );
 
   return (
-    <ChatRuntimeProvider csrf={csrf} memory={memory}>
-      <AnimatePresence>
-        {!open ? (
-          <m.button
-            key="launcher"
-            type="button"
-            onClick={() => setOpen(true)}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.2, ease: EASE }}
-            aria-label="Open the assistant"
-            data-print="hide"
-            className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 md:right-6 md:bottom-6"
-          >
-            <MessageSquare className="size-4" aria-hidden />
-            Assistant
-          </m.button>
-        ) : (
-          panel
-        )}
-      </AnimatePresence>
-    </ChatRuntimeProvider>
+    <AnimatePresence>
+      {!open ? (
+        <m.button
+          key="launcher"
+          type="button"
+          onClick={() => setOpen(true)}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.2, ease: EASE }}
+          aria-label="Open the assistant"
+          data-print="hide"
+          className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 md:right-6 md:bottom-6"
+        >
+          <MessageSquare className="size-4" aria-hidden />
+          Assistant
+        </m.button>
+      ) : (
+        panel
+      )}
+    </AnimatePresence>
   );
 }

@@ -115,6 +115,7 @@ describe("write gate", () => {
     const turn = await runAssistantTurn({ provider, ctx: ctx("accountant"), history: [], userText: "post a journal" });
     expect(turn.status).toBe("awaiting_confirmation");
     expect(turn.proposal?.tool).toBe("post_journal");
+    expect(turn.proposal?.preview?.action).toBe("Post journal");
     expect(execute).not.toHaveBeenCalled();
     execute.mockRestore();
   });

@@ -10,6 +10,11 @@ vi.mock("./chat-runtime-provider", () => ({
   ChatRuntimeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock("@/app/dashboard/chat-actions", () => ({
+  listThreadsAction: vi.fn(async () => []),
+  loadThreadMessagesAction: vi.fn(async () => []),
+}));
+
 import { ChatPanel } from "./chat-panel";
 
 describe("ChatPanel", () => {

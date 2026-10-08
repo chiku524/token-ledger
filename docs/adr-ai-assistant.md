@@ -54,6 +54,10 @@ key has no case.
 - **On-chain prepare tools** call the existing `prepare*` server actions through
   FormData, reusing their CSRF and permission guards, and return the library-free
   `SerializablePlan`. They never sign or submit.
+- **Write tools also expose `preview()`** — a side-effect-free summary (key
+  fields, journal lines and balance, or the on-chain plan). The runtime computes
+  it when a write is proposed, so the confirmation card shows what will happen
+  before anything runs.
 
 `toolsFor(session)` omits any tool whose permission the role lacks, so the
 assistant is not a privilege escalator (`docs/ai-chatbot.md` §7).
@@ -117,11 +121,17 @@ our provider-agnostic port, tool loop, and confirm gate stay authoritative.
 - `src/components/chat/chat-panel.tsx` is the surface: mounted from
   `DashboardShell`, so it is available on **every** dashboard page. It is a
   bottom-right floating launcher; opened, it is a floating window on small
-  screens and a docked right sidebar on `lg` and up. `MotionConfig` handles
-  reduced motion, and only opacity/transform animate.
-- `src/components/chat/chat-tool-card.tsx` renders both shapes: a settled
-  read/prepare card with a deep link, and a pending write card with Confirm and
-  Cancel that becomes a receipt once decided.
+  screens and a docked right sidebar on `lg` and up. It restores the user's
+  latest conversation from our store and offers a history list and a new
+  conversation; switching threads remounts the runtime by key. `MotionConfig`
+  handles reduced motion, only opacity/transform animate, and a focus trap plus
+  `aria-modal` keep it keyboard- and screen-reader-usable.
+- `src/components/chat/chat-tool-card.tsx` renders the confirmation card from a
+  **side-effect-free preview** the tool provides (`AgentTool.preview`). It shows
+  the action's key fields; for a journal, the balanced lines; for an on-chain
+  prepare, the unsigned transaction (cluster, program, fee payer, subject) and
+  the signing handoff — the assistant never signs. Confirm and Cancel run only
+  after a decision, and the receipt links to the recorded action in History.
 - `assistantEnabled` (from `assistantConfigured()`) and `assistantMemory` (from
   `embeddingConfigured()`) are read on the server and passed to the panel, so an
   unconfigured deployment shows a clear "assistant is off" state, never an error.

@@ -23,9 +23,27 @@ import type { ThreadAssistantMessagePart } from "@assistant-ui/react";
 type ChatEvent =
   | { type: "text"; delta: string }
   | { type: "tool"; tool: string; status: string; summary?: string; route?: string }
-  | { type: "awaiting_confirmation"; toolCallId: string; tool: string; route?: string }
+  | { type: "awaiting_confirmation"; toolCallId: string; tool: string; route?: string; preview?: ToolPreview }
   | { type: "done"; threadId: string; status: string }
   | { type: "error"; message: string };
+
+/** Mirrors `src/ai/tools/types.ts` ToolPreview, for the confirmation card. */
+export interface ToolPreview {
+  action: string;
+  fields: { label: string; value: string }[];
+  lines?: { accountCode: string; side: string; amount: string }[];
+  balanced?: boolean;
+  plan?: {
+    action: string;
+    cluster: string;
+    programId: string;
+    feePayer: string;
+    subject?: string | null;
+    policyNote?: string;
+    instructions: number;
+  };
+  note?: string;
+}
 
 export interface ChatAdapterDeps {
   csrf: string;
@@ -34,7 +52,7 @@ export interface ChatAdapterDeps {
   /** Called with the active thread id once the backend assigns one. */
   onThreadId?: (threadId: string) => void;
   /** Confirms or rejects a proposed write; returns the result text. */
-  onConfirm: (input: { toolCallId: string; decision: "confirm" | "reject" }) => Promise<{ text: string; route?: string }>;
+  onConfirm: (input: { toolCallId: string; decision: "confirm" | "reject" }) => Promise<{ text: string; route?: string; auditEventId?: string | null }>;
   /** Whether to send retrieved memories with the turn. */
   memory?: boolean;
 }
@@ -87,6 +105,7 @@ function historyFromMessages(messages: readonly ThreadMessageLike[]): { role: st
 interface ApprovalBearingPart {
   type: string;
   toolCallId?: string;
+  toolName?: string;
   approval?: {
     approved?: boolean;
     resolution?: "cancelled" | "expired";
@@ -95,15 +114,17 @@ interface ApprovalBearingPart {
 
 /**
  * Read the decisions the user recorded on an approval gate from the in-progress
- * assistant message. Returns the tool calls that were allowed or denied.
+ * assistant message. Returns the tool calls that were allowed or denied, with
+ * the original tool name so the receipt can link to the recorded History action.
  */
 function readApprovalDecisions(message: { content: readonly unknown[] }): {
   toolCallId: string;
+  toolName: string;
   approved: boolean;
 }[] {
   return (message.content as readonly ApprovalBearingPart[]).flatMap((part) =>
     part.type === "tool-call" && part.approval?.approved !== undefined && !part.approval.resolution
-      ? [{ toolCallId: part.toolCallId ?? "", approved: part.approval.approved }]
+      ? [{ toolCallId: part.toolCallId ?? "", toolName: part.toolName ?? "", approved: part.approval.approved }]
       : [],
   );
 }
@@ -127,11 +148,11 @@ export function createChatAdapter(deps: ChatAdapterDeps, threadIdRef: { current:
           parts.push({
             type: "tool-call",
             toolCallId: decision.toolCallId,
-            toolName: "decision",
-            args: { approved: decision.approved },
+            toolName: decision.toolName || "decision",
+            args: { approved: decision.approved, auditEventId: result.auditEventId ?? null, tool: decision.toolName },
             argsText: JSON.stringify({ approved: decision.approved }),
             approval: { id: decision.toolCallId, approved: decision.approved },
-            result: { text: result.text },
+            result: { text: result.text, route: result.route ?? null, auditEventId: result.auditEventId ?? null },
           });
         }
         yield {
@@ -184,12 +205,13 @@ export function createChatAdapter(deps: ChatAdapterDeps, threadIdRef: { current:
           }
           case "awaiting_confirmation":
             // A write needs a decision. Emit an approval gate; the run pauses.
+            // The preview rides along as `args` so the card shows what it will do.
             toolParts.set(event.toolCallId, {
               type: "tool-call",
               toolCallId: event.toolCallId,
               toolName: event.tool,
-              args: {},
-              argsText: "{}",
+              args: (event.preview ? { preview: event.preview } : {}) as unknown as Record<string, string>,
+              argsText: JSON.stringify(event.preview ?? {}),
               approval: { id: event.toolCallId },
             });
             break;
