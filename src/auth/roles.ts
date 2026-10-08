@@ -20,6 +20,7 @@ export const PERMISSIONS = [
   "users.manage",
   "users.manageOwners",
   "onboarding.manage",
+  "ai.manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

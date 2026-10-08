@@ -9,9 +9,8 @@
  */
 import { assertCsrf, AuthError, requireSession } from "@/auth/current";
 import { can } from "@/auth/roles";
-import { aiConfig } from "@/ai/config";
-import { configuredProvider } from "@/ai/registry";
 import { configuredEmbedder } from "@/ai/embeddings/config";
+import { providerForOrganization } from "@/ai/settings";
 import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
 import { assistantReply, toHistory } from "@/ai/service";
 import { loadToolContext } from "@/ai/context";
@@ -31,16 +30,6 @@ type ChatEvent =
 function titleFrom(text: string): string {
   const trimmed = text.trim().replace(/\s+/g, " ");
   return trimmed.length > 60 ? `${trimmed.slice(0, 57)}…` : trimmed || "New conversation";
-}
-
-/** Sampling tuning from the deployment config, tolerant of a misconfiguration. */
-function tuning(): { temperature: number | null; maxTokens: number | null } {
-  try {
-    const config = aiConfig();
-    return { temperature: config?.temperature ?? null, maxTokens: config?.maxTokens ?? null };
-  } catch {
-    return { temperature: null, maxTokens: null };
-  }
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -68,13 +57,15 @@ export async function POST(request: Request): Promise<Response> {
   if (!hasDatabase()) return Response.json({ error: "The assistant needs a database." }, { status: 503 });
   if (!session.organizationId) return Response.json({ error: "No organization on this session." }, { status: 400 });
 
-  let provider;
+  let resolved;
   try {
-    provider = configuredProvider();
+    resolved = await providerForOrganization(session.organizationId);
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Assistant misconfigured." }, { status: 500 });
   }
-  if (!provider) return Response.json({ error: "The assistant is not configured." }, { status: 503 });
+  if (!resolved) return Response.json({ error: "The assistant is not configured." }, { status: 503 });
+  const provider = resolved.provider;
+  const providerConfig = resolved.config;
 
   const userText = (body.message ?? "").trim();
   if (!userText) return Response.json({ error: "Type a message." }, { status: 400 });
@@ -102,7 +93,7 @@ export async function POST(request: Request): Promise<Response> {
       const send = (event: ChatEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
         const turn = await assistantReply({
-          deps: { provider, embedder: configuredEmbedder(), memory: body.memory !== "off", excludeMessageId: userMessageId, ...tuning() },
+          deps: { provider, embedder: configuredEmbedder(), memory: body.memory !== "off", excludeMessageId: userMessageId, temperature: providerConfig.temperature, maxTokens: providerConfig.maxTokens },
           ctx,
           history,
           userText,

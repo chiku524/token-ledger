@@ -39,6 +39,13 @@ describe("aiConfig", () => {
     expect(() => aiConfig({ AI_PROVIDER: "cloudflare", CLOUDFLARE_API_TOKEN: "tok" })).toThrow(/CLOUDFLARE_ACCOUNT_ID/);
   });
 
+  it("defaults OpenRouter to a free tool-calling model", () => {
+    const config = aiConfig({ AI_PROVIDER: "openrouter", OPENROUTER_API_KEY: "k" });
+    expect(config?.model).toBe(DEFAULT_MODEL.openrouter);
+    expect(config?.model).toMatch(/:free$/);
+    expect(config?.baseUrl).toBeNull();
+  });
+
   it("parses tuning values and rejects out-of-range ones", () => {
     const config = aiConfig({ AI_PROVIDER: "ollama", AI_TEMPERATURE: "0.2", AI_MAX_TOKENS: "512" });
     expect(config?.temperature).toBe(0.2);

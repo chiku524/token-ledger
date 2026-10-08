@@ -27,6 +27,7 @@ export function DashboardShell({
   assistantEnabled,
   assistantMemory,
   assistantSpeech,
+  assistantManage,
 }: {
   children: React.ReactNode;
   origin: "example" | "live";
@@ -46,6 +47,8 @@ export function DashboardShell({
   assistantMemory: boolean;
   /** Whether text-to-speech (ElevenLabs) is on for this deployment. */
   assistantSpeech: boolean;
+  /** Whether this session may switch provider/model (owner or admin). */
+  assistantManage: boolean;
 }) {
   return (
     <TooltipProvider>
@@ -91,7 +94,7 @@ export function DashboardShell({
           </main>
           {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}
         </SidebarInset>
-        <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} speech={assistantSpeech} />
+        <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} speech={assistantSpeech} canManageAi={assistantManage} />
       </SidebarProvider>
     </TooltipProvider>
   );

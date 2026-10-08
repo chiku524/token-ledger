@@ -57,7 +57,7 @@ export const DEFAULT_MODEL: Record<ProviderKey, string> = {
   anthropic: "claude-3-5-sonnet-latest",
   openai: "gpt-4o-mini",
   huggingface: "meta-llama/Llama-3.3-70B-Instruct",
-  openrouter: "openai/gpt-4o-mini",
+  openrouter: "nvidia/nemotron-3-super-120b-a12b:free",
   // A Workers AI model that runs on the Workers Free plan, emits tool calls, and
   // finishes a turn after a tool result. (gpt-oss spends its budget on
   // reasoning_content and can truncate before completing a call.)

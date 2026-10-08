@@ -40,8 +40,7 @@ the same pattern as `src/adapters` and `docs/adr-adapter-contract.md`:
   (`@cf/qwen/qwen3-30b-a3b-fp8`) runs on the Workers Free plan and emits tool
   calls; paid-only models are rejected on Free.
 - `src/ai/registry.ts` selects the provider from config; `src/ai/config.ts` reads
-  `AI_PROVIDER` and keys. Unset `AI_PROVIDER` means the assistant is off, exactly
-  like `solanaDeployment()` returning null.
+  `AI_PROVIDER` and keys. Unset `AI_PROVIDER` means the assistant is off, exactly  like `solanaDeployment()` returning null.
 
 A `runProviderContract` suite (`src/ai/provider-contract.ts`) asserts, for every
 provider, the neutral shape, a tool-call round-trip, a typed error on a non-2xx,
@@ -163,6 +162,28 @@ off and the Speak control is not offered.
 
 Speech is a read-only capability: it changes no books, so it needs no
 confirmation.
+
+### Per-organization provider & model selection (#289)
+
+An **owner or admin** (`ai.manage`) can switch the organization between the
+providers this deployment has keys for and choose a model, from the chat panel's
+header, without a redeploy.
+
+- `organization_settings.ai_provider` / `ai_model` store the choice;
+  `src/ai/settings.ts` reads it (`providerForOrganization`) and layers it over the
+  environment with `resolveAiConfig`. The override changes only the **provider and
+  model** — keys and base URLs still come from the environment, so a selection can
+  never introduce a secret or an endpoint.
+- `providerUsable` keeps only providers whose key is present, so the selector
+  offers just the options this deployment can actually reach.
+- `src/ai/models.ts` is a curated catalog (including **free** models, marked),
+  with a note that only models that call tools are offered.
+- `getAiSettingsAction` (any session, read-only), `setAiSelectionAction` and
+  `resetAiSelectionAction` (owner/admin) — see `src/app/dashboard/ai-actions.ts`.
+- `ModelSelector` renders in the panel header only when `canManageAi` is true.
+
+The chat route and actions resolve the provider through
+`providerForOrganization`, so a switch takes effect on the next turn.
 
 ## Why
 

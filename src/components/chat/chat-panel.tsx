@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatRuntimeProvider } from "./chat-runtime-provider";
+import { ModelSelector } from "./model-selector";
 import {
   listThreadsAction,
   loadThreadMessagesAction,
@@ -206,6 +207,8 @@ export interface ChatPanelProps {
   memory?: boolean;
   /** Whether text-to-speech (ElevenLabs) is on for this deployment. */
   speech?: boolean;
+  /** Whether this session may switch provider/model (owner or admin). */
+  canManageAi?: boolean;
 }
 
 /** Shown when no provider is configured, so the launcher never errors. */
@@ -232,7 +235,7 @@ function AssistantOff() {
  * thread list and a new conversation. Switching threads remounts the runtime via
  * a key so a conversation swaps cleanly.
  */
-export function ChatPanel({ csrf, enabled = true, memory = true, speech = false }: ChatPanelProps) {
+export function ChatPanel({ csrf, enabled = true, memory = true, speech = false, canManageAi = false }: ChatPanelProps) {
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
@@ -348,6 +351,7 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false 
           <span className="font-heading text-sm font-medium">Assistant</span>
         </div>
         <div className="flex items-center gap-1">
+          {enabled && canManageAi ? <ModelSelector csrf={csrf} /> : null}
           {enabled ? (
             <Button
               variant="ghost"
