@@ -189,6 +189,11 @@ accounting system and cannot escalate privilege. The capability handbook is
   the user confirms it explicitly; every write is audited.
 - **Retrieval (RAG).** With `AI_EMBEDDING_PROVIDER` set, the assistant recalls
   relevant earlier messages, org- and entity-scoped, with citations.
+- **In the UI.** A launcher is on every dashboard page: a floating button that
+  opens a window (or a docked sidebar on large screens). It streams replies,
+  opens the page a request names, and shows a confirmation card before any write
+  runs. Built on `assistant-ui`, but the panel only presents — our backend stays
+  authoritative.
 
 Set `AI_PROVIDER` to turn it on (see `.env.example`); unset means the assistant
 is off and the rest of the app is unaffected. `pnpm ai:embed-backfill` embeds
@@ -216,6 +221,7 @@ src/adapters            Source readers (chains, exchanges, custodians), a shared
                         (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
 src/ai                  The assistant: LLM provider port and adapters, the tool registry over
                         the server actions, the tool-calling runtime, and RAG over message history
+src/components/chat     The assistant panel (assistant-ui): runtime adapter, launcher, tool card
 src/data                Example books, validation, the Postgres-or-example loader, sync policy, and valuation
 src/adapters/market     Keyless price (CoinGecko) and FX (ECB) providers
 src/app/api             Route handlers: the scheduled cron pass and the signed webhook receiver
