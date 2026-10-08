@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
-import { ArrowUp, History, MessageSquare, PanelRightClose, Plus, Sparkles, Square } from "lucide-react";
+import { ArrowUp, History, MessageSquare, Mic, PanelRightClose, Plus, Sparkles, Square, Volume2 } from "lucide-react";
 import {
+  ActionBarPrimitive,
   AuiIf,
   ComposerPrimitive,
   MessagePrimitive,
@@ -50,7 +51,7 @@ function UserMark() {
   );
 }
 
-function ChatThread() {
+function ChatThread({ speech }: { speech: boolean }) {
   return (
     <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
       <ThreadPrimitive.Viewport className="relative flex-1 overflow-y-auto px-4 py-4">
@@ -98,6 +99,20 @@ function ChatThread() {
                       tools: toolComponents,
                     }}
                   />
+                  {speech ? (
+                    <ActionBarPrimitive.Root hideWhenRunning autohide="not-last" className="mt-1 flex items-center gap-1">
+                      <ActionBarPrimitive.Speak asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label="Read aloud">
+                          <Volume2 className="size-3.5" aria-hidden />
+                        </Button>
+                      </ActionBarPrimitive.Speak>
+                      <ActionBarPrimitive.StopSpeaking asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label="Stop reading">
+                          <Square className="size-3 w-3" aria-hidden />
+                        </Button>
+                      </ActionBarPrimitive.StopSpeaking>
+                    </ActionBarPrimitive.Root>
+                  ) : null}
                 </div>
               </MessagePrimitive.Root>
             )
@@ -117,6 +132,11 @@ function ChatThread() {
             rows={1}
             className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
           />
+          <ComposerPrimitive.Dictate asChild>
+            <Button variant="ghost" size="icon" aria-label="Dictate with your voice">
+              <Mic className="size-4" aria-hidden />
+            </Button>
+          </ComposerPrimitive.Dictate>
           <AuiIf condition={(s) => !s.thread.isRunning}>
             <ComposerPrimitive.Send asChild>
               <Button size="icon" aria-label="Send">
@@ -184,6 +204,8 @@ export interface ChatPanelProps {
   /** Whether a provider is configured; when false the panel explains it is off. */
   enabled?: boolean;
   memory?: boolean;
+  /** Whether text-to-speech (ElevenLabs) is on for this deployment. */
+  speech?: boolean;
 }
 
 /** Shown when no provider is configured, so the launcher never errors. */
@@ -210,7 +232,7 @@ function AssistantOff() {
  * thread list and a new conversation. Switching threads remounts the runtime via
  * a key so a conversation swaps cleanly.
  */
-export function ChatPanel({ csrf, enabled = true, memory = true }: ChatPanelProps) {
+export function ChatPanel({ csrf, enabled = true, memory = true, speech = false }: ChatPanelProps) {
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
@@ -356,10 +378,11 @@ export function ChatPanel({ csrf, enabled = true, memory = true }: ChatPanelProp
           key={activeThreadId ?? "new"}
           csrf={csrf}
           memory={memory}
+          speech={speech}
           initialThreadId={activeThreadId}
           initialMessages={initialMessages}
         >
-          <ChatThread />
+          <ChatThread speech={speech} />
         </ChatRuntimeProvider>
       )}
     </m.aside>

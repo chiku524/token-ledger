@@ -14,8 +14,9 @@
  */
 import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AssistantRuntimeProvider, useLocalRuntime, type ThreadMessageLike } from "@assistant-ui/react";
+import { AssistantRuntimeProvider, useLocalRuntime, WebSpeechDictationAdapter, type ThreadMessageLike } from "@assistant-ui/react";
 import { createChatAdapter } from "./chat-adapter";
+import { createElevenLabsSpeechAdapter } from "./speech-adapter";
 import { confirmToolCallAction } from "@/app/dashboard/chat-actions";
 
 export interface ChatRuntimeProviderProps {
@@ -23,6 +24,8 @@ export interface ChatRuntimeProviderProps {
   csrf: string;
   /** Whether retrieval (RAG) is on for this deployment. */
   memory?: boolean;
+  /** Whether text-to-speech (ElevenLabs) is on for this deployment. */
+  speech?: boolean;
   /** The thread to resume; its id is sent with each turn so history appends there. */
   initialThreadId?: string | null;
   /** Messages to seed the thread with, from our store. */
@@ -38,6 +41,7 @@ export function ChatRuntimeProvider({
   children,
   csrf,
   memory = true,
+  speech = false,
   initialThreadId = null,
   initialMessages = [],
 }: ChatRuntimeProviderProps) {
@@ -78,11 +82,19 @@ export function ChatRuntimeProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [csrf, memory, router]);
 
+  const adapters = useMemo(() => {
+    const speechAdapter = speech ? createElevenLabsSpeechAdapter() : undefined;
+    // Dictation uses the browser's built-in speech recognition; it needs no key.
+    const dictationAdapter = WebSpeechDictationAdapter.isSupported() ? new WebSpeechDictationAdapter({ continuous: true }) : undefined;
+    return { speech: speechAdapter, dictation: dictationAdapter };
+  }, [speech]);
+
   const runtime = useLocalRuntime(adapter, {
     // A write pauses on an approval gate; the run resumes once decided. Cap the
     // sequential tool rounds so a looping model cannot spin.
     maxSteps: 6,
     initialMessages,
+    adapters,
   });
 
   return <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>;
