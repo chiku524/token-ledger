@@ -36,6 +36,8 @@ export interface AiEnv {
   OPENAI_API_KEY?: string;
   HUGGINGFACE_API_KEY?: string;
   OPENROUTER_API_KEY?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
 }
 
 /** Providers that require an API key. Ollama and a local compatible endpoint do not. */
@@ -45,6 +47,7 @@ const NEEDS_KEY: Record<ProviderKey, boolean> = {
   openai: true,
   huggingface: true,
   openrouter: true,
+  cloudflare: true,
   "openai-compatible": false,
 };
 
@@ -55,6 +58,10 @@ export const DEFAULT_MODEL: Record<ProviderKey, string> = {
   openai: "gpt-4o-mini",
   huggingface: "meta-llama/Llama-3.3-70B-Instruct",
   openrouter: "openai/gpt-4o-mini",
+  // A Workers AI model that runs on the Workers Free plan, emits tool calls, and
+  // finishes a turn after a tool result. (gpt-oss spends its budget on
+  // reasoning_content and can truncate before completing a call.)
+  cloudflare: "@cf/qwen/qwen3-30b-a3b-fp8",
   "openai-compatible": "default",
 };
 
@@ -65,6 +72,7 @@ const KEY_VAR: Record<ProviderKey, string> = {
   openai: "OPENAI_API_KEY",
   huggingface: "HUGGINGFACE_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
+  cloudflare: "CLOUDFLARE_API_TOKEN",
   "openai-compatible": "AI_API_KEY",
 };
 
@@ -112,11 +120,27 @@ function resolveApiKey(provider: ProviderKey, env: AiEnv): string | null {
     : provider === "openai" ? env.OPENAI_API_KEY
     : provider === "huggingface" ? env.HUGGINGFACE_API_KEY
     : provider === "openrouter" ? env.OPENROUTER_API_KEY
+    : provider === "cloudflare" ? env.CLOUDFLARE_API_TOKEN
     : undefined;
   return (specific ?? env.AI_API_KEY)?.trim() || null;
 }
 
+/** Cloudflare Workers AI's OpenAI-compatible endpoint, from the account id. */
+export function cloudflareBaseUrl(accountId: string | undefined): string | null {
+  const id = accountId?.trim();
+  if (!id) return null;
+  return `https://api.cloudflare.com/client/v4/accounts/${id}/ai/v1`;
+}
+
 function readBaseUrl(provider: ProviderKey, env: AiEnv): string | null {
+  // Cloudflare's base URL is derived from the account id, not set by hand.
+  if (provider === "cloudflare" && !env.AI_BASE_URL?.trim()) {
+    const derived = cloudflareBaseUrl(env.CLOUDFLARE_ACCOUNT_ID);
+    if (!derived) {
+      throw new Error("CLOUDFLARE_ACCOUNT_ID is required when AI_PROVIDER is \"cloudflare\".");
+    }
+    return derived;
+  }
   const raw = provider === "ollama" ? (env.OLLAMA_BASE_URL ?? env.AI_BASE_URL) : (env.AI_BASE_URL ?? env.OLLAMA_BASE_URL);
   const trimmed = raw?.trim();
   if (!trimmed) return null;

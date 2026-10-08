@@ -28,6 +28,8 @@ export interface OpenAiCompatibleOptions {
   headers?: Record<string, string>;
   /** Ollama and some gateways do not require auth. */
   requireApiKey?: boolean;
+  /** Send an empty string (not null) for a tool-call assistant message. Cloudflare needs this. */
+  emptyContentForToolCalls?: boolean;
 }
 
 interface WireToolCall {
@@ -71,6 +73,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   private readonly transport: Transport;
   private readonly headers: Record<string, string>;
   private readonly requireApiKey: boolean;
+  private readonly emptyContentForToolCalls: boolean;
 
   constructor(options: OpenAiCompatibleOptions) {
     this.key = options.key;
@@ -81,6 +84,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     this.transport = options.transport ?? defaultTransport;
     this.headers = options.headers ?? {};
     this.requireApiKey = options.requireApiKey ?? false;
+    this.emptyContentForToolCalls = options.emptyContentForToolCalls ?? false;
     if (this.requireApiKey && !this.apiKey) {
       throw new ProviderError(this.key, `${this.descriptor.name} requires an API key.`);
     }
@@ -89,7 +93,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   async complete(request: CompletionRequest): Promise<CompletionResult> {
     const body: Record<string, unknown> = {
       model: request.model || this.defaultModel,
-      messages: toWireMessages(request.messages),
+      messages: toWireMessages(request.messages, { emptyContentForToolCalls: this.emptyContentForToolCalls }),
       stream: false,
     };
     if (request.tools?.length) {
@@ -145,7 +149,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 }
 
 /** Map the neutral message list to the OpenAI wire shape. */
-export function toWireMessages(messages: ChatMessage[]): WireMessage[] {
+export function toWireMessages(messages: ChatMessage[], options: { emptyContentForToolCalls?: boolean } = {}): WireMessage[] {
   return messages.map((message) => {
     if (message.role === "tool") {
       return { role: "tool", content: message.content, tool_call_id: message.toolCallId, name: message.name };
@@ -153,7 +157,9 @@ export function toWireMessages(messages: ChatMessage[]): WireMessage[] {
     if (message.role === "assistant" && message.toolCalls?.length) {
       return {
         role: "assistant",
-        content: message.content || null,
+        // Cloudflare Workers AI rejects `content: null` on a tool-call assistant
+        // message and needs an empty string instead. OpenAI accepts either.
+        content: options.emptyContentForToolCalls ? message.content || "" : message.content || null,
         tool_calls: message.toolCalls.map((call) => ({
           id: call.id,
           type: "function",

@@ -89,6 +89,20 @@ const cases: ProviderContractCase[] = [
   openAiCase("Hugging Face", (transport) => huggingFaceProvider({ apiKey: "test-key", transport })),
   openAiCase("OpenRouter", (transport) => openRouterProvider({ apiKey: "test-key", transport })),
   openAiCase(
+    "Cloudflare Workers AI",
+    (transport) =>
+      new OpenAiCompatibleProvider({
+        key: "cloudflare",
+        descriptor: { key: "cloudflare", name: "Cloudflare Workers AI", system: "Cloudflare", implemented: true, summary: "" },
+        baseUrl: "https://api.cloudflare.com/client/v4/accounts/account/ai/v1",
+        apiKey: "test-key",
+        defaultModel: "@cf/meta/llama-3.1-8b-instruct-fp8",
+        transport,
+        requireApiKey: true,
+        emptyContentForToolCalls: true,
+      }),
+  ),
+  openAiCase(
     "OpenAI-compatible",
     (transport) =>
       new OpenAiCompatibleProvider({

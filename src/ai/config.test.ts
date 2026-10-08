@@ -27,6 +27,18 @@ describe("aiConfig", () => {
     expect(aiConfig({ AI_PROVIDER: "openrouter", AI_API_KEY: "k" })?.apiKey).toBe("k");
   });
 
+  it("derives the Cloudflare Workers AI base URL from the account id", () => {
+    const config = aiConfig({ AI_PROVIDER: "cloudflare", CLOUDFLARE_API_TOKEN: "tok", CLOUDFLARE_ACCOUNT_ID: "acct_123" });
+    expect(config?.baseUrl).toBe("https://api.cloudflare.com/client/v4/accounts/acct_123/ai/v1");
+    expect(config?.model).toBe(DEFAULT_MODEL.cloudflare);
+    expect(config?.apiKey).toBe("tok");
+  });
+
+  it("requires a token and account id for Cloudflare", () => {
+    expect(() => aiConfig({ AI_PROVIDER: "cloudflare", CLOUDFLARE_ACCOUNT_ID: "acct" })).toThrow(/CLOUDFLARE_API_TOKEN/);
+    expect(() => aiConfig({ AI_PROVIDER: "cloudflare", CLOUDFLARE_API_TOKEN: "tok" })).toThrow(/CLOUDFLARE_ACCOUNT_ID/);
+  });
+
   it("parses tuning values and rejects out-of-range ones", () => {
     const config = aiConfig({ AI_PROVIDER: "ollama", AI_TEMPERATURE: "0.2", AI_MAX_TOKENS: "512" });
     expect(config?.temperature).toBe(0.2);

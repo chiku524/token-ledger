@@ -29,9 +29,16 @@ is a `fetch`-based adapter that injects its transport, so it is tested offline â
 the same pattern as `src/adapters` and `docs/adr-adapter-contract.md`:
 
 - `src/ai/providers/openai-compatible.ts` is the shared base for OpenAI, Ollama,
-  OpenRouter, Hugging Face, and any `/v1/chat/completions` endpoint.
+  OpenRouter, Hugging Face, Cloudflare Workers AI, and any
+  `/v1/chat/completions` endpoint.
 - `src/ai/providers/anthropic.ts` translates the Messages API (system prompt,
   tool-use content blocks) in both directions.
+- Cloudflare Workers AI is the same OpenAI-compatible base, with two specifics:
+  its base URL is derived from `CLOUDFLARE_ACCOUNT_ID`, and it requires an
+  **empty string** (not `null`) for a tool-call assistant message, which the
+  adapter's `emptyContentForToolCalls` option provides. The default model
+  (`@cf/qwen/qwen3-30b-a3b-fp8`) runs on the Workers Free plan and emits tool
+  calls; paid-only models are rejected on Free.
 - `src/ai/registry.ts` selects the provider from config; `src/ai/config.ts` reads
   `AI_PROVIDER` and keys. Unset `AI_PROVIDER` means the assistant is off, exactly
   like `solanaDeployment()` returning null.

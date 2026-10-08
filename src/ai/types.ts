@@ -8,7 +8,7 @@
  * agent. See docs/adr-ai-assistant.md.
  */
 
-export type ProviderKey = "ollama" | "anthropic" | "openai" | "huggingface" | "openrouter" | "openai-compatible";
+export type ProviderKey = "ollama" | "anthropic" | "openai" | "huggingface" | "openrouter" | "cloudflare" | "openai-compatible";
 
 export type ChatRole = "system" | "user" | "assistant" | "tool";
 
