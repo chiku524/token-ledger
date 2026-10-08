@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "if [ -n \"$DATABASE_URL\" ]; then pnpm db:migrate; fi && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
