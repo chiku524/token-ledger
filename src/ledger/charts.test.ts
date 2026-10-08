@@ -3,6 +3,7 @@ import { exampleBooks } from "@/data/example-books";
 import {
   assetAccountNets,
   carryingByAsset,
+  carryingByAssetClass,
   carryingByChain,
   carryingBySource,
   carryingBySourceKind,
@@ -68,6 +69,22 @@ describe("example book charts", () => {
     expect(carryingByChain(entries, accounts, assets).map((row) => [row.chain, row.currency, row.carryingMinor])).toEqual([
       ["ethereum", "MYR", sen("73624.00")],
       ["solana", "SGD", sen("18000.00")],
+    ]);
+  });
+
+  it("groups carrying value by asset class and keeps unknown assets visible", () => {
+    const classRows = carryingByAssetClass(entries, accounts, assets).filter((row) => row.entityId === MY);
+    expect(classRows.map((row) => [row.assetClass, row.currency, row.carryingMinor])).toEqual([
+      ["stablecoin", "MYR", sen("42000.00")],
+      ["crypto", "MYR", sen("31624.00")],
+    ]);
+
+    const unknown = carryingByAssetClass(entries, accounts, [{ code: "ETH", assetClass: "crypto" }]).filter(
+      (row) => row.entityId === MY,
+    );
+    expect(unknown.map((row) => [row.assetClass, row.carryingMinor])).toEqual([
+      ["unspecified", sen("42000.00")],
+      ["crypto", sen("31624.00")],
     ]);
   });
 

@@ -44,7 +44,7 @@ set and no animation.
 | primary / primary-foreground | Lime `#C8F542` / Night | same |
 | brand / brand-foreground | Cobalt `#2140E6` / white | same |
 | link | `#2140E6` | `#A9B8FF` |
-| ring | Lime | Lime |
+| ring (focus) | Cobalt `#2140E6` | Lime `#C8F542` |
 | destructive | seal `#C0362C` | `#F0A8A2` |
 | success | pine `#0D7A45` | `#7DCEA0` |
 
@@ -65,7 +65,8 @@ set and no animation.
 - Adds `motion` (the other dependencies, `radix-ui`, `lucide-react`,
   `class-variance-authority`, `cn` and `tw-animate-css`, came with PR #128).
 - shadcn's `--accent` is a neutral hover surface, not the brand colour. The legacy
-  `--color-accent` (cobalt, used by links) is unchanged.
+  cobalt `--color-accent` duplicate is removed; links use `--color-link` and the brand
+  uses `--color-brand`.
 - The migration touches most UI files, so it is split into phases that each land as
   one commit.
 - The Cloudflare OpenNext and Vercel builds must stay green after every phase.

@@ -1,10 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { exampleBooks } from "@/data/example-books";
+import { financialStatements } from "@/ledger";
 import { Flash } from "@/components/flash";
 import { Logo } from "@/components/logo";
 import { Amount } from "./amount";
 import { EmptyState } from "./empty-state";
 import { Field } from "./field";
+import { FinancialStatementsCards } from "./financial-statements";
 import { SectionHeader } from "./section-header";
 import { StatusBadge, connectionStatusTone } from "./status-badge";
 import { EmptyRow } from "./table-cells";
@@ -92,5 +95,24 @@ describe("EmptyRow", () => {
     expect(html).toContain('colSpan="4"');
     expect(html).toContain("Nothing here");
     expect(html).toContain("text-center");
+  });
+});
+
+describe("FinancialStatementsCards", () => {
+  it("renders the Balance Sheet by class and the P&L for a company", () => {
+    const MY = "ent_harbourline_my";
+    const statements = financialStatements(
+      exampleBooks.journalEntries,
+      exampleBooks.accounts,
+      exampleBooks.assets,
+      MY,
+    );
+    const html = renderToStaticMarkup(<FinancialStatementsCards statements={statements} company="Harbourline" />);
+    expect(html).toContain("Balance Sheet");
+    expect(html).toContain("Profit &amp; Loss");
+    expect(html).toContain("Stablecoins");
+    expect(html).toContain("Total assets");
+    expect(html).toContain("In balance");
+    expect(html).toContain("Result for the period");
   });
 });

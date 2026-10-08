@@ -15,19 +15,19 @@
   --font-mono: var(--font-jetbrains);
   --font-logo: var(--font-poppins);
   --font-heading: var(--font-display);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -62,8 +62,6 @@
   --color-ink-soft: #5c6578;
   --color-line: #e3e6ef;
   --color-cobalt: #2140e6;
-  --color-accent: #2140e6;
-  --color-on-accent: #ffffff;
   --color-lime: #c8f542;
   --color-on-lime: #0c0f1f;
   --color-seal: #c0362c;
@@ -91,10 +89,10 @@
   --chart-dot: #ffffff;
   --chart-cursor: rgba(12, 15, 31, 0.05);
   --chart-1: #2140e6;
-  --chart-2: #7ea812;
-  --chart-3: #64708a;
-  --chart-4: #c0362c;
-  --chart-5: #7c6a9a;
+  --chart-2: #6f9a0e;
+  --chart-3: #c2459a;
+  --chart-4: #e07a1f;
+  --chart-5: #00968a;
 
   /* shadcn/ui semantic tokens, mapped onto the Token Ledger brand so its
      components inherit our palette instead of the neutral defaults. */
@@ -114,11 +112,19 @@
      brand colour, so it is a neutral tint rather than cobalt. */
   --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
   --accent-foreground: var(--color-ink);
-  --destructive: var(--color-seal);
+  --destructive: var(--color-danger);
   --border: var(--color-line);
   --input: var(--color-line);
   --ring: var(--color-cobalt);
   --radius: 0.75rem;
+  --sidebar: var(--color-paper-raised);
+  --sidebar-foreground: var(--color-ink);
+  --sidebar-primary: var(--color-lime);
+  --sidebar-primary-foreground: var(--color-on-lime);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--color-ink);
+  --sidebar-border: var(--color-line);
+  --sidebar-ring: var(--ring);
 }
 
 html.dark {
@@ -128,8 +134,6 @@ html.dark {
   --color-ink: #f7f8fc;
   --color-ink-soft: #a7b0c4;
   --color-line: #2a3148;
-  --color-accent: #a9b8ff;
-  --color-on-accent: #ffffff;
   --color-link: #a9b8ff;
   --color-success: #7dcea0;
   --color-danger: #f0a8a2;
@@ -138,15 +142,16 @@ html.dark {
   --chart-ink: #f7f8fc;
   --chart-muted: #a7b0c4;
   --chart-line: #2a3148;
-  --chart-pine: #7dcea0;
-  --chart-seal: #f0a8a2;
+  --chart-pine: #2fae78;
+  --chart-seal: #e8604f;
   --chart-dot: #151a2e;
   --chart-cursor: rgba(247, 248, 252, 0.06);
-  --chart-1: #2140e6;
-  --chart-2: #c8f542;
-  --chart-3: #a7b0c4;
-  --chart-4: #f0a8a2;
-  --chart-5: #c4b4de;
+  --chart-1: #5b78ff;
+  --chart-2: #74a010;
+  --chart-3: #d361b4;
+  --chart-4: #d4782a;
+  --chart-5: #00a896;
+  --ring: var(--color-lime);
 }
 
 body {
@@ -154,20 +159,25 @@ body {
   color: var(--color-ink);
 }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-
 ::selection {
   background: var(--selection);
 }
 
 @layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  a.underline {
+    color: var(--color-link);
+    text-underline-offset: 0.18em;
+  }
+
   a:focus-visible,
   button:focus-visible,
   input:focus-visible,
@@ -175,38 +185,23 @@ h4 {
   textarea:focus-visible,
   summary:focus-visible,
   figure:focus-visible {
-    outline: 2px solid var(--color-lime);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-}
 
-a.underline {
-  color: var(--color-accent);
-  text-underline-offset: 0.18em;
-}
+  .recharts-wrapper {
+    -webkit-tap-highlight-color: transparent;
+  }
 
-/* shadcn tokens in dark mode, mapped to the brand dark palette set by html.dark. */
-html.dark {
-  --background: var(--color-paper);
-  --foreground: var(--color-ink);
-  --card: var(--color-paper-raised);
-  --card-foreground: var(--color-ink);
-  --popover: var(--color-paper-raised);
-  --popover-foreground: var(--color-ink);
-  --primary: var(--color-lime);
-  --primary-foreground: var(--color-on-lime);
-  --secondary: var(--color-paper-raised);
-  --secondary-foreground: var(--color-ink);
-  --muted: var(--color-paper);
-  --muted-foreground: var(--color-ink-soft);
-  /* shadcn "accent" is a hover/selected surface (menus, ghost buttons), not the
-     brand colour, so it is a neutral tint rather than cobalt. */
-  --accent: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  --accent-foreground: var(--color-ink);
-  --destructive: var(--color-seal);
-  --border: var(--color-line);
-  --input: var(--color-line);
-  --ring: var(--color-accent);
+  .recharts-wrapper:focus:not(:focus-visible),
+  .recharts-wrapper :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .recharts-surface:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 @layer base {
@@ -224,8 +219,20 @@ html.dark {
   .page-width {
     @apply mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12;
   }
+  .dashboard-width {
+    @apply mx-auto w-full max-w-[1600px];
+  }
   .eyebrow {
     @apply text-[10px] font-semibold uppercase tracking-[0.23em] text-muted-foreground sm:text-[11px];
+  }
+  .label-caps {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .page-stack {
+    @apply space-y-10;
+  }
+  .section-stack {
+    @apply space-y-4;
   }
   .section-title {
     @apply text-3xl font-semibold leading-[1.12] tracking-[-0.045em] sm:text-4xl lg:text-[46px];
@@ -525,6 +532,14 @@ html.dark {
     --chart-ink: #0c0f1f;
     --chart-muted: #4b5368;
     --chart-line: #d6dae6;
+    --chart-dot: #fff;
+    --chart-pine: #0d7a45;
+    --chart-seal: #c0362c;
+    --chart-1: #2140e6;
+    --chart-2: #6f9a0e;
+    --chart-3: #c2459a;
+    --chart-4: #e07a1f;
+    --chart-5: #00968a;
   }
 
   body {
@@ -534,6 +549,7 @@ html.dark {
 
   aside,
   header nav,
+  [data-slot="sidebar"],
   [data-print="hide"],
   form,
   button {

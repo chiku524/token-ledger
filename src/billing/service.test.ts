@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SolanaDeployment } from "@/config/solana";
 import { previewIsComplete } from "@/contracts/preview";
-import { planCreateVault, planDeposit, planRevokeMandate, vaultAddresses, type BillingPlanContext } from "./service";
+import { planCreateVault, planDeposit, planInitializeMerchant, planRevokeMandate, vaultAddresses, type BillingPlanContext } from "./service";
 
 const deployment: SolanaDeployment = {
   cluster: "devnet",
@@ -10,6 +10,8 @@ const deployment: SolanaDeployment = {
   treasuryPayablesProgram: "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs",
   usdcMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  merchantAdmin: null,
+  merchantDestination: null,
 };
 
 const ctx: BillingPlanContext = {
@@ -48,5 +50,22 @@ describe("billing plans", () => {
     expect(previewIsComplete(plan.preview)).toEqual({ ok: true });
     // The revoke instruction has exactly three accounts: controller, vault, mandate.
     expect(plan.instructions[0]!.accounts.map((a) => a.address)).toHaveLength(3);
+  });
+
+  it("builds an initialize-merchant plan seeded by the admin", async () => {
+    const admin = ctx.controller;
+    const plan = await planInitializeMerchant({
+      deployment,
+      admin,
+      collector: admin,
+      mint: deployment.usdcMint,
+      destination: ctx.controllerTokenAccount,
+    });
+    expect(plan.action).toBe("billing.initialize_merchant");
+    expect(plan.instructions).toHaveLength(1);
+    // admin is the signer; the merchant PDA is the subject.
+    expect(plan.instructions[0]!.accounts[0]).toMatchObject({ address: admin, signer: true });
+    expect(plan.preview.subject).toBeTruthy();
+    expect(previewIsComplete(plan.preview)).toEqual({ ok: true });
   });
 });

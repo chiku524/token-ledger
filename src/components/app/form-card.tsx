@@ -9,7 +9,7 @@ type FormCardProps = Omit<React.ComponentProps<"form">, "title"> & {
 export function FormCard({ title, description, headingLevel = "h2", className, children, ...props }: FormCardProps) {
   const Heading = headingLevel;
   return (
-    <form className={cn("grid gap-3 rounded-xl border border-border bg-card p-4", className)} {...props}>
+    <form className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 rounded-xl border border-border bg-card p-4", className)} {...props}>
       {title ? (
         <Heading className={cn("col-span-full font-semibold tracking-tight", headingLevel === "h2" ? "text-lg" : "text-base")}>
           {title}

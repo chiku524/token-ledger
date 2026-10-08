@@ -1,39 +1,47 @@
 import Link from "next/link";
-import { Building2 } from "lucide-react";
-import { MoneyBars } from "@/components/charts/charts";
+import { Building2, Download, FileSpreadsheet, FileText, Calendar } from "lucide-react";
+import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { RevaluationForm } from "@/components/record-forms";
 import { ensureCsrf } from "@/auth/current";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
-import { SegmentedLinks } from "@/components/app/segmented-links";
 import { StatusBadge } from "@/components/app/status-badge";
 import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
-import { PeriodForm } from "@/components/period-form";
-import { reportAssetBars, reportComposition } from "@/data/charts";
+import { Input } from "@/components/ui/input";
 import { can } from "@/auth/roles";
+import { canRevalue, entityReport } from "@/data/entity-report";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
-import { sliceBooks } from "@/data/slice-books";
-import { revaluationForEntity } from "@/data/valuation";
-import { booksAreWritable } from "@/data/load-books";
 import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
-import { assetCarryingSchedule, netBalanceMinor, trialBalance } from "@/ledger";
+import { netBalanceMinor } from "@/ledger";
+import { FinancialStatementsCards } from "@/components/app/financial-statements";
+import { requireSectionAccess } from "@/data/section-access";
+import { SubmitButton } from "@/components/submit-button";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Reports" };
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ entity?: string | string[]; from?: string | string[]; to?: string | string[] }>;
+  searchParams: Promise<{
+    entity?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+    error?: string | string[];
+    saved?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/reports");
   const { session, books } = await loadAuthorizedBooks();
   const requested = one(params.entity);
   const entity = books.entities.find((item) => item.id === requested) ?? books.entities[0];
@@ -42,7 +50,6 @@ export default async function ReportsPage({
     { from: books.period.start, to: books.period.end },
   );
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
-  const scoped = sliceBooks(books, range);
 
   if (!entity) {
     return (
@@ -62,61 +69,102 @@ export default async function ReportsPage({
     );
   }
 
-  const balance = trialBalance(scoped.journalEntries, books.accounts, entity.id);
-  const carrying = assetCarryingSchedule(scoped.journalEntries, books.accounts, entity.id);
-  const canPost = can(session.role, "journal.post") && booksAreWritable() && !session.demo;
-  const revaluation = canPost
-    ? revaluationForEntity({
-        entries: books.journalEntries,
-        accounts: books.accounts,
-        assets: books.assets,
-        prices: books.assetPrices,
-        entityId: entity.id,
-        quoteCurrency: entity.functionalCurrency,
-        assetAccountCode: "1310",
-        gainAccountCode: "4200",
-        lossAccountCode: "5200",
-        asOf: range.to,
-      })
-    : null;
-  const balanced = balance.debitTotal === balance.creditTotal;
-  const assetBars = reportAssetBars(entity.id, scoped);
-  const composition = reportComposition(entity.id, scoped);
+  const { balance, balanced, statements, carrying, assetBars, composition, revaluation } = entityReport({
+    books,
+    entityId: entity.id,
+    range,
+    includeRevaluation: canRevalue(session),
+  });
   const exportQuery = `entity=${encodeURIComponent(entity.id)}&from=${range.from}&to=${range.to}`;
+
+  const exportItems: [string, string, React.ComponentType<{ className?: string }>][] = [
+    ["trial-balance", "Balances", FileSpreadsheet],
+    ["journal", "Journal", FileSpreadsheet],
+    ["reconciliation", "Matching", FileSpreadsheet],
+    ["pdf", "Report", FileText],
+  ];
 
   return (
     <>
-      <PageHeader
-        kicker={`${range.from} – ${range.to} · ${entity.reportingFramework}`}
-        title="Reports"
-        description="Account balances and crypto values for one company. The combined view is a separate page. Download the same figures as CSV."
-      />
-      <Flash error={parsed.ok ? undefined : parsed.message} />
-      <SegmentedLinks
-        label="Company"
-        className="mb-6"
-        items={books.entities.map((item) => ({
-          key: item.id,
-          href: `/dashboard/reports?entity=${item.id}&from=${range.from}&to=${range.to}`,
-          label: item.name,
-          current: item.id === entity.id,
-        }))}
-      />
-      <PeriodForm path="/dashboard/reports" range={range} hidden={{ entity: entity.id }} />
+      {/* ── Minimal header ──────────────────────────────────────────── */}
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {entity.name} · {entity.reportingFramework}
+        </p>
+      </header>
 
-      {can(session.role, "books.export") ? (
-        <div className="mb-8 flex flex-wrap gap-2">
-          {[
-            ["trial-balance", "Balances CSV"],
-            ["journal", "Journal CSV"],
-            ["reconciliation", "Matching CSV"],
-          ].map(([kind, label]) => (
-            <Button key={kind} asChild variant="secondary">
-              <a href={`/dashboard/reports/export?kind=${kind}&${exportQuery}`}>{label}</a>
-            </Button>
-          ))}
+      <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
+
+      {/* ── Controls toolbar ────────────────────────────────────────── */}
+      <div className="mb-8 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+        {/* Left: entity picker + date range */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          {/* Entity picker */}
+          {books.entities.length > 1 && (
+            <nav aria-label="Company" className="flex flex-wrap items-center gap-1">
+              {books.entities.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/dashboard/reports?entity=${item.id}&from=${range.from}&to=${range.to}`}
+                  aria-current={item.id === entity.id ? "page" : undefined}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    item.id === entity.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          {/* Date range */}
+          <form method="get" action="/dashboard/reports" className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="entity" value={entity.id} />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Calendar className="size-3.5 shrink-0" />
+              <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+              <span className="text-muted-foreground/60">—</span>
+              <Input type="date" name="to" aria-label="To date" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+            </div>
+            <SubmitButton variant="ghost" size="sm">Update</SubmitButton>
+          </form>
         </div>
-      ) : null}
+
+        {/* Right: export actions */}
+        {can(session.role, "books.export") ? (
+          <div className="flex flex-wrap items-center gap-1 border-t border-border/40 pt-3 sm:border-0 sm:pt-0">
+            {exportItems.map(([kind, label, Icon]) => (
+              <Button key={kind} asChild variant="ghost" size="sm">
+                <a href={`/dashboard/reports/export?kind=${kind}&${exportQuery}`} className="gap-1.5">
+                  <Icon className="size-3.5" />
+                  {label}
+                </a>
+              </Button>
+            ))}
+            <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
+            <Button asChild variant="outline" size="sm">
+              <a href={`/dashboard/reports/export?kind=pdf&${exportQuery}`} className="gap-1.5">
+                <Download className="size-3.5" />
+                PDF
+              </a>
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      <section className="mb-8">
+        <SectionHeader
+          title="Financial statements"
+          description="The Balance Sheet groups assets by kind, and the Profit & Loss covers this company and these dates. The period result is carried into equity so the sheet balances."
+        />
+        <div className="mt-4">
+          <FinancialStatementsCards statements={statements} company={entity.name} />
+        </div>
+      </section>
 
       <div className="mb-8 grid gap-4 xl:grid-cols-2">
         {assetBars.length > 0 ? (

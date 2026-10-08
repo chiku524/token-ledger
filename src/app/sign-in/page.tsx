@@ -20,10 +20,11 @@ export const metadata = { title: "Sign in" };
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string | string[]; next?: string | string[]; invite?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; saved?: string | string[]; next?: string | string[]; invite?: string | string[] }>;
 }) {
   const params = await searchParams;
   const error = one(params.error);
+  const saved = one(params.saved);
   const next = safeNextPath(one(params.next));
   const inviteToken = one(params.invite);
   const csrf = await ensureCsrf();
@@ -82,10 +83,15 @@ export default async function SignInPage({
             {error}
           </Alert>
         ) : null}
+        {saved ? (
+          <Alert variant="success" role="status" className="mt-6">
+            {saved}
+          </Alert>
+        ) : null}
         {invite ? (
           <FormCard action={acceptInviteAction} title="Accept invite" className="mt-6 border-0 bg-transparent p-0">
             <p className="text-sm text-muted-foreground">
-              {invite.email}. Choose a password of at least 12 characters. This link is shown in the app. It is not emailed.
+              {invite.email}. Choose a password of at least 12 characters.
             </p>
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="invite" value={inviteToken} />

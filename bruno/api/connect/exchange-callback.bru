@@ -1,0 +1,29 @@
+meta {
+  name: Exchange OAuth callback
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/connect/exchange/callback?code=REPLACE&state=REPLACE
+  body: none
+  auth: none
+}
+
+docs {
+  # GET /api/connect/exchange/callback
+
+  Where Coinbase/Bybit send the browser after a read-only grant. This is a
+  browser round-trip, not a normal API call: it reads the signed state cookie
+  (`tl_oauth_state`) and the session, exchanges the code, verifies the
+  credential with a real read-only call, and stores the connection sealed.
+
+  You cannot meaningfully drive this from Bruno by hand: `code` and `state` come
+  from the exchange and the state must match the httpOnly cookie set when the
+  flow started. It is here for completeness. It always redirects to
+  `/dashboard/settings?saved=...` or `?error=...`.
+
+  To exercise it: start the flow in the app (Settings -> Connect exchange), then
+  copy the `code` and `state` query params from the exchange redirect here and
+  replay it in the same browser profile that holds the cookie.
+}

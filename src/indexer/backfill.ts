@@ -35,8 +35,10 @@ export interface BackfillOptions {
 /**
  * Plan the next backfill pass. Never scans past the finalized height, so a
  * provisional fork cannot be indexed. If the cursor is ahead of finality (a
- * reorg), the plan restarts from the finalized height, not from the stale ahead
- * cursor.
+ * reorg), this reports no work: the scan stays put until the canonical chain
+ * finalizes a height at or beyond the cursor, so the ahead slots are revisited
+ * rather than trusted. A caller that wants to rewind explicitly lowers the
+ * cursor; this never moves it backwards.
  */
 export function planBackfill(cursor: IndexerCursor, options: BackfillOptions): BackfillPlan {
   const fromSlot = cursor.lastSlot;

@@ -23,17 +23,32 @@ export const content = {
         "Review balances across your companies. Prepare entries for Xero, QuickBooks or your accounting software.",
     },
   ],
-  plansTitle: "Built for your next stage.",
-  plansDescription:
-    "From early startups to established groups. One consolidated view across wallets, exchanges and custodians.",
-  plans: [
+  institutionsTitle: "Serving regulated institutions globally",
+  institutions: [
     {
-      name: "Startup",
-      description: "Web3 startups and funds. Quarterly reports from the same books.",
+      name: "Banks",
+      description: "Enterprise back-office with internal controls to ensure accurate reporting.",
     },
     {
-      name: "Institutional",
-      description: "Banks, funds and growing Web3 companies. Monthly reports, multiple entities and asset values.",
+      name: "Exchanges and brokers",
+      description: "Get audit-ready and reconcile on-chain activities with internal systems.",
+    },
+    {
+      name: "Stablecoin issuers",
+      description: "Auditable stablecoin supply tracking for institutional-grade reporting.",
+    },
+    {
+      name: "Token issuers",
+      description: "Auditable token supply tracking for institutional grade reporting.",
+    },
+    {
+      name: "Asset managers",
+      description: "Auditable accounting and NAV reporting for on-chain activities.",
+    },
+    {
+      name: "Fintech / Web3 startups",
+      description:
+        "Automatically reconcile on-chain transactions for fintech, RWA or funds, with Token Ledger as your outsourced CFO.",
     },
   ],
   convergence: {
@@ -62,7 +77,6 @@ export const content = {
 export const navigation = [
   { label: "Product", href: "#product" },
   { label: "How it works", href: "#how-it-works" },
-  { label: "Plans", href: "#plans" },
 ];
 
 export const exampleHref = "/sign-in?next=/dashboard";

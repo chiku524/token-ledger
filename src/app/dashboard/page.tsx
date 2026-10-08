@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/charts";
+import { TriangleAlert } from "lucide-react";
+import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
-import { NumberCell, NumberHead } from "@/components/app/table-cells";
+import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Stagger } from "@/components/motion/stagger";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -19,7 +21,8 @@ import {
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
-import { trialBalance } from "@/ledger";
+import { financialStatements, trialBalance } from "@/ledger";
+import { FinancialStatementsCards } from "@/components/app/financial-statements";
 
 export const metadata = { title: "Overview" };
 
@@ -29,6 +32,7 @@ export default async function DashboardPage() {
   const balances = books.entities.map((entity) => ({
     entity,
     report: trialBalance(books.journalEntries, books.accounts, entity.id),
+    statements: financialStatements(books.journalEntries, books.accounts, books.assets, entity.id),
   }));
   const inBalance = balances.every((item) => item.report.debitTotal === item.report.creditTotal);
   const recent = [...books.journalEntries].sort((a, b) => b.entryDate.localeCompare(a.entryDate)).slice(0, 4);
@@ -53,12 +57,33 @@ export default async function DashboardPage() {
         }
       />
 
-      <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Stagger className="grid grid-cols-4 gap-2 sm:gap-3">
         <StatCard label="Companies" value={books.entities.length} />
         <StatCard label="Wallets and accounts" value={books.sources.length} />
         <StatCard label="Unmatched" value={exceptions.length} tone={exceptions.length ? "danger" : "success"} />
         <StatCard label="Books" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "success" : "danger"} />
       </Stagger>
+
+      <section className="mt-10">
+        <SectionHeader
+          title="Balance Sheet and Profit & Loss"
+          description={currencyNote}
+          action={
+            <Link href="/dashboard/reports" className="text-sm text-link underline">
+              Open reports
+            </Link>
+          }
+        />
+        <div className="mt-4 grid gap-6">
+          {balances.map(({ entity, statements }) => (
+            <FinancialStatementsCards
+              key={entity.id}
+              statements={statements}
+              company={`${entity.name} · ${entity.functionalCurrency}`}
+            />
+          ))}
+        </div>
+      </section>
 
       <section className="mt-8 grid gap-4 xl:grid-cols-2">
         {allocation.map((panel) => (
@@ -122,13 +147,13 @@ export default async function DashboardPage() {
         {balances.map(({ entity, report }) => (
           <Card key={entity.id}>
             <CardContent>
-              <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
+              <p className="label-caps">
                 {entity.jurisdiction} · {entity.functionalCurrency}
               </p>
-              <h2 className="mt-2 text-lg font-semibold tracking-tight">{entity.name}</h2>
+              <SectionHeader title={entity.name} className="mt-2" />
               <p className="mt-3 text-sm text-muted-foreground">
                 {entity.reportingFramework}
-                {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId)}` : " · parent company"}
+                {entity.parentEntityId ? ` · part of ${entityName(entity.parentEntityId, books.entities)}` : " · parent company"}
               </p>
               <p className="mt-4 text-sm">
                 Debits {report.currency ? formatMoney(report.debitTotal, report.currency) : "—"}
@@ -141,17 +166,16 @@ export default async function DashboardPage() {
       </section>
 
       {exceptions[0] ? (
-        <Card className="mt-8 border-danger/40">
-          <CardContent>
-            <h2 className="font-medium text-danger">Unmatched activity</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
-              <Link href="/dashboard/reconciliation" className="text-foreground underline">
-                See what did not match
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+        <Alert variant="destructive" role="status" className="mt-8">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>Unmatched activity</AlertTitle>
+          <AlertDescription>
+            {books.sourceTransactions.find((transaction) => transaction.id === exceptions[0]?.sourceTransactionId)?.description}{" "}
+            <Link href={`/dashboard/reconciliation?from=${exceptions[0].periodStart}&to=${exceptions[0].periodEnd}`}>
+              See what did not match
+            </Link>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <section className="mt-10">
@@ -169,16 +193,17 @@ export default async function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {recent.length === 0 ? <EmptyRow colSpan={5}>No entries posted yet.</EmptyRow> : null}
               {recent.map((entry) => (
                 <TableRow key={entry.id}>
                   <NumberCell align="left">{entry.entryDate}</NumberCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Link href="/dashboard/ledger" className="underline">
                       {entry.reference}
                     </Link>
                   </TableCell>
-                  <TableCell>{entityName(entry.entityId, books.entities)}</TableCell>
-                  <TableCell>{entry.memo}</TableCell>
+                  <TableCell className="min-w-36">{entityName(entry.entityId, books.entities)}</TableCell>
+                  <TableCell className="min-w-56">{entry.memo}</TableCell>
                   <NumberCell>{formatMoney(entry.debitMinor, entry.currency)}</NumberCell>
                 </TableRow>
               ))}

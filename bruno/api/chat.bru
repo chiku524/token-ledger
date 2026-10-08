@@ -1,0 +1,43 @@
+meta {
+  name: Chat (stream)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/chat
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  cookie: tl_session={{sessionCookie}}; tl_csrf={{csrfToken}}
+}
+
+body:json {
+  {
+    "message": "open matching",
+    "csrf": "{{csrfToken}}",
+    "memory": "on"
+  }
+}
+
+docs {
+  # POST /api/chat  (AI-06, epic #265)
+
+  Runs one assistant turn and streams typed events as newline-delimited JSON:
+  `text`, `tool`, `awaiting_confirmation`, `done`, `error`.
+
+  Responses:
+  - 200 NDJSON stream when the assistant is configured.
+  - 403 when CSRF/origin fail or the role cannot read.
+  - 503 when `AI_PROVIDER` is unset or there is no database.
+
+  Needs the tl_session and tl_csrf cookies (dashboard sign-in). Reuse `csrf`
+  from the environment; it must match the tl_csrf cookie.
+
+  To confirm a proposed write, POST the `toolCallId` from an
+  `awaiting_confirmation` event to /dashboard (the chat server actions). The
+  write does not run from this route without that explicit confirm.
+}

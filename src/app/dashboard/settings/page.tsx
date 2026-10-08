@@ -1,24 +1,27 @@
 import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can, roleLabel } from "@/auth/roles";
+import { changeNameAction } from "@/app/dashboard/user-actions";
+import { createConnectionAction } from "@/app/dashboard/actions";
 import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
 import { ConnectModal } from "@/components/connect-modal";
+import { WatchWalletFields } from "@/components/track-wallet-fields";
 import { connectExchanges } from "@/data/connect-catalog";
+import { ConnectionsTable } from "@/components/app/connections-table";
 import { EmptyState } from "@/components/app/empty-state";
+import { Field } from "@/components/app/field";
+import { FormCard } from "@/components/app/form-card";
 import { SectionHeader } from "@/components/app/section-header";
-import { connectionStatusTone, StatusBadge } from "@/components/app/status-badge";
-import { TableCard } from "@/components/app/table-card";
+import { SubmitButton } from "@/components/submit-button";
 import { Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
-import { ConnectionControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
+import { ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
-import { connectionModeLabel, connectionStatusLabel, entityName, ownershipLabel, scopeLabel, venueLabel } from "@/data/present";
 import { reownProjectId } from "@/env";
 
 export const metadata = { title: "Settings" };
@@ -32,6 +35,7 @@ export default async function SettingsPage({
   const { session, books } = await loadAuthorizedBooks();
   const writable = booksAreWritable() && !session.demo;
   const canSource = can(session.role, "source.write");
+  const canConnect = can(session.role, "source.connect");
   const csrf = await ensureCsrf();
 
   return (
@@ -43,14 +47,22 @@ export default async function SettingsPage({
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
-      <Card>
-        <CardContent className="grid gap-4">
-          <h2 className="text-lg font-semibold tracking-tight">Account</h2>
-          <dl className="grid gap-3 text-sm md:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Name</dt>
-              <dd className="mt-1">{session.name}</dd>
-            </div>
+      <section>
+        <SectionHeader title="Your details" />
+        <FormCard action={changeNameAction} className="mt-4 md:grid-cols-2">
+          <input type="hidden" name="csrf" value={csrf} />
+          <Field label="Name">
+            <Input name="name" required maxLength={80} defaultValue={session.name} autoComplete="name" />
+          </Field>
+          <div className="flex items-end">
+            <SubmitButton>Save name</SubmitButton>
+          </div>
+          <p className="text-sm text-muted-foreground md:col-span-2">
+            {session.demo
+              ? "This demo is read-only, so a change lasts for this session only and is not saved."
+              : "Your email is the sign-in identity and is changed separately."}
+          </p>
+          <dl className="grid gap-3 border-t border-border pt-4 text-sm md:col-span-2 md:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Email</dt>
               <dd className="mt-1">{session.email}</dd>
@@ -64,8 +76,24 @@ export default async function SettingsPage({
               <dd className="mt-1">{books.organization.name}</dd>
             </div>
           </dl>
-        </CardContent>
-      </Card>
+        </FormCard>
+      </section>
+
+      {canSource ? (
+        <section id="track-wallet" className="mt-10 scroll-mt-6">
+          <SectionHeader
+            title="Track a wallet address"
+            description="Add any public address to track. No wallet connection and no signature are required — paste an address and it is read-only. Use this for a cold address, a customer wallet, or any address you cannot sign with."
+          />
+          {books.entities.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">Add a company before tracking a wallet.</p>
+          ) : (
+            <FormCard action={createConnectionAction} className="mt-4 md:grid-cols-2">
+              <WatchWalletFields books={books} csrf={csrf} next="/dashboard/settings" />
+            </FormCard>
+          )}
+        </section>
+      ) : null}
 
       <section id="connections" className="mt-10 scroll-mt-6">
         <SectionHeader
@@ -82,7 +110,11 @@ export default async function SettingsPage({
         {!writable && canSource ? <div className="mt-4"><ReadOnlyNote demo={session.demo} /></div> : null}
         {!canSource ? (
           <div className="mt-4">
-            <RoleNote>You can view connections. Adding, checking, or disconnecting one is for an owner or an admin.</RoleNote>
+            <RoleNote>
+              {canConnect
+                ? "You can connect and sign your own wallet above. Adding an exchange or custodian, tracking an arbitrary address, checking, or disconnecting is for an owner or an admin."
+                : "You can view connections. Adding, checking, or disconnecting one is for an owner or an admin."}
+            </RoleNote>
           </div>
         ) : null}
         {books.connections.length === 0 ? (
@@ -100,82 +132,24 @@ export default async function SettingsPage({
             No connections yet.
           </EmptyState>
         ) : (
-          <TableCard>
-            <Table>
-              <caption className="sr-only">Read-only connections</caption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Connection</TableHead>
-                  <TableHead>Access</TableHead>
-                  <TableHead>Ownership</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last checked</TableHead>
-                  {canSource && writable ? <TableHead>Actions</TableHead> : null}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {books.connections.map((connection) => {
-                  const accounts = books.sources.filter((source) => source.connectionId === connection.id);
-                  return (
-                    <TableRow key={connection.id}>
-                      <TableCell>{entityName(connection.entityId, books.entities)}</TableCell>
-                      <TableCell>
-                        <span className="block">{connection.name}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {accounts.length === 0 ? "No account yet" : accounts.map((source) => source.name).join(", ")}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="block">{connectionModeLabel(connection.mode)}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {venueLabel(connection.venue)} · {scopeLabel(connection.scopes)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge tone={connection.ownership === "verified" ? "success" : "neutral"}>
-                          {ownershipLabel(connection.ownership)}
-                        </StatusBadge>
-                        {connection.verifiedAddress ? (
-                          <span className="mt-1 block font-mono text-xs text-muted-foreground">{connection.verifiedAddress}</span>
-                        ) : (
-                          <span className="mt-1 block text-xs text-muted-foreground">Not signed</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge tone={connectionStatusTone(connection.status)}>
-                          {connectionStatusLabel(connection.status)}
-                        </StatusBadge>
-                        {connection.lastError ? <span className="mt-1 block text-xs text-danger">{connection.lastError}</span> : null}
-                      </TableCell>
-                      <TableCell>{connection.lastSyncedAt ? connection.lastSyncedAt.slice(0, 10) : "Not yet"}</TableCell>
-                      {canSource && writable ? (
-                        <TableCell>
-                          <ConnectionControls connectionId={connection.id} csrf={csrf} revoked={connection.status === "revoked"} />
-                        </TableCell>
-                      ) : null}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableCard>
+          <ConnectionsTable books={books} controls={canSource && writable ? { csrf } : undefined} />
         )}
       </section>
 
-      {canSource && books.entities.length > 0 ? (
+      {canConnect && books.entities.length > 0 ? (
         <div className="mt-8">
           <ConnectModal
             csrf={csrf}
             next="/dashboard/settings"
             books={books}
             projectId={reownProjectId()}
+            canWrite={canSource}
             exchanges={connectExchanges()}
             custodians={Object.values(CUSTODIANS).map((item) => ({ key: item.key, label: item.label }))}
           />
         </div>
       ) : null}
-      {canSource && books.entities.length === 0 ? (
+      {canConnect && books.entities.length === 0 ? (
         <p className="mt-8 text-sm text-muted-foreground">Add a company before connecting a wallet, exchange, or custodian.</p>
       ) : null}
     </>

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import {
   gettingStartedPhases,
   gettingStartedStep,
+  isLastGettingStartedPhase,
+  isSoftPhase,
   phaseIndex,
   resolveGettingStartedPhase,
   type GettingStartedPhase,
@@ -33,11 +35,14 @@ export function ConnectionTourStep({
   const current = gettingStartedStep(phase, progress);
   const phases = gettingStartedPhases();
   const index = phaseIndex(phase);
-  const last = phase === "next";
+  const last = isLastGettingStartedPhase(phase);
+  const canContinue = isSoftPhase(phase) && !last;
 
   return (
     <div className="flex h-full flex-col">
-      <p className="eyebrow">Getting started · {index + 1} of {phases.length}</p>
+      <p className="eyebrow">
+        Getting started · {index + 1} of {phases.length}
+      </p>
       <ol className="mt-3 flex flex-wrap gap-1.5" aria-label="Getting started progress">
         {phases.map((item) => {
           const done = phaseIndex(item) < index;
@@ -68,9 +73,9 @@ export function ConnectionTourStep({
         <Button asChild>
           <Link href={current.href}>{current.cta}</Link>
         </Button>
-        {phase === "holdings" ? (
+        {canContinue ? (
           <Button type="button" variant="secondary" onClick={onContinue}>
-            I see where balances are
+            {phase === "holdings" ? "I see where balances are" : "Continue"}
           </Button>
         ) : null}
         {last ? (
@@ -109,11 +114,11 @@ export function ConnectionTour({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [holdingsSeen, setHoldingsSeen] = useState(false);
+  const [softIndex, setSoftIndex] = useState(0);
   const [open, setOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const phase = resolveGettingStartedPhase(progress, holdingsSeen);
+  const phase = resolveGettingStartedPhase(progress, softIndex);
   const step = gettingStartedStep(phase, progress);
 
   useEffect(() => {
@@ -147,10 +152,9 @@ export function ConnectionTour({
   }
 
   function continuePhase() {
-    if (phase === "holdings") {
-      setHoldingsSeen(true);
-      setOpen(true);
-    }
+    if (!isSoftPhase(phase) || isLastGettingStartedPhase(phase)) return;
+    setSoftIndex((current) => current + 1);
+    setOpen(true);
   }
 
   if (!open) {

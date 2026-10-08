@@ -146,8 +146,10 @@ Treasury:
 ### Pinned toolchain
 
 Anchor 0.32.1, Solana CLI 3.0.x, Program IDs in `Anchor.toml` and each
-`declare_id!`. Anchor's default platform-tools cannot parse the `edition2024`
-dependency in the `solana-program` v2.3 tree, so builds use:
+`declare_id!`. The host Rust toolchain is pinned in `contracts/rust-toolchain.toml`
+(**1.98.1**); the litesvm test workspace needs rustc ≥ 1.97.1. Anchor's default
+platform-tools cannot parse the `edition2024` dependency in the `solana-program`
+v2.3 tree, so SBF builds use:
 
 ```
 cargo-build-sbf --tools-version v1.57 --sbf-out-dir target/deploy
@@ -157,12 +159,35 @@ The app resolves cluster, program IDs, mint and token program from server
 configuration, never from user input (CHAIN-01, tracked with the execution
 boundary in #170).
 
+### Product decisions (plan Section 15)
+
+The plan supplies defaults so work can start; these are the choices adopted for
+version one, each marked with whether it is **frozen** or a **default to revisit**
+during a pilot. Prices and caps in any example are illustrative.
+
+| Decision | Version one |
+| --- | --- |
+| Subscription price and caps | Per-merchant plan version, set at publish time; illustrative figures only. **Revisit** with real pricing before launch. |
+| Billing enrollment | **Single-controller** (one customer wallet per vault). Acceptable for v1; quorum-controlled enrollment is a later option. **Frozen** for v1. |
+| Treasury limits and signer bounds | Configurable M-of-N, recommended **2-of-3**; explicit per-payment and daily caps; max 10 approvers (`MAX_APPROVERS`). **Frozen** for v1. |
+| Recovery / pause / veto | Any approver may pause; unpause and policy change need the current threshold; the emergency exit pays the registered recovery wallet and closes the treasury. **Frozen** for v1. |
+| Fee sponsorship | Backend sponsorable for eligible transactions; a **low sponsored-fee ceiling** and customer-paid fallback. Exact budget is **TBD**. |
+| Supplier verification | A destination is stored per (supplier, chain); a payment requires a verified destination. Who may change it is an operator policy. **Default to revisit.** |
+| Document policy | Invoices, names and documents stay **off-chain**; only an opaque invoice key is on-chain. Retention is an app policy. **Default to revisit.** |
+| Governance / upgrade | Upgrade authority is a real power; devnet uses the deployer keypair. Production needs **separate multi-party governance**. **Frozen** that it must change before mainnet. |
+| Independent reviewer | A named independent security reviewer is **required before mainnet**; not yet appointed (#164). **Open gate.** |
+
+No staking or platform token is needed. The concrete utility is
+customer-controlled billing permissions and company-controlled supplier payments,
+both feeding the existing accounting system.
+
 ## Consequences
 
-- **Tested at the instruction level.** `contracts/tests` runs 35 litesvm tests
-  (billing 13, treasury 16, invariants 6) that load the built `.so` and drive the
+- **Tested at the instruction level.** `contracts/tests` runs 37 litesvm tests
+  (billing 14, treasury 17, invariants 6) that load the built `.so` and drive the
   real programs in-process, including time-warp, fuzz, concurrency and
-  tenant-isolation cases devnet cannot do. The pure predicates have 6 unit tests.
+  tenant-isolation cases devnet cannot do. The programs' own unit tests (7: one
+  per program plus shared predicates) run under `cargo test` in `contracts`.
   CI (`.github/workflows/contracts.yml`) builds the SBF programs then runs both
   suites.
 - **Not production security.** Devnet demonstration is not evidence of mainnet
@@ -182,3 +207,4 @@ boundary in #170).
 - Plan: `docs/token-ledger-solana-contract-plan-2.md`.
 - Deployment record and runbook: `contracts/DEPLOYMENTS.md`.
 - Programs: `contracts/programs/`; tests: `contracts/tests/`.
+- Independent security review checklist: `docs/contract-security-review.md` (#164).

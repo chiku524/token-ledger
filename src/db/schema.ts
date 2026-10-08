@@ -56,7 +56,7 @@ export const reconciliationStatus = pgEnum("reconciliation_status", ["matched", 
 export const journalDraftStatus = pgEnum("journal_draft_status", ["draft", "pending", "posted"]);
 /** "match" pairs a transaction with a line; "unmatch" rejects an automatic match. */
 export const reconciliationOverrideKind = pgEnum("reconciliation_override_kind", ["match", "unmatch"]);
-export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer"]);
+export const userRole = pgEnum("user_role", ["owner", "admin", "accountant", "approver", "viewer", "onboarding"]);
 export const userStatus = pgEnum("user_status", ["active", "invited", "inactive"]);
 export const syncRunStatus = pgEnum("sync_run_status", ["running", "ok", "partial", "failed", "not_live"]);
 export const syncRunTrigger = pgEnum("sync_run_trigger", ["manual", "scheduled", "webhook", "cli"]);
@@ -604,6 +604,13 @@ export const users = pgTable(
     passwordHash: text("password_hash"),
     role: userRole("role").notNull(),
     status: userStatus("status").notNull(),
+    /**
+     * Platform admin: a cross-organization operator role, separate from the
+     * organization role above. Only a platform admin may open
+     * `/dashboard/platform` and manage users across every organization. Granted
+     * from the panel (audited) or bootstrapped via `PLATFORM_ADMIN_EMAILS`.
+     */
+    platformAdmin: boolean("platform_admin").notNull().default(false),
     /** Comma-separated entity ids. Empty means every entity in the organization. */
     entityScope: text("entity_scope").notNull().default(""),
     /** Set when an owner or admin finishes or skips the getting started guide. Null means they still need it. */
@@ -621,6 +628,29 @@ export const users = pgTable(
     index("users_organization_id_idx").on(table.organizationId),
   ],
 );
+
+/**
+ * Per-organization dashboard settings. Currently the onboarding experience:
+ * which navigation sections are hidden from the `onboarding` role. A section is
+ * a nav href (for example "/dashboard/ledger"). An empty string means nothing is
+ * hidden. Only an owner or admin (`onboarding.manage`) may change this.
+ */
+export const organizationSettings = pgTable("organization_settings", {
+  organizationId: text("organization_id")
+    .primaryKey()
+    .references(() => organizations.id),
+  /** Comma-separated nav hrefs hidden from the onboarding role. */
+  onboardingHiddenTabs: text("onboarding_hidden_tabs").notNull().default(""),
+  /**
+   * The assistant provider an owner/admin selected for this organization, e.g.
+   * "openrouter". Empty means use the deployment's `AI_PROVIDER`. See
+   * `src/ai/settings.ts`.
+   */
+  aiProvider: text("ai_provider").notNull().default(""),
+  /** The assistant model override, e.g. "nvidia/nemotron-3-super-120b-a12b:free". */
+  aiModel: text("ai_model").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const sessions = pgTable(
   "sessions",
@@ -965,6 +995,33 @@ export const walletBindings = pgTable(
     index("wallet_bindings_organization_id_idx").on(table.organizationId),
     index("wallet_bindings_user_id_idx").on(table.userId),
   ],
+);
+
+/**
+ * The platform merchant config for a deployment, created once by the operator.
+ * Per the plan, **Token Ledger is the merchant**: customers subscribe to it and
+ * pay it, so there is exactly one merchant per cluster, shared by every
+ * organization — not one per customer. It is not observed from chain events: the
+ * admin's address seeds the merchant PDA, so storing the admin is enough to
+ * derive the merchant. See `initialize_merchant` in the service_balance program.
+ */
+export const merchantConfigs = pgTable(
+  "merchant_configs",
+  {
+    id: text("id").primaryKey(),
+    cluster: text("cluster").notNull(),
+    /** The admin wallet; also the merchant PDA seed. */
+    adminAddress: text("admin_address").notNull(),
+    /** The derived `merchant` PDA, stored for display and lookup. */
+    merchantAddress: text("merchant_address").notNull(),
+    /** Operational key allowed to trigger a collection. */
+    collectorAddress: text("collector_address").notNull(),
+    mint: text("mint").notNull(),
+    /** The fixed USDC token account collected funds are paid to. */
+    destination: text("destination").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("merchant_configs_cluster_unique").on(table.cluster)],
 );
 
 /** A customer's billing vault, projected from `service_balance`. */
@@ -1501,4 +1558,135 @@ export const chainCursors = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("chain_cursors_cluster_program_unique").on(table.cluster, table.programId)],
+);
+
+/** The role of one message in an assistant thread. */
+export const aiMessageRole = pgEnum("ai_message_role", ["system", "user", "assistant", "tool"]);
+/** The lifecycle of a tool call the assistant proposed: it never runs without a confirm. */
+export const aiToolStatus = pgEnum("ai_tool_status", ["proposed", "confirmed", "rejected", "ran", "failed"]);
+
+/**
+ * An assistant conversation. Org- and user-scoped: a thread is only ever read
+ * back by the user and organization that created it, and the entity scope in
+ * force at creation is snapshotted so retrieval can never widen it. See
+ * docs/adr-ai-assistant.md.
+ */
+export const aiThreads = pgTable(
+  "ai_threads",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    title: text("title").notNull(),
+    /** Comma-separated entity ids in scope when the thread was created. Empty means every entity. */
+    entityScope: text("entity_scope").notNull().default(""),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("ai_threads_organization_user_idx").on(table.organizationId, table.userId, table.updatedAt),
+  ],
+);
+
+/**
+ * One turn in a thread. `content` is the plain text the user sees and the model
+ * produced; it is never a place secrets are written. Tool calls hang off an
+ * assistant message (via `ai_tool_calls.message_id`) or a tool result message.
+ */
+export const aiMessages = pgTable(
+  "ai_messages",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => aiThreads.id),
+    role: aiMessageRole("role").notNull(),
+    content: text("content").notNull().default(""),
+    /** The provider and model that produced an assistant turn, when known. */
+    provider: text("provider"),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("ai_messages_thread_created_idx").on(table.threadId, table.createdAt),
+    index("ai_messages_organization_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * A tool call the assistant proposed and its outcome. A write tool is recorded
+ * as `proposed` and does nothing until a confirm turn sets it `confirmed` and it
+ * runs; when it runs it links the `audit_events` row so the action is traceable.
+ * `arguments` and `result` hold only non-secret data — a prepared transaction
+ * plan, a count, an error string.
+ */
+export const aiToolCalls = pgTable(
+  "ai_tool_calls",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => aiThreads.id),
+    /** The assistant message this call belongs to, when there is one. */
+    messageId: text("message_id").references(() => aiMessages.id),
+    toolName: text("tool_name").notNull(),
+    arguments: jsonb("arguments").notNull(),
+    result: jsonb("result"),
+    status: aiToolStatus("status").notNull(),
+    /** True for a tool that changes books or moves money: it needs a confirm. */
+    requiresConfirm: boolean("requires_confirm").notNull().default(false),
+    /** The audit event written when the tool ran. */
+    auditEventId: text("audit_event_id"),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("ai_tool_calls_thread_created_idx").on(table.threadId, table.createdAt),
+    index("ai_tool_calls_organization_idx").on(table.organizationId),
+  ],
+);
+
+/**
+ * A vector for one message, for retrieval over chat history. Stored as JSONB
+ * (an array of numbers) so the schema does not depend on the pgvector extension
+ * being present; at this scale a cosine scan in Postgres is enough. The model
+ * and dimensions are recorded so a re-embed is possible when the embedder
+ * changes. See issue #268.
+ */
+export const aiMessageEmbeddings = pgTable(
+  "ai_message_embeddings",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => aiThreads.id),
+    messageId: text("message_id")
+      .notNull()
+      .references(() => aiMessages.id),
+    model: text("model").notNull(),
+    dimensions: integer("dimensions").notNull(),
+    vector: jsonb("vector").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("ai_message_embeddings_message_unique").on(table.messageId),
+    index("ai_message_embeddings_organization_idx").on(table.organizationId),
+  ],
 );

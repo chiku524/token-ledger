@@ -1,0 +1,37 @@
+meta {
+  name: Speech (text-to-speech)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/speech
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  cookie: tl_session={{sessionCookie}}
+}
+
+body:json {
+  {
+    "text": "Hello from Token Ledger."
+  }
+}
+
+docs {
+  # POST /api/speech  (assistant voice)
+
+  Synthesizes speech through ElevenLabs and returns audio/mpeg. The API key is
+  server-only; this route calls ElevenLabs on the browser's behalf.
+
+  Needs the tl_session cookie (dashboard sign-in).
+  Responses:
+  - 200 audio/mpeg on success.
+  - 401 without a session.
+  - 503 when ELEVENLABS_API_KEY is unset (speech is off).
+  - 400 for empty text or a non-JSON body.
+  - 402/4xx passthrough when the provider rejects (e.g. a free-tier library voice).
+}

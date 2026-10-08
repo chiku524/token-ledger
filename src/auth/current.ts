@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasDatabase } from "@/db/availability";
 import { userForSessionToken, type AccountUser } from "@/db/auth-store";
+import { isPlatformAdminEmail } from "@/env";
 import { CSRF_COOKIE, csrfMatches, newCsrfToken, originAllowed } from "./csrf";
 import { DEMO_COOKIE, SESSION_COOKIE } from "./cookies";
 import { demoSessionFromCookie, demoSignInAllowed } from "./demo";
@@ -15,6 +16,8 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
+  /** Cross-organization operator role, from the stored flag or the env allowlist. */
+  platformAdmin: boolean;
   entityScope: string[];
   demo: boolean;
   /** Null until this owner or admin finishes or skips the getting started guide. */
@@ -41,6 +44,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
         email: demo.email,
         name: demo.name,
         role: demo.role,
+        platformAdmin: false,
         entityScope: demo.entityScope,
         demo: true,
         connectionTourCompletedAt: null,
@@ -66,6 +70,28 @@ export async function requirePermission(permission: Permission): Promise<Session
   if (!can(session.role, permission)) {
     throw new AuthError("You do not have permission to do that.");
   }
+  return session;
+}
+
+/**
+ * Whether the signed-in session is a platform admin. True when the user holds
+ * the stored `platform_admin` flag, or their email is on the `PLATFORM_ADMIN_EMAILS`
+ * allowlist — the allowlist is the bootstrap that lets the first admin in before
+ * anyone holds the flag. Not available in demo mode.
+ */
+export function isPlatformAdmin(session: SessionUser | null): boolean {
+  if (!session || session.demo) return false;
+  return session.platformAdmin || isPlatformAdminEmail(session.email);
+}
+
+/**
+ * Require a platform admin: an email on the `PLATFORM_ADMIN_EMAILS` allowlist.
+ * Separate from any organization role, so an org owner/admin never qualifies.
+ * Redirects a signed-in non-admin home, and a visitor to sign-in.
+ */
+export async function requirePlatformAdmin(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (!isPlatformAdmin(session)) redirect("/dashboard");
   return session;
 }
 
@@ -101,6 +127,7 @@ function toSession(user: AccountUser): SessionUser {
     email: user.email,
     name: user.name,
     role: user.role,
+    platformAdmin: user.platformAdmin,
     entityScope: user.entityScope,
     demo: false,
     connectionTourCompletedAt: user.connectionTourCompletedAt ? user.connectionTourCompletedAt.toISOString() : null,

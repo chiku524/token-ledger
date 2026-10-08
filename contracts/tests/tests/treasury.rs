@@ -13,7 +13,7 @@ use solana_keypair::Keypair;
 use solana_signer::Signer;
 use token_ledger_contract_tests::{discriminator, Harness};
 
-const TREASURY_PAYABLES: &str = "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs";
+const TREASURY_PAYABLES: &str = "5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi";
 const USDC: u64 = 1_000_000;
 
 fn load() -> Option<Harness> {

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/treasury_payables.json`.
  */
 export type TreasuryPayables = {
-  "address": "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs",
+  "address": "5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi",
   "metadata": {
     "name": "treasuryPayables",
     "version": "0.1.0",

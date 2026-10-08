@@ -1,0 +1,67 @@
+meta {
+  name: Webhook source event
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/webhooks/source
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  x-token-ledger-signature: {{webhookSignature}}
+}
+
+body:json {
+  {{webhookBody}}
+}
+
+script:pre-request {
+  // Bruno's script sandbox has no node:crypto, so signing uses the collection's
+  // dependency-free HMAC-SHA256 helper (tested against node:crypto in
+  // src/test/bruno-webhook-signature.test.ts).
+  const { deriveSourceSecret, signRawBody } = require("./scripts/hmac-sha256.js");
+
+  const master = bru.getEnvVar("webhookSigningSecret");
+  const sourceId = bru.getEnvVar("sourceId");
+  const assetCode = bru.getEnvVar("assetCode") || "USDC";
+
+  // Build the exact body the request will send, then sign that same string.
+  const rawBody = JSON.stringify({
+    sourceId,
+    externalId: `bruno-${Date.now()}`,
+    occurredOn: "2026-01-15",
+    assetCode,
+    direction: "in",
+    quantity: "12.5",
+    description: "Bruno manual test",
+  });
+  const t = Math.floor(Date.now() / 1000);
+  const signature = signRawBody(rawBody, deriveSourceSecret(master, sourceId), t);
+
+  bru.setEnvVar("webhookBody", rawBody);
+  bru.setEnvVar("webhookSignature", signature);
+}
+
+docs {
+  # POST /api/webhooks/source
+
+  A signed source event. The signature header authorises it (no session needed).
+  A redelivery is acknowledged as a duplicate.
+
+  Header: `X-Token-Ledger-Signature: t=<unix seconds>,v1=<hex hmac-sha256>`
+  Signed payload: `${t}.${rawBody}` with the per-source secret derived from
+  WEBHOOK_SIGNING_SECRET. The pre-request script builds the body, signs that
+  exact string, and sends it as `{{webhookBody}}` so the signature matches.
+
+  Setup:
+  1. Set `webhookSigningSecret` and `sourceId` in the environment.
+  2. Set `assetCode` to an asset the organization tracks (e.g. USDC).
+  3. Send. Expect 202 `accepted` (or 200 `duplicate` on a repeat).
+
+  503 when `WEBHOOK_SIGNING_SECRET` is unset. 401 on a stale or wrong signature.
+  413 when the body exceeds 64 KiB.
+}

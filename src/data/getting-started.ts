@@ -2,7 +2,13 @@ import type { Role } from "@/auth/roles";
 import type { BooksConnection } from "@/data/books";
 
 /** Phases on the empty-to-value path. Later phases unlock as books fill in. */
-export type GettingStartedPhase = "connect" | "check" | "holdings" | "next";
+export type GettingStartedPhase =
+  | "connect"
+  | "check"
+  | "holdings"
+  | "match"
+  | "journal"
+  | "reports";
 
 export type GettingStartedProgress = {
   connections: readonly Pick<BooksConnection, "status" | "lastSyncedAt">[];
@@ -44,15 +50,34 @@ const STEPS: Record<GettingStartedPhase, GettingStartedStep> = {
     href: "/dashboard/sources#observed-balances",
     cta: "Open Holdings",
   },
-  next: {
-    phase: "next",
-    label: "Next",
-    title: "When you are ready to book activity",
-    body: "Observed balances are not the journal. Import or match movements when you want books to catch up — Matching compares source activity with journal lines. You can leave the guide and come back anytime from Guide.",
+  match: {
+    phase: "match",
+    label: "Match",
+    title: "Match source activity to the books",
+    body: "Matching compares venue movements with journal lines. Clear exceptions or confirm matches when you are ready — nothing posts itself from a Check. Skip this if you only want to inspect holdings for now.",
     href: "/dashboard/reconciliation",
     cta: "Open Matching",
   },
+  journal: {
+    phase: "journal",
+    label: "Journal",
+    title: "Post journals deliberately",
+    body: "Observations stay observed until someone posts. Use Journal to prepare or post entries (and Approvals when a draft needs a second set of eyes). A Check never creates a journal line.",
+    href: "/dashboard/ledger",
+    cta: "Open Journal",
+  },
+  reports: {
+    phase: "reports",
+    label: "Reports",
+    title: "Read the books with Reports",
+    body: "Once journals exist, Reports shows trial balance and statements, with CSV or PDF export. Combined covers multi-company FX when you need it. You can reopen this guide anytime from Guide.",
+    href: "/dashboard/reports",
+    cta: "Open Reports",
+  },
 };
+
+/** Soft phases advanced by explicit Continue (not inferred from books). */
+export const SOFT_PHASES: readonly GettingStartedPhase[] = ["holdings", "match", "journal", "reports"];
 
 export function canTakeConnectionTour(role: Role): boolean {
   return role === "owner" || role === "admin";
@@ -72,18 +97,17 @@ export function needsConnectionCheck(
 
 /**
  * Picks the earliest incomplete phase from live books state.
- * `holdingsSeen` is session-local: after the user confirms they found balances,
- * advance to the soft “what’s next” step without requiring a DB write.
+ * `softIndex` advances through Holdings → Match → Journal → Reports after the user confirms each step.
  */
 export function resolveGettingStartedPhase(
   progress: GettingStartedProgress,
-  holdingsSeen = false,
+  softIndex = 0,
 ): GettingStartedPhase {
   const live = activeConnections(progress.connections);
   if (live.length === 0) return "connect";
   if (needsConnectionCheck(live)) return "check";
-  if (!holdingsSeen) return "holdings";
-  return "next";
+  const index = Math.min(Math.max(softIndex, 0), SOFT_PHASES.length - 1);
+  return SOFT_PHASES[index]!;
 }
 
 export function gettingStartedStep(
@@ -109,9 +133,17 @@ export function gettingStartedStep(
 }
 
 export function gettingStartedPhases(): GettingStartedPhase[] {
-  return ["connect", "check", "holdings", "next"];
+  return ["connect", "check", "holdings", "match", "journal", "reports"];
 }
 
 export function phaseIndex(phase: GettingStartedPhase): number {
   return gettingStartedPhases().indexOf(phase);
+}
+
+export function isSoftPhase(phase: GettingStartedPhase): boolean {
+  return (SOFT_PHASES as readonly string[]).includes(phase);
+}
+
+export function isLastGettingStartedPhase(phase: GettingStartedPhase): boolean {
+  return phase === "reports";
 }

@@ -11,10 +11,11 @@ vi.mock("@/app/dashboard/tour-actions", () => ({
 }));
 
 import { ConnectionTourStep } from "./connection-tour";
+import type { GettingStartedPhase } from "@/data/getting-started";
 
 const emptyProgress = { connections: [], observedBalanceCount: 0 };
 
-function render(phase: "connect" | "check" | "holdings" | "next") {
+function render(phase: GettingStartedPhase) {
   return renderToStaticMarkup(
     <ConnectionTourStep
       phase={phase}
@@ -31,7 +32,7 @@ describe("ConnectionTourStep", () => {
     const html = render("connect");
     expect(html).toContain("Getting started");
     expect(html).toContain("Connect a venue to start");
-    expect(html).toContain("1 of 4");
+    expect(html).toContain("1 of 6");
     expect(html).toContain("Open connection steps");
     expect(html).toContain("Skip guide");
   });
@@ -42,10 +43,13 @@ describe("ConnectionTourStep", () => {
     expect(html).toContain("Holdings stays empty");
   });
 
-  it("offers Matching on the last step", () => {
-    const html = render("next");
-    expect(html).toContain("Finish");
-    expect(html).toContain("Open Matching");
-    expect(html).toContain("Open the guide");
+  it("covers Matching, Journal, and Reports on the day-to-day path", () => {
+    expect(render("match")).toContain("Open Matching");
+    expect(render("journal")).toContain("Open Journal");
+    const reports = render("reports");
+    expect(reports).toContain("Open Reports");
+    expect(reports).toContain("Finish");
+    expect(reports).toContain("Open the guide");
+    expect(reports).toContain("6 of 6");
   });
 });

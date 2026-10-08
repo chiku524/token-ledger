@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectionFormSchema, entityFormSchema, firstIssue, journalFormSchema } from "./validate";
+import { connectionFormSchema, entityFormSchema, firstIssue, journalFormSchema, profileFormSchema } from "./validate";
 
 describe("form validation", () => {
   it("accepts an entity and rejects a wallet without a role", () => {
@@ -108,5 +108,11 @@ describe("form validation", () => {
       lines: [{ accountCode: "1000", side: "debit", amount: "10.00" }],
     });
     expect(missing.success).toBe(false);
+  });
+
+  it("accepts a display name and rejects an empty one", () => {
+    expect(profileFormSchema.safeParse({ name: "Sushmit Sarmah" }).success).toBe(true);
+    expect(profileFormSchema.safeParse({ name: "  " }).success).toBe(false);
+    expect(profileFormSchema.safeParse({ name: "" }).success).toBe(false);
   });
 });

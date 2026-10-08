@@ -30,7 +30,7 @@ export type IssuedChallenge = { challengeId: string; message: string } | { error
 export async function issueOwnershipChallenge(formData: FormData): Promise<IssuedChallenge> {
   try {
     await assertCsrf(formData);
-    const session = await requirePermission("source.write");
+    const session = await requirePermission("source.connect");
     if (!canWriteBooks(session)) return { error: READ_ONLY };
     const entityId = String(formData.get("entityId") ?? "");
     const chainRaw = String(formData.get("chain") ?? "");
@@ -78,7 +78,7 @@ export async function verifyWalletOwnershipAction(formData: FormData) {
   const path = connectionReturnPath(formData.get("next"));
   try {
     await assertCsrf(formData);
-    const session = await requirePermission("source.write");
+    const session = await requirePermission("source.connect");
     if (!canWriteBooks(session)) fail(path, READ_ONLY);
     const challengeId = String(formData.get("challengeId") ?? "");
     const signature = String(formData.get("signature") ?? "").trim();

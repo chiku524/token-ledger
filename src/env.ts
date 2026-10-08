@@ -212,3 +212,29 @@ export function readSuiGraphqlUrl(
   }
   return url;
 }
+
+/**
+ * Optional. A comma-separated allowlist of emails granted the platform-admin
+ * role: a cross-organization view of every organization and every user. This is
+ * separate from a role inside an organization — an org owner/admin does NOT get
+ * it — so one tenant's staff can never see another's. Unset means no one is a
+ * platform admin and the panel is simply absent. Emails are lowercased.
+ */
+export function readPlatformAdminEmails(
+  env: { PLATFORM_ADMIN_EMAILS?: string } = { PLATFORM_ADMIN_EMAILS: process.env.PLATFORM_ADMIN_EMAILS },
+): string[] {
+  const raw = env.PLATFORM_ADMIN_EMAILS ?? "";
+  return raw
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.includes("@"));
+}
+
+/** Whether an email is a platform admin. */
+export function isPlatformAdminEmail(
+  email: string,
+  env: { PLATFORM_ADMIN_EMAILS?: string } = { PLATFORM_ADMIN_EMAILS: process.env.PLATFORM_ADMIN_EMAILS },
+): boolean {
+  const normalized = email.trim().toLowerCase();
+  return normalized !== "" && readPlatformAdminEmails(env).includes(normalized);
+}

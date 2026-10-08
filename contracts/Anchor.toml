@@ -6,12 +6,12 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-service_balance = "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb"
-treasury_payables = "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs"
+service_balance = "GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo"
+treasury_payables = "5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi"
 
 [programs.devnet]
-service_balance = "DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb"
-treasury_payables = "33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs"
+service_balance = "GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo"
+treasury_payables = "5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi"
 
 [provider]
 # Devnet by default. The app resolves the cluster, program IDs, mint and token

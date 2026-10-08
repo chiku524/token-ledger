@@ -1,0 +1,25 @@
+meta {
+  name: Export audit log
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/dashboard/audit/export?actor=&action=&subjectType=&from=&to=
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: tl_session={{sessionCookie}}
+}
+
+docs {
+  # GET /dashboard/audit/export
+
+  Downloads the audit log as CSV, filtered the same way as the History page. The
+  log is organization-wide and append-only; entity scope does not hide it.
+
+  Query (all optional): actor, action, subjectType, from, to (YYYY-MM-DD).
+  Needs the tl_session cookie. 401 without a session or `audit.read`.
+}

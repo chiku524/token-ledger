@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canTakeConnectionTour,
+  gettingStartedPhases,
   gettingStartedStep,
   needsConnectionCheck,
   resolveGettingStartedPhase,
@@ -12,6 +13,19 @@ describe("canTakeConnectionTour", () => {
     expect(canTakeConnectionTour("admin")).toBe(true);
     expect(canTakeConnectionTour("accountant")).toBe(false);
     expect(canTakeConnectionTour("viewer")).toBe(false);
+  });
+});
+
+describe("gettingStartedPhases", () => {
+  it("covers the day-to-day path from connect through reports", () => {
+    expect(gettingStartedPhases()).toEqual([
+      "connect",
+      "check",
+      "holdings",
+      "match",
+      "journal",
+      "reports",
+    ]);
   });
 });
 
@@ -35,13 +49,16 @@ describe("resolveGettingStartedPhase", () => {
     ).toBe("check");
   });
 
-  it("points at Holdings after Check, then Next once holdings were seen", () => {
+  it("walks Holdings → Match → Journal → Reports after Check", () => {
     const progress = {
       connections: [{ status: "healthy" as const, lastSyncedAt: "2026-10-05T10:00:00.000Z" }],
       observedBalanceCount: 3,
     };
-    expect(resolveGettingStartedPhase(progress)).toBe("holdings");
-    expect(resolveGettingStartedPhase(progress, true)).toBe("next");
+    expect(resolveGettingStartedPhase(progress, 0)).toBe("holdings");
+    expect(resolveGettingStartedPhase(progress, 1)).toBe("match");
+    expect(resolveGettingStartedPhase(progress, 2)).toBe("journal");
+    expect(resolveGettingStartedPhase(progress, 3)).toBe("reports");
+    expect(resolveGettingStartedPhase(progress, 99)).toBe("reports");
   });
 });
 
@@ -73,5 +90,12 @@ describe("gettingStartedStep", () => {
       observedBalanceCount: 2,
     });
     expect(step.body).toContain("2 quantities");
+  });
+
+  it("points Match, Journal, and Reports at the right pages", () => {
+    const empty = { connections: [], observedBalanceCount: 0 };
+    expect(gettingStartedStep("match", empty).href).toBe("/dashboard/reconciliation");
+    expect(gettingStartedStep("journal", empty).href).toBe("/dashboard/ledger");
+    expect(gettingStartedStep("reports", empty).href).toBe("/dashboard/reports");
   });
 });

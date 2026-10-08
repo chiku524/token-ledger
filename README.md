@@ -33,6 +33,10 @@ pnpm test
 pnpm build
 ```
 
+How the tests are organized, and how to test a new server action or page, is in [docs/testing.md](docs/testing.md).
+
+Manual HTTP tests for the route handlers ship as a [Bruno](https://www.usebruno.com/) collection in [`bruno/`](bruno/README.md) (chat, crons, webhook, and the CSV/PDF exports). Open that folder as a collection, or run a request with `npx @usebruno/cli run bruno/api/cron/sync.bru --env local`.
+
 ## Database
 
 Optional until you want to record entities, sources, journals, reversals, or a CSV import. The forms stay read-only when `DATABASE_URL` is unset.
@@ -64,7 +68,7 @@ pnpm db:seed
 pnpm auth:bootstrap
 ```
 
-`pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite link is shown once in the page and is not emailed. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`. An owner or admin is then asked, step by step, to connect a wallet, an exchange, and a custodian. Each step can be skipped.
+`pnpm auth:bootstrap` refuses to add another owner when an active owner already exists. Owners and admins then invite people from **Users**. The invite is emailed when email is configured, and the link is also shown once in the page. It expires in 7 days. The invited person sets a password at `/sign-in?invite=...`. An owner or admin is then asked, step by step, to connect a wallet, an exchange, and a custodian. Each step can be skipped.
 
 | Role | Books | Export and audit | Prepare journals | Approve | Post, reverse, match, CSV import | Entities, sources, FX, close | Users |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -169,6 +173,37 @@ See `docs/adr-market-data.md`.
 
 Posted entries can be pushed to an external accounting system: Xero (manual journals), QuickBooks Online (journal entries), or a generic ERP through the `AccountingSyncAdapter` port. Pushes are idempotent — a retry cannot create a duplicate. These are the only write path in the product and need OAuth app credentials to run live; see `docs/adr-accounting-sync.md`.
 
+## AI assistant
+
+An assistant that can do anything a signed-in user can do — open the right page,
+explain a number, and prepare an entry — under the user's real role and entity
+scope. It drives the **same server actions the UI calls**; it is not a second
+accounting system and cannot escalate privilege. The capability handbook is
+`docs/ai-chatbot.md`; the decision is `docs/adr-ai-assistant.md`.
+
+- **Providers.** One interface covers Ollama, Anthropic Claude, OpenAI ChatGPT,
+  Hugging Face, OpenRouter, and any OpenAI-compatible endpoint. No LLM SDK is in
+  the default install — each provider is a `fetch` adapter, tested offline.
+- **Reads run; writes wait.** A read tool runs immediately. A write (post,
+  match, close, prepare an on-chain payment) is proposed and does nothing until
+  the user confirms it explicitly; every write is audited.
+- **Retrieval (RAG).** With `AI_EMBEDDING_PROVIDER` set, the assistant recalls
+  relevant earlier messages, org- and entity-scoped, with citations.
+- **Voice.** With `ELEVENLABS_API_KEY` set, each reply has a **Read aloud**
+  control (text-to-speech, server-side key) and the composer has **dictation**
+  (browser speech-to-text). Unset means no voice and no other change.
+- **In the UI.** A launcher is on every dashboard page: a floating button that
+  opens a window (or a docked sidebar on large screens). It streams replies,
+  opens the page a request names, and shows a confirmation card before any write
+  runs. Built on `assistant-ui`, but the panel only presents — our backend stays
+  authoritative.
+
+Set `AI_PROVIDER` to turn it on (see `.env.example`); unset means the assistant
+is off and the rest of the app is unaffected. `pnpm ai:embed-backfill` embeds
+existing message history for retrieval.
+
+Every sign-up creates its own organization with the registrant as its owner, so the dashboard's **Users** page lists only *your* organization's people. To see everyone across every organization, set `PLATFORM_ADMIN_EMAILS` (a comma-separated email allowlist) and open **Platform** in the account menu: it lists each organization with its user/company counts, and every user with their organization, role, status, verification, and last sign-in. This cross-organization view is separate from any organization role — an org owner or admin does not get it.
+
 ## Scheduled sync and operations
 
 Connections pull on a schedule, not only on a click. Every pull goes through one path (`runConnectionSync`) and leaves a row in `sync_runs` with its outcome, trigger, and counts. Raw adapter payloads are retained as JSONB for the most recent runs and then age out. A failing connection is retried with a growing backoff (5m, 30m, 2h, 6h) and marked degraded after a failure that follows a success.
@@ -180,7 +215,6 @@ Connections pull on a schedule, not only on a click. Every pull goes through one
 Sources that can push post a signed JSON event to `POST /api/webhooks/source`. The signature header is Stripe-like: `X-Token-Ledger-Signature: t=<unix seconds>,v1=<hex hmac-sha256>` over `${t}.${rawBody}`, with the per-source secret derived from `WEBHOOK_SIGNING_SECRET`. A timestamp outside five minutes is rejected, and the unique `(source, external id)` key makes a redelivery a no-op. `pnpm webhook:send <SOURCE_ID> <ASSET_CODE> <in|out> <QUANTITY>` sends a signed event for local verification. See `docs/adr-scheduled-ingestion.md`.
 
 ## Layout
-
 ```text
 src/app                 Landing page, sign-in, and dashboard
 src/auth                Passwords, sessions, roles, demo sign-in, and the owner bootstrap
@@ -189,6 +223,9 @@ src/ledger              Double-entry posting, reversals, FX, trial balance, reco
 src/db                  Drizzle schema, client, seed, read, and write
 src/adapters            Source readers (chains, exchanges, custodians), a shared adapter contract
                         (contract-suite.ts), and accounting sync (Xero, QuickBooks, ERP)
+src/ai                  The assistant: LLM provider port and adapters, the tool registry over
+                        the server actions, the tool-calling runtime, and RAG over message history
+src/components/chat     The assistant panel (assistant-ui): runtime adapter, launcher, tool card
 src/data                Example books, validation, the Postgres-or-example loader, sync policy, and valuation
 src/adapters/market     Keyless price (CoinGecko) and FX (ECB) providers
 src/app/api             Route handlers: the scheduled cron pass and the signed webhook receiver

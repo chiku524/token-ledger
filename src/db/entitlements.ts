@@ -12,6 +12,7 @@ import {
   type Entitlement,
   type MandateState,
 } from "@/billing/entitlement";
+import { resolveAccess, type OrganizationAccess } from "@/billing/access";
 import { getDb } from "./client";
 import { contractEntitlements, mandates } from "./schema";
 
@@ -84,6 +85,37 @@ export async function entityHasContractAccess(mandateId: string, now: Date = new
   return entitlement ? hasAccess(entitlement, now) : false;
 }
 
+/**
+ * Every current entitlement for an organization (one per mandate, highest
+ * generation). `resolveAccess` turns these into the organization's access.
+ */
+export async function organizationEntitlements(organizationId: string): Promise<Entitlement[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(contractEntitlements)
+    .where(eq(contractEntitlements.organizationId, organizationId));
+  const byMandate = new Map<string, (typeof rows)[number]>();
+  for (const row of rows) {
+    const current = byMandate.get(row.mandateId);
+    if (!current || row.generation > current.generation) byMandate.set(row.mandateId, row);
+  }
+  return [...byMandate.values()].map((row) => ({
+    renewing: row.renewing,
+    accessUntil: row.accessUntil,
+    capRemainingMinor: row.capRemainingMinor,
+    generation: row.generation,
+    asOf: row.asOf,
+    reason: row.reason as Entitlement["reason"],
+  }));
+}
+
+/** The organization's subscription access at `now`, from projected state. */
+export async function organizationAccess(organizationId: string, now: Date = new Date()): Promise<OrganizationAccess> {
+  const entitlements = await organizationEntitlements(organizationId);
+  return resolveAccess(entitlements, now);
+}
+
 export { entitlementKey };
 
 /** Build the projection input from a stored mandate row. */
@@ -103,4 +135,21 @@ export async function mandateStateFor(billingVaultId: string): Promise<{ mandate
       generation: row.generation,
     },
   };
+}
+
+/**
+ * Project the entitlement for a vault's mandate from its stored (finalized)
+ * projection. This is the call site the indexer uses after a mandate finalizes;
+ * it is idempotent, so a reorg replay is safe. Returns null when the vault has no
+ * mandate yet.
+ */
+export async function projectEntitlementForVault(
+  organizationId: string,
+  entityId: string,
+  billingVaultId: string,
+  now: Date = new Date(),
+): Promise<Entitlement | null> {
+  const stored = await mandateStateFor(billingVaultId);
+  if (!stored) return null;
+  return projectEntitlement({ organizationId, entityId, mandateId: stored.mandateId, state: stored.state }, now);
 }

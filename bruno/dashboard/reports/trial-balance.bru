@@ -1,0 +1,24 @@
+meta {
+  name: Export trial balance (CSV)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/dashboard/reports/export?kind=trial-balance&entity=&from=&to=
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: tl_session={{sessionCookie}}
+}
+
+docs {
+  # GET /dashboard/reports/export?kind=trial-balance
+
+  Trial balance CSV for a company and period. Needs the tl_session cookie.
+  `kind=trial-balance` | `journal` | `reconciliation` | `pdf`.
+  Query: kind (required), entity, from, to (YYYY-MM-DD).
+  401 without a session; 403 when entity is outside scope; 400 on an unknown kind.
+}

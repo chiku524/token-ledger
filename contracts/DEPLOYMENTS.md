@@ -10,13 +10,19 @@ deployer keypair; production will use a separate multi-party governance key.
 
 | Program | Program ID | Upgrade authority |
 | --- | --- | --- |
-| `service_balance` | `DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb` | `7hobWVCH1mVBtedRndouStN2ku5UF6E2Zb1gCHqexeRp` |
-| `treasury_payables` | `33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs` | `7hobWVCH1mVBtedRndouStN2ku5UF6E2Zb1gCHqexeRp` |
+| `service_balance` | `GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo` | `7b9TAu16LR9eqs1R9WUdKHtfq7auaxhzF2SPtSHXLP6w` |
+| `treasury_payables` | `5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi` | `7b9TAu16LR9eqs1R9WUdKHtfq7auaxhzF2SPtSHXLP6w` |
 
-> **Devnet is stale as of the charge-receipt change.** The deployed bytecode
-> predates the `collect_cycle(cycle)` signature and the `ChargeReceipt` account
-> (#187). Rebuild and redeploy before relying on `contracts/scripts/*.ts` on
-> devnet; the IDL/types and the litesvm suite already reflect the new shape.
+| Program | Deploy signature |
+| --- | --- |
+| `service_balance` | `4hSEaufRwgMbJr1zWUPL7oZz2QyAKuTfpAQVV8pUi27bHYS1oEMS8k5aQRkqGERHgET4kTAv1T2GXaHdPjB5gvGK` |
+| `treasury_payables` | `PSAhdgfnM2gHbmPSKNiRB4Nd4eryTrKPTn1ozGfo9EX6tbNc8rubFAwnPcnh6ABWz9imvJyTCs2Zimagf3rNE7y` |
+
+Previous devnet IDs (`DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb`,
+`33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs`) remain on-chain under upgrade
+authority `7hobWVCH1mVBtedRndouStN2ku5UF6E2Zb1gCHqexeRp` but are no longer the
+committed client targets. New program keypairs were chosen so charge-receipt /
+`collect_cycle` bytecode can ship without that prior authority.
 
 ## Build
 
@@ -31,6 +37,13 @@ cargo-build-sbf --tools-version v1.57 --sbf-out-dir target/deploy
 
 This writes `target/deploy/service_balance.so` and
 `target/deploy/treasury_payables.so`.
+
+The **host** toolchain is pinned in `contracts/rust-toolchain.toml`, which covers
+both the programs workspace and the nested `contracts/tests` litesvm workspace.
+Rust **1.98.1** is the pin: the litesvm test workspace pulls agave/solana 4.3
+crates that require rustc **≥ 1.97.1**, so `stable` is not safe. rustup reads the
+file for any `cargo` command inside `contracts/`, so local runs and CI both use
+it. The SBF build is independent of this pin (its platform-tools are v1.57).
 
 ## Verify before deploying
 
@@ -61,16 +74,16 @@ commit deploy keypairs.
 After a redeploy, confirm the on-chain program data length changed:
 
 ```bash
-solana program show DVRsqtJNpDA31QRdoSkfGb2wynCWs4cWoe3NCSNjpeXb --url devnet
-solana program show 33YoPF5P1v9qkgMpzPTHtWnCcA9u9eE9iv6xutWRyZCs --url devnet
+solana program show GgYegKVx47vYApyQijG6g4k2pAGGJ6ub9DUhKUE4gZYo --url devnet
+solana program show 5k5vSj1LWFLZ6doBfdwyYnxHKTpt1ot4SmBroby6ZqRi --url devnet
 ```
 
 ## Client configuration
 
 The app must resolve the cluster, program IDs, mint and token program from
-server configuration recorded here, never from user input. That config module
-does not exist yet; it is tracked with CHAIN-01 and the execution boundary in
-#170.
+server configuration recorded here, never from user input. Set
+`SOLANA_CONTRACTS_CLUSTER`, `SERVICE_BALANCE_PROGRAM_ID`,
+`TREASURY_PAYABLES_PROGRAM_ID`, and `USDC_MINT` (see `.env.example`).
 
 ## Production (not done)
 
@@ -78,7 +91,8 @@ does not exist yet; it is tracked with CHAIN-01 and the execution boundary in
   governance key.
 - Verify the issuer USDC mint before any mainnet launch; devnet uses a local test
   mint.
-- Independent review of the money-moving code is a mainnet launch gate (#164).
+- Independent review of the money-moving code is a mainnet launch gate (#164);
+  the reviewer checklist is `docs/contract-security-review.md`.
   Do not call the system immutable while upgrades remain possible.
 
 ## Token

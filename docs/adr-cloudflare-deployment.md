@@ -57,6 +57,36 @@ does not block a Worker build.
    chain/RPC vars as Worker secrets.
 6. The cron in `wrangler.jsonc` drives `/api/cron/sync`; `vercel.json` is unused.
 
+## CPU limit (Error 1102) and the Workers Paid plan
+
+The deployed Worker returns **Error 1102, "Worker exceeded resource limits"**
+(`exceededCpu`) intermittently on the dashboard pages. Server-rendering these
+pages costs **median ~37 ms, P90 ~480 ms, P99 ~950 ms** of CPU per request,
+which is far above the **Workers Free** ceiling of **10 ms/request**. The
+successful-render CPU times confirm this: failures are pinned at exactly
+10,000 µs, the Free limit.
+
+Raising the ceiling with `"limits": { "cpu_ms": ... }` requires the **Workers
+Paid** plan, and on Free the Cloudflare API **rejects the deploy outright**
+with error `100328` ("CPU limits are not supported for the Free plan") — it does
+not ignore the setting. A committed `cpu_ms` therefore breaks `wrangler deploy`
+on a Free account, so it is deliberately **not set** in `wrangler.jsonc` while
+this project is on Free. See issue #241.
+
+A Next.js server-rendering app cannot fit in 10 ms, so this app needs either the
+Workers Paid plan or a large cut in per-request CPU. To reduce cold-start and
+per-request CPU:
+
+- Chart components (which pull `recharts`, several hundred KB) are loaded
+  client-only via `src/components/charts/lazy.tsx` (`ssr: false`), so the server
+  bundle no longer evaluates them. This removed ~490 KB from the Worker.
+- Bound the data read per request (see #232 / #233); the dashboard currently loads
+  every journal, source transaction, reconciliation and audit row for the org.
+
+Error 1102 is a runtime kill, not a catchable exception, so a React
+`error.tsx` boundary cannot show a friendly message for it; the only fixes are
+raising the CPU limit (Paid) or lowering CPU (above).
+
 ## Consequences
 
 - The default Vercel deploy is unchanged: same commands, same migrations.
@@ -65,3 +95,6 @@ does not block a Worker build.
   credentials as `v2`, because scrypt is absent there.
 - The only remaining code change for Cloudflare is the database driver; the
   crypto blockers are removed.
+- **The Workers Paid plan is required for this app to run acceptably**, and
+  `limits.cpu_ms` must not be committed on a Free account or the deploy fails.
+  Until then, reduce per-request CPU (#232 / #233).

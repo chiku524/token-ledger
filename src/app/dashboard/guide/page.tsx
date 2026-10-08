@@ -2,15 +2,17 @@ import { cookies } from "next/headers";
 import { ensureCsrf } from "@/auth/current";
 import { CONNECTION_TOUR_COOKIE } from "@/auth/cookies";
 import { shouldShowConnectionTour } from "@/auth/tour";
-import { ConnectionGuide } from "@/components/connection-guide";
+import { AiChatbotGuide } from "@/components/ai-chatbot-guide";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { canTakeConnectionTour } from "@/data/getting-started";
+import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Guide" };
 
 export default async function GuidePage() {
   const { session } = await loadAuthorizedBooks();
+  await requireSectionAccess("/dashboard/guide");
   const csrf = await ensureCsrf();
   const dismissed = session.demo && (await cookies()).get(CONNECTION_TOUR_COOKIE)?.value === "1";
   const tourPending = shouldShowConnectionTour({
@@ -22,11 +24,11 @@ export default async function GuidePage() {
   return (
     <>
       <PageHeader
-        kicker="How a connection works"
+        kicker="AI chatbot handbook"
         title="Guide"
-        description="Read-only access for a wallet, an exchange, or a custodian. Observations stay beside the journal until someone posts them."
+        description="Ask for reports, matching, connections, and more — the assistant can do anything you can, under your role. Observations stay observed; journals stay deliberate."
       />
-      <ConnectionGuide csrf={csrf} canRestartTour={canTakeConnectionTour(session.role) && !tourPending} />
+      <AiChatbotGuide csrf={csrf} canRestartTour={canTakeConnectionTour(session.role) && !tourPending} />
     </>
   );
 }

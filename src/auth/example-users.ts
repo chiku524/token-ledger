@@ -53,4 +53,11 @@ export const EXAMPLE_USERS: readonly {
     entityScope: ["ent_harbourline_sg"],
     password: "Harbourline-viewer-sg-1",
   },
+  {
+    email: "onboarding@harbourline.example",
+    name: "Priya Nair",
+    role: "onboarding",
+    entityScope: [],
+    password: "Harbourline-onboarding-1",
+  },
 ];
