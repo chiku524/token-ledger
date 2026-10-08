@@ -6,7 +6,7 @@ vi.mock("next/navigation", async () => (await import("@/test/server-harness")).n
 vi.mock("next/cache", async () => (await import("@/test/server-harness")).cacheMock);
 vi.mock("@/db/auth-store", async () => (await import("@/test/server-harness")).authStoreMock());
 
-const store = vi.hoisted(() => ({ target: null as Record<string, unknown> | null, statusCalls: [] as unknown[] }));
+const store = vi.hoisted(() => ({ target: null as Record<string, unknown> | null, statusCalls: [] as unknown[], adminCalls: [] as unknown[] }));
 vi.mock("@/db/client", () => ({
   getDb: () => ({
     select: () => ({ from: () => ({ where: () => ({ limit: async () => (store.target ? [store.target] : []) }) }) }),
@@ -16,14 +16,18 @@ vi.mock("@/db/platform", () => ({
   setPlatformUserStatus: vi.fn(async (id: string, status: string) => {
     store.statusCalls.push({ id, status });
   }),
+  setPlatformUserAdmin: vi.fn(async (id: string, platformAdmin: boolean) => {
+    store.adminCalls.push({ id, platformAdmin });
+  }),
 }));
 
-import { deactivatePlatformUserAction, reactivatePlatformUserAction } from "./platform-actions";
+import { deactivatePlatformUserAction, reactivatePlatformUserAction, grantPlatformAdminAction, revokePlatformAdminAction } from "./platform-actions";
 
 beforeEach(() => {
   resetRequest();
   store.target = { id: "user_target", organizationId: "org_other", email: "them@example.com", status: "active" };
   store.statusCalls = [];
+  store.adminCalls = [];
   vi.stubEnv("PLATFORM_ADMIN_EMAILS", "boss@harbourline.example");
 });
 
@@ -71,6 +75,26 @@ describe("platform user status actions", () => {
     store.target = null;
     const redirect = await redirectOf(deactivatePlatformUserAction(form({ userId: "gone" })));
     expect(redirect.params.get("error")).toMatch(/no longer exists/i);
+  });
+
+  it("grants the platform-admin role to another user", async () => {
+    signInPlatformAdmin();
+    const redirect = await redirectOf(grantPlatformAdminAction(form({ userId: "user_target" })));
+    expect(redirect.params.get("saved")).toMatch(/granted/i);
+    expect(store.adminCalls).toEqual([{ id: "user_target", platformAdmin: true }]);
+  });
+
+  it("revokes another user's platform-admin role", async () => {
+    signInPlatformAdmin();
+    await redirectOf(revokePlatformAdminAction(form({ userId: "user_target" })));
+    expect(store.adminCalls).toEqual([{ id: "user_target", platformAdmin: false }]);
+  });
+
+  it("refuses to revoke the acting admin's own platform access", async () => {
+    signInPlatformAdmin();
+    const redirect = await redirectOf(revokePlatformAdminAction(form({ userId: "user_boss" })));
+    expect(redirect.params.get("error")).toMatch(/revoke your own/i);
+    expect(store.adminCalls).toEqual([]);
   });
 });
 

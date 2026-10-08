@@ -1,7 +1,7 @@
 import { Building2 } from "lucide-react";
 import { requirePlatformAdmin } from "@/auth/current";
 import { ensureCsrf } from "@/auth/current";
-import { deactivatePlatformUserAction, reactivatePlatformUserAction } from "@/app/dashboard/platform-actions";
+import { deactivatePlatformUserAction, grantPlatformAdminAction, reactivatePlatformUserAction, revokePlatformAdminAction } from "@/app/dashboard/platform-actions";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
@@ -36,7 +36,7 @@ export default async function PlatformPage({
 }: {
   searchParams: Promise<{ q?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
 }) {
-  await requirePlatformAdmin();
+  const session = await requirePlatformAdmin();
   const params = await searchParams;
   const query = (one(params.q) ?? "").trim().toLowerCase();
 
@@ -126,6 +126,7 @@ export default async function PlatformPage({
                 <TableHead>Organization</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>System role</TableHead>
                 <TableHead>Verified</TableHead>
                 <TableHead>Last sign-in</TableHead>
                 <TableHead>Created</TableHead>
@@ -133,7 +134,7 @@ export default async function PlatformPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.length === 0 ? <EmptyRow colSpan={8}>No users match.</EmptyRow> : null}
+              {users.length === 0 ? <EmptyRow colSpan={9}>No users match.</EmptyRow> : null}
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
@@ -147,17 +148,35 @@ export default async function PlatformPage({
                       {user.status}
                     </StatusBadge>
                   </TableCell>
+                  <TableCell>
+                    {user.platformAdmin ? (
+                      <StatusBadge tone="success">Platform admin</StatusBadge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Member</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs">{user.emailVerified ? "Yes" : "No"}</TableCell>
                   <TableCell className="text-xs">{formatDate(user.lastSignedInAt)}</TableCell>
                   <TableCell className="text-xs">{formatDate(user.createdAt)}</TableCell>
                   <TableCell>
-                    <form action={user.status === "active" ? deactivatePlatformUserAction : reactivatePlatformUserAction}>
-                      <input type="hidden" name="csrf" value={csrf} />
-                      <input type="hidden" name="userId" value={user.id} />
-                      <SubmitButton variant="secondary" size="sm">
-                        {user.status === "active" ? "Deactivate" : "Reactivate"}
-                      </SubmitButton>
-                    </form>
+                    <div className="grid gap-2">
+                      <form action={user.status === "active" ? deactivatePlatformUserAction : reactivatePlatformUserAction}>
+                        <input type="hidden" name="csrf" value={csrf} />
+                        <input type="hidden" name="userId" value={user.id} />
+                        <SubmitButton variant="secondary" size="sm">
+                          {user.status === "active" ? "Deactivate" : "Reactivate"}
+                        </SubmitButton>
+                      </form>
+                      {user.id === session.id ? null : (
+                        <form action={user.platformAdmin ? revokePlatformAdminAction : grantPlatformAdminAction}>
+                          <input type="hidden" name="csrf" value={csrf} />
+                          <input type="hidden" name="userId" value={user.id} />
+                          <SubmitButton variant="secondary" size="sm">
+                            {user.platformAdmin ? "Revoke platform" : "Grant platform"}
+                          </SubmitButton>
+                        </form>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

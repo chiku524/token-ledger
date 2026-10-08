@@ -13,6 +13,8 @@ export interface AccountUser {
   name: string;
   role: Role;
   status: "active" | "invited" | "inactive";
+  /** A cross-organization operator role, separate from `role`. */
+  platformAdmin: boolean;
   entityScope: string[];
   passwordHash: string | null;
   connectionTourCompletedAt: Date | null;
@@ -268,6 +270,12 @@ export async function setUserAccess(userId: string, role: Role, entityScope: str
   await db.update(users).set({ role, entityScope: entityScope.join(",") }).where(eq(users.id, userId));
 }
 
+/** Grant or revoke the platform-admin role. Audited by the caller. */
+export async function setPlatformAdmin(userId: string, platformAdmin: boolean): Promise<void> {
+  const db = getDb();
+  await db.update(users).set({ platformAdmin }).where(eq(users.id, userId));
+}
+
 /** Change a user's own display name. Email is the sign-in identity and is not changed here. */
 export async function updateUserName(userId: string, name: string): Promise<void> {
   const db = getDb();
@@ -321,6 +329,7 @@ function mapUser(row: {
   passwordHash: string | null;
   role: string;
   status: "active" | "invited" | "inactive";
+  platformAdmin?: boolean;
   entityScope: string;
   connectionTourCompletedAt?: Date | null;
   emailVerifiedAt?: Date | null;
@@ -333,6 +342,7 @@ function mapUser(row: {
     name: row.name,
     role: row.role,
     status: row.status,
+    platformAdmin: row.platformAdmin ?? false,
     entityScope: row.entityScope.split(",").map((id) => id.trim()).filter(Boolean),
     passwordHash: row.passwordHash,
     connectionTourCompletedAt: row.connectionTourCompletedAt ?? null,
