@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatRuntimeProvider } from "./chat-runtime-provider";
+import { ChatMarkdown } from "./chat-markdown";
+import { ChatThinking } from "./chat-thinking";
 import { ModelSelector } from "./model-selector";
 import {
   listThreadsAction,
@@ -96,7 +98,7 @@ function ChatThread({ speech }: { speech: boolean }) {
                 <div className="min-w-0 max-w-[85%] text-sm text-foreground">
                   <MessagePrimitive.Parts
                     components={{
-                      Text: ({ text }) => <p className="whitespace-pre-wrap leading-relaxed">{text}</p>,
+                      Text: () => <ChatMarkdown />,
                       tools: toolComponents,
                     }}
                   />
@@ -121,6 +123,22 @@ function ChatThread({ speech }: { speech: boolean }) {
             )
           }
         </ThreadPrimitive.Messages>
+
+        {/*
+          The thinking indicator, while a turn is in flight and the latest
+          message is not yet a populated assistant reply. It sits after the
+          messages so it reads as the reply forming.
+        */}
+        <AuiIf
+          condition={(s) => {
+            if (!s.thread.isRunning) return false;
+            const last = s.thread.messages.at(-1);
+            const hasAssistantText = last?.role === "assistant" && last.content.some((part) => part.type === "text" && part.text.trim() !== "");
+            return !hasAssistantText;
+          }}
+        >
+          <ChatThinking />
+        </AuiIf>
 
         <ThreadPrimitive.ScrollToBottom className="sticky bottom-2 z-10 mx-auto flex size-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm disabled:hidden">
           <ArrowUp className="size-4" aria-hidden />
