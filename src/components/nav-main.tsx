@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   GitCompareArrows,
+  Globe,
   HandCoins,
   History,
   Layers,
@@ -85,14 +86,17 @@ const groups: NavGroup[] = [
 export type NavAccess = {
   showUsers: boolean;
   showOnboarding: boolean;
+  /** Platform admins see the cross-organization panel. */
+  showPlatform: boolean;
   role: Role;
   hiddenTabs?: readonly string[];
 };
 
-export function navGroups({ showUsers, showOnboarding, role, hiddenTabs = [] }: NavAccess): NavGroup[] {
+export function navGroups({ showUsers, showOnboarding, showPlatform, role, hiddenTabs = [] }: NavAccess): NavGroup[] {
   const accountLinks: NavLink[] = [
     ...(showUsers ? [{ href: "/dashboard/users", label: "Users", icon: Users }] : []),
     ...(showOnboarding ? [{ href: "/dashboard/onboarding", label: "Onboarding", icon: UserPlus }] : []),
+    ...(showPlatform ? [{ href: "/dashboard/platform", label: "Platform", icon: Globe }] : []),
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
   return [

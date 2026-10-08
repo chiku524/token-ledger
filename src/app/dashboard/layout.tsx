@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ensureCsrf } from "@/auth/current";
+import { ensureCsrf, isPlatformAdmin } from "@/auth/current";
 import { assistantConfigured } from "@/ai/config";
 import { embeddingConfigured } from "@/ai/embeddings/config";
 import { speechConfigured } from "@/ai/speech/config";
@@ -47,6 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       csrf={csrf}
       showUsers={can(session.role, "users.manage")}
       showOnboarding={can(session.role, "onboarding.manage")}
+      showPlatform={isPlatformAdmin(session)}
       hiddenTabs={hiddenTabs}
       scopeLabel={scopeLabel}
       showConnectionTour={showConnectionTour}

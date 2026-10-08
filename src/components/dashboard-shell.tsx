@@ -20,6 +20,7 @@ export function DashboardShell({
   csrf,
   showUsers,
   showOnboarding,
+  showPlatform,
   hiddenTabs,
   scopeLabel,
   showConnectionTour,
@@ -37,6 +38,8 @@ export function DashboardShell({
   csrf: string;
   showUsers: boolean;
   showOnboarding: boolean;
+  /** Whether this session is a platform admin (cross-organization panel). */
+  showPlatform: boolean;
   hiddenTabs: readonly string[];
   scopeLabel: string | null;
   showConnectionTour: boolean;
@@ -67,11 +70,12 @@ export function DashboardShell({
           scopeLabel={scopeLabel}
           showUsers={showUsers}
           showOnboarding={showOnboarding}
+          showPlatform={showPlatform}
           role={session.role}
           hiddenTabs={hiddenTabs}
         />
         <SidebarInset className="min-w-0">
-          <DashboardHeader showUsers={showUsers} showOnboarding={showOnboarding} role={session.role} hiddenTabs={hiddenTabs} />
+          <DashboardHeader showUsers={showUsers} showOnboarding={showOnboarding} showPlatform={showPlatform} role={session.role} hiddenTabs={hiddenTabs} />
           <ExampleBanner origin={origin} notice={notice} />
           {!session.emailVerified && !session.demo ? (
             <div className="dashboard-width px-4 pt-4 md:px-8">
