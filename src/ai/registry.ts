@@ -8,7 +8,7 @@ import { OpenAiCompatibleProvider } from "./providers/openai-compatible";
 import type { LlmDescriptor, ProviderKey, Transport } from "./types";
 
 /** Every provider key the assistant understands, in display order. */
-export const PROVIDER_KEYS = ["ollama", "anthropic", "openai", "huggingface", "openrouter", "openai-compatible"] as const;
+export const PROVIDER_KEYS = ["ollama", "anthropic", "openai", "huggingface", "openrouter", "cloudflare", "openai-compatible"] as const;
 
 export const PROVIDER_DESCRIPTORS: LlmDescriptor[] = [
   {
@@ -47,6 +47,13 @@ export const PROVIDER_DESCRIPTORS: LlmDescriptor[] = [
     summary: "One key to many hosted models through an OpenAI-compatible gateway.",
   },
   {
+    key: "cloudflare",
+    name: "Cloudflare Workers AI",
+    system: "Cloudflare",
+    implemented: true,
+    summary: "Workers AI models at the edge through an OpenAI-compatible endpoint. Free-plan models available.",
+  },
+  {
     key: "openai-compatible",
     name: "OpenAI-compatible endpoint",
     system: "Custom",
@@ -77,6 +84,18 @@ export function providerFor(config: AiConfig, transport?: Transport): LlmProvide
       return huggingFaceProvider({ ...common, apiKey: config.apiKey ?? "" });
     case "openrouter":
       return openRouterProvider(common);
+    case "cloudflare":
+      return new OpenAiCompatibleProvider({
+        key: "cloudflare",
+        descriptor: PROVIDER_DESCRIPTORS.find((entry) => entry.key === "cloudflare")!,
+        baseUrl: config.baseUrl ?? "https://api.cloudflare.com/client/v4/accounts/account/ai/v1",
+        apiKey: config.apiKey ?? undefined,
+        defaultModel: config.model,
+        transport,
+        requireApiKey: true,
+        // Cloudflare Workers AI rejects `content: null` on a tool-call message.
+        emptyContentForToolCalls: true,
+      });
     case "openai-compatible":
       return new OpenAiCompatibleProvider({
         key: "openai-compatible",
