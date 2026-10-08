@@ -136,6 +136,27 @@ our provider-agnostic port, tool loop, and confirm gate stay authoritative.
   `embeddingConfigured()`) are read on the server and passed to the panel, so an
   unconfigured deployment shows a clear "assistant is off" state, never an error.
 
+### Voice and speech
+
+`src/ai/speech/` adds text-to-speech. The ElevenLabs key is **server-only**: the
+browser asks our own `/api/speech` route (session-guarded), which calls
+ElevenLabs and returns `audio/mpeg`. `ELEVENLABS_API_KEY` unset means speech is
+off and the Speak control is not offered.
+
+- `createElevenLabsSpeechAdapter` (`src/components/chat/speech-adapter.ts`) is an
+  assistant-ui `SpeechSynthesisAdapter` that speaks a reply through our route, so
+  no key reaches the client. It is wired into the runtime only when
+  `speechConfigured()`.
+- Each assistant message gets a **Read aloud** control (`ActionBarPrimitive`),
+  and the composer gets **dictation** (`ComposerPrimitive.Dictate`) using the
+  browser's own speech recognition, which needs no key.
+- On a free ElevenLabs plan, the API rejects **library** voices; the default is a
+  **premade** voice (`ELEVENLABS_VOICE_ID`, default Adam) that works on the free
+  tier. A hosted plan can point at any voice.
+
+Speech is a read-only capability: it changes no books, so it needs no
+confirmation.
+
 ## Why
 
 - **No new dependency.** A port plus `fetch` adapters keeps the default install

@@ -189,6 +189,9 @@ accounting system and cannot escalate privilege. The capability handbook is
   the user confirms it explicitly; every write is audited.
 - **Retrieval (RAG).** With `AI_EMBEDDING_PROVIDER` set, the assistant recalls
   relevant earlier messages, org- and entity-scoped, with citations.
+- **Voice.** With `ELEVENLABS_API_KEY` set, each reply has a **Read aloud**
+  control (text-to-speech, server-side key) and the composer has **dictation**
+  (browser speech-to-text). Unset means no voice and no other change.
 - **In the UI.** A launcher is on every dashboard page: a floating button that
   opens a window (or a docked sidebar on large screens). It streams replies,
   opens the page a request names, and shows a confirmation card before any write

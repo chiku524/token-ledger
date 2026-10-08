@@ -26,6 +26,7 @@ export function DashboardShell({
   sidebarOpen,
   assistantEnabled,
   assistantMemory,
+  assistantSpeech,
 }: {
   children: React.ReactNode;
   origin: "example" | "live";
@@ -43,6 +44,8 @@ export function DashboardShell({
   assistantEnabled: boolean;
   /** Whether retrieval (RAG) is on for this deployment. */
   assistantMemory: boolean;
+  /** Whether text-to-speech (ElevenLabs) is on for this deployment. */
+  assistantSpeech: boolean;
 }) {
   return (
     <TooltipProvider>
@@ -88,7 +91,7 @@ export function DashboardShell({
           </main>
           {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}
         </SidebarInset>
-        <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} />
+        <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} speech={assistantSpeech} />
       </SidebarProvider>
     </TooltipProvider>
   );
