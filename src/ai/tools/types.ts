@@ -29,6 +29,49 @@ export interface ToolResult {
   data?: unknown;
   /** A dashboard route to offer as a deep link. */
   route?: string;
+  /** The audit event written when the tool ran, for a deep link to History. */
+  auditEventId?: string | null;
+}
+
+/** One labeled value shown on a confirmation card. */
+export interface ToolPreviewField {
+  label: string;
+  value: string;
+}
+
+/** One line of a proposed journal entry. */
+export interface ToolPreviewLine {
+  accountCode: string;
+  side: "debit" | "credit";
+  amount: string;
+}
+
+/**
+ * A summary of what a write will do, produced *before* it runs, so the user can
+ * review it on the confirmation card. It must be side-effect-free: generating a
+ * preview never posts, matches, closes, or persists. See AI-09 (#277).
+ */
+export interface ToolPreview {
+  /** A human label for the action, e.g. "Post journal". */
+  action: string;
+  /** The key fields of the intended action (entity, date, amount, counterparty). */
+  fields: ToolPreviewField[];
+  /** For a journal: the proposed lines. */
+  lines?: ToolPreviewLine[];
+  /** For a journal: whether debits equal credits. */
+  balanced?: boolean;
+  /** For an on-chain prepare: the transaction the user will sign. */
+  plan?: {
+    action: string;
+    cluster: string;
+    programId: string;
+    feePayer: string;
+    subject?: string | null;
+    policyNote?: string;
+    instructions: number;
+  };
+  /** A one-line statement of the side effect. */
+  note?: string;
 }
 
 /**
@@ -46,4 +89,9 @@ export interface AgentTool {
   /** The permission the caller must hold. Absent means any signed-in session. */
   permission?: Permission;
   execute(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult>;
+  /**
+   * A side-effect-free summary of what `execute` will do, for the confirmation
+   * card. Write tools provide it; it must never change state.
+   */
+  preview?(input: Record<string, unknown>, ctx: ToolContext): Promise<ToolPreview>;
 }

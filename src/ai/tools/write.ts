@@ -94,6 +94,28 @@ export const postJournal: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "journal.post",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const lines = parseLines(input.lines);
+    const entity = ctx.books.entities.find((item) => item.id === entityId);
+    const total = (side: "debit" | "credit") =>
+      lines.filter((line) => line.side === side).reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+    const debit = total("debit");
+    const credit = total("credit");
+    return {
+      action: "Post journal",
+      fields: [
+        { label: "Company", value: entity?.name ?? entityId },
+        { label: "Reference", value: String(input.reference ?? "") },
+        { label: "Date", value: String(input.entryDate ?? "") },
+        { label: "Memo", value: String(input.memo ?? "") },
+        { label: "Currency", value: entity?.functionalCurrency ?? "—" },
+      ],
+      lines: lines.map((line) => ({ accountCode: line.accountCode, side: line.side, amount: line.amount })),
+      balanced: debit === credit && debit > 0,
+      note: "Posted entries are immutable; a wrong entry is corrected with a reversal.",
+    };
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guardWrite(ctx, "journal.post", entityId);
@@ -140,6 +162,21 @@ export const reverseJournal: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "journal.reverse",
+  async preview(input, ctx) {
+    const reference = String(input.reference ?? "").trim();
+    const original = ctx.books.journalEntries.find((entry) => entry.reference === reference);
+    return {
+      action: "Reverse journal",
+      fields: [
+        { label: "Original", value: reference || "—" },
+        { label: "Company", value: original ? ctx.books.entities.find((e) => e.id === original.entityId)?.name ?? original.entityId : "—" },
+        { label: "New reference", value: String(input.newReference ?? "") },
+        { label: "Date", value: String(input.entryDate ?? "") },
+        { label: "Reason", value: String(input.memo ?? "") },
+      ],
+      note: "Creates the correcting entry. The original stays posted.",
+    };
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const reference = String(input.reference ?? "").trim();
     const original = ctx.books.journalEntries.find((entry) => entry.reference === reference);
@@ -179,6 +216,20 @@ export const matchTransaction: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "reconciliation.match",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    return {
+      action: "Match movement",
+      fields: [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Movement", value: String(input.sourceTransactionId ?? "") },
+        { label: "Journal entry", value: String(input.journalEntryId ?? "") },
+        { label: "Line", value: String(input.journalLineNumber ?? "") },
+        { label: "Note", value: String(input.note ?? "") },
+      ],
+      note: "Pairs a source movement with a journal line; overrides any prior decision.",
+    };
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guardWrite(ctx, "reconciliation.match", entityId);
@@ -212,6 +263,18 @@ export const unmatchTransaction: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "reconciliation.match",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    return {
+      action: "Unmatch movement",
+      fields: [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Movement", value: String(input.sourceTransactionId ?? "") },
+        { label: "Note", value: String(input.note ?? "") },
+      ],
+      note: "Rejects the automatic match, leaving the movement as an exception.",
+    };
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guardWrite(ctx, "reconciliation.match", entityId);
@@ -248,6 +311,19 @@ export const closePeriodTool: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "period.close",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    return {
+      action: "Close period",
+      fields: [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "From", value: String(input.periodStart ?? "") },
+        { label: "To", value: String(input.periodEnd ?? "") },
+        { label: "Note", value: String(input.note ?? "") },
+      ],
+      note: "Posting, reversing and re-matching inside the range are then refused until it is reopened.",
+    };
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guardWrite(ctx, "period.close", entityId);

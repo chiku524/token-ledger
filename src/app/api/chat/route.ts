@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 type ChatEvent =
   | { type: "text"; delta: string }
   | { type: "tool"; tool: string; status: string; summary?: string; route?: string }
-  | { type: "awaiting_confirmation"; toolCallId: string; tool: string; route?: string }
+  | { type: "awaiting_confirmation"; toolCallId: string; tool: string; route?: string; preview?: unknown }
   | { type: "done"; threadId: string; status: string }
   | { type: "error"; message: string };
 
@@ -134,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
             status: "proposed",
             requiresConfirm: true,
           });
-          send({ type: "awaiting_confirmation", toolCallId, tool: turn.proposal.tool, route: turn.route });
+          send({ type: "awaiting_confirmation", toolCallId, tool: turn.proposal.tool, route: turn.route, preview: turn.proposal.preview });
         }
         send({ type: "done", threadId, status: turn.status });
       } catch (error) {

@@ -2,7 +2,7 @@ import { canAccessEntity } from "@/auth/roles";
 import { prepareCreateVault, prepareDeposit, prepareRevoke, prepareWithdraw } from "@/app/dashboard/billing-actions";
 import { prepareExecutePayment, prepareProposePayment } from "@/app/dashboard/treasury-actions";
 import type { SerializablePlan } from "@/contracts/serialize";
-import type { AgentTool, ToolContext, ToolResult } from "./types";
+import type { AgentTool, ToolContext, ToolPreview, ToolResult } from "./types";
 
 /**
  * On-chain prepare tools. These never sign or submit: they call the existing
@@ -34,6 +34,38 @@ function guard(ctx: ToolContext, entityId: string): string | null {
   return null;
 }
 
+/**
+ * Build a confirmation preview from a prepared plan. The prepare actions are
+ * side-effect-free for these operations (they build an unsigned transaction, no
+ * signature, no submission), so a preview may call them. Returns a preview with
+ * an explanatory field when the prepare refused, rather than throwing.
+ */
+async function planPreview(
+  action: string,
+  fields: ToolPreview["fields"],
+  note: string,
+  prepared: { plan: SerializablePlan } | { error: string },
+): Promise<ToolPreview> {
+  if ("error" in prepared) {
+    return { action, fields: [...fields, { label: "Cannot prepare", value: prepared.error }], note };
+  }
+  const { plan } = prepared;
+  return {
+    action,
+    fields,
+    plan: {
+      action: plan.action,
+      cluster: plan.cluster,
+      programId: plan.preview.programId,
+      feePayer: plan.feePayer,
+      subject: plan.preview.subject,
+      policyNote: plan.preview.policyNote,
+      instructions: plan.instructions.length,
+    },
+    note,
+  };
+}
+
 export const prepareBillingVault: AgentTool = {
   name: "prepare_billing_vault",
   description:
@@ -50,6 +82,19 @@ export const prepareBillingVault: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "source.connect",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const prepared = await prepareCreateVault(form(ctx, { entityId, controller: String(input.controller ?? "") }));
+    return planPreview(
+      "Prepare billing vault",
+      [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Controller", value: String(input.controller ?? "") },
+      ],
+      "Creates a vault you control. It holds no funds until you deposit.",
+      prepared,
+    );
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guard(ctx, entityId);
@@ -77,6 +122,28 @@ export const prepareBillingDeposit: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "source.connect",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const prepared = await prepareDeposit(
+      form(ctx, {
+        entityId,
+        vaultId: String(input.vaultId ?? ""),
+        controller: String(input.controller ?? ""),
+        tokenAccount: String(input.tokenAccount ?? ""),
+        amount: String(input.amount ?? ""),
+      }),
+    );
+    return planPreview(
+      "Prepare billing deposit",
+      [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Amount (USDC)", value: String(input.amount ?? "") },
+        { label: "From token account", value: String(input.tokenAccount ?? "") },
+      ],
+      "Deposits USDC into your vault. The controller wallet signs.",
+      prepared,
+    );
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guard(ctx, entityId);
@@ -112,6 +179,28 @@ export const prepareBillingWithdraw: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "source.connect",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const prepared = await prepareWithdraw(
+      form(ctx, {
+        entityId,
+        vaultId: String(input.vaultId ?? ""),
+        controller: String(input.controller ?? ""),
+        tokenAccount: String(input.tokenAccount ?? ""),
+        amount: String(input.amount ?? ""),
+      }),
+    );
+    return planPreview(
+      "Prepare billing withdrawal",
+      [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Amount (USDC)", value: String(input.amount ?? "") },
+        { label: "To token account", value: String(input.tokenAccount ?? "") },
+      ],
+      "Withdraws unspent USDC to your own account. No merchant signature.",
+      prepared,
+    );
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guard(ctx, entityId);
@@ -141,6 +230,21 @@ export const prepareBillingRevoke: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "source.connect",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const prepared = await prepareRevoke(
+      form(ctx, { entityId, vaultId: String(input.vaultId ?? ""), controller: String(input.controller ?? "") }),
+    );
+    return planPreview(
+      "Prepare billing revocation",
+      [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Vault", value: String(input.vaultId ?? "") },
+      ],
+      "Stops future renewals. Paid-through access remains and the balance stays withdrawable.",
+      prepared,
+    );
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guard(ctx, entityId);
@@ -171,6 +275,29 @@ export const prepareTreasuryPayment: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "source.connect",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const prepared = await prepareProposePayment(
+      form(ctx, {
+        entityId,
+        treasuryId: String(input.treasuryId ?? ""),
+        actor: String(input.actor ?? ""),
+        invoiceId: String(input.invoiceId ?? ""),
+        recipientOwner: String(input.recipientOwner ?? ""),
+      }),
+    );
+    return planPreview(
+      "Prepare treasury payment",
+      [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Invoice", value: String(input.invoiceId ?? "") },
+        { label: "Recipient", value: String(input.recipientOwner ?? "") },
+        { label: "Proposer", value: String(input.actor ?? "") },
+      ],
+      "Proposes a supplier payment. Approvers must still meet the treasury quorum before it executes.",
+      prepared,
+    );
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guard(ctx, entityId);
@@ -206,6 +333,29 @@ export const prepareTreasuryExecute: AgentTool = {
   kind: "write",
   requiresConfirm: true,
   permission: "source.connect",
+  async preview(input, ctx) {
+    const entityId = String(input.entityId ?? "");
+    const prepared = await prepareExecutePayment(
+      form(ctx, {
+        entityId,
+        treasuryId: String(input.treasuryId ?? ""),
+        actor: String(input.actor ?? ""),
+        proposalId: String(input.proposalId ?? ""),
+        recipientTokenAccount: String(input.recipientTokenAccount ?? ""),
+      }),
+    );
+    return planPreview(
+      "Prepare treasury execution",
+      [
+        { label: "Company", value: ctx.books.entities.find((e) => e.id === entityId)?.name ?? entityId },
+        { label: "Proposal", value: String(input.proposalId ?? "") },
+        { label: "Recipient token account", value: String(input.recipientTokenAccount ?? "") },
+        { label: "Executor", value: String(input.actor ?? "") },
+      ],
+      "Executes an approved payment. Requires the treasury quorum; the chain settles it once and only once.",
+      prepared,
+    );
+  },
   async execute(input, ctx): Promise<ToolResult> {
     const entityId = String(input.entityId ?? "");
     const blocked = guard(ctx, entityId);

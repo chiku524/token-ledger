@@ -47,7 +47,12 @@ vi.mock("@/db/ai", () => ({
     aiDb.messages.push({ id, ...input });
     return id;
   }),
-  loadMessages: vi.fn(async () => []),
+  loadMessages: vi.fn(async () => [
+    { id: "aim_1", threadId: "aith_1", role: "user", content: "open matching", provider: null, model: null, createdAt: new Date().toISOString() },
+  ]),
+  listThreads: vi.fn(async () => [
+    { id: "aith_1", title: "First", entityScope: "", archived: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  ]),
   recordToolCall: vi.fn(async (input: Record<string, unknown>) => {
     const id = "aitc_1";
     aiDb.toolCalls.push({ id, ...input });
@@ -71,7 +76,7 @@ const currentSession = (): { role: string; organizationId: string; entityScope: 
 
 // `@/auth/current` is real; the harness drives the session through cookies.
 
-import { sendMessageAction, confirmToolCallAction, newThreadAction, archiveThreadAction } from "./chat-actions";
+import { sendMessageAction, confirmToolCallAction, newThreadAction, archiveThreadAction, listThreadsAction, loadThreadMessagesAction } from "./chat-actions";
 
 const current = () => currentSession();
 
@@ -183,7 +188,19 @@ describe("thread actions", () => {
     const db = await import("@/db/ai");
     expect(db.archiveThread).toHaveBeenCalledWith(ORG, "aith_1");
   });
-});
+
+  it("lists the user's threads for the history panel", async () => {
+    signInLive("owner");
+    const result = await listThreadsAction();
+    expect(result[0]).toMatchObject({ id: "aith_1", title: "First" });
+  });
+
+  it("loads a thread's messages for restore", async () => {
+    signInLive("owner");
+    aiDb.threads.push({ id: "aith_1", organizationId: ORG, userId: "user_owner", title: "First", archived: false });
+    const result = await loadThreadMessagesAction("aith_1");
+    expect(result[0]).toMatchObject({ role: "user", content: "open matching" });
+  });});
 
 void CROSS_SITE;
 void FORM_EXPIRED;

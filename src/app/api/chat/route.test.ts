@@ -89,6 +89,33 @@ describe("POST /api/chat", () => {
     expect(db.recordToolCall).toHaveBeenCalledWith(expect.objectContaining({ status: "proposed", requiresConfirm: true }));
   });
 
+  it("carries the write preview on the confirmation event", async () => {
+    replies.next = {
+      text: "Shall I post it?",
+      status: "awaiting_confirmation",
+      readResults: [],
+      proposal: {
+        tool: "post_journal",
+        arguments: { entityId: "ent_my" },
+        requiresConfirm: true,
+        preview: {
+          action: "Post journal",
+          fields: [{ label: "Company", value: "Harbourline MY" }],
+          lines: [
+            { accountCode: "1010", side: "debit", amount: "500" },
+            { accountCode: "4010", side: "credit", amount: "500" },
+          ],
+          balanced: true,
+        },
+      },
+      provider: "x",
+    };
+    signInLive("accountant");
+    const response = await POST(request({ message: "post a journal", csrf: CSRF }));
+    const gate = (await events(response)).find((event) => event.type === "awaiting_confirmation");
+    expect(gate?.preview).toMatchObject({ action: "Post journal", balanced: true });
+  });
+
   it("rejects a stale CSRF token with 403", async () => {
     signInLive("owner");
     const response = await POST(request({ message: "hi", csrf: "wrong" }));

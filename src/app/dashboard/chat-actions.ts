@@ -24,7 +24,7 @@ import { can } from "@/auth/roles";
 import { fail } from "./form-state";
 
 export type ChatActionResult =
-  | { status: "answered"; threadId: string; text: string; route?: string }
+  | { status: "answered"; threadId: string; text: string; route?: string; auditEventId?: string | null }
   | { status: "awaiting_confirmation"; threadId: string; text: string; toolCallId: string; tool: string; route?: string }
   | { status: "refused"; threadId: string; text: string }
   | { status: "off"; text: string }
@@ -202,7 +202,7 @@ export async function confirmToolCallAction(formData: FormData): Promise<ChatAct
   });
   const confirmationMessageId = await appendMessage({ organizationId: session.organizationId, threadId: call.threadId, role: "assistant", content: turn.text });
   await indexMessageEmbedding({ organizationId: session.organizationId, threadId: call.threadId, messageId: confirmationMessageId, content: turn.text });
-  return { status: "answered", threadId: call.threadId, text: turn.text, route: turn.route };
+  return { status: "answered", threadId: call.threadId, text: turn.text, route: turn.route, auditEventId };
 }
 
 /** Start a fresh thread; returns its id. */
@@ -234,4 +234,44 @@ export async function archiveThreadAction(formData: FormData): Promise<void> {
   const threadId = String(formData.get("threadId") ?? "");
   const { archiveThread } = await import("@/db/ai");
   if (session.organizationId) await archiveThread(session.organizationId, threadId);
+}
+
+export interface ChatThreadSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+/** The signed-in user's threads, newest first, for the panel's history list. */
+export async function listThreadsAction(): Promise<ChatThreadSummary[]> {
+  const session = await requireSession();
+  if (!session.organizationId || !hasDatabase()) return [];
+  const { listThreads } = await import("@/db/ai");
+  const threads = await listThreads(session.organizationId, session.id);
+  return threads.map((thread) => ({ id: thread.id, title: thread.title, updatedAt: thread.updatedAt }));
+}
+
+export interface ChatHistoryMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}
+
+/** One thread's messages, oldest first, so the panel can restore a conversation. */
+export async function loadThreadMessagesAction(threadId: string): Promise<ChatHistoryMessage[]> {
+  const session = await requireSession();
+  if (!session.organizationId || !hasDatabase() || !threadId) return [];
+  const { loadThread, loadMessages } = await import("@/db/ai");
+  const thread = await loadThread(session.organizationId, session.id, threadId);
+  if (!thread) return [];
+  const messages = await loadMessages(session.organizationId, threadId);
+  return messages
+    .filter((message) => message.role === "user" || message.role === "assistant")
+    .map((message) => ({
+      id: message.id,
+      role: message.role as "user" | "assistant",
+      content: message.content,
+      createdAt: message.createdAt,
+    }));
 }

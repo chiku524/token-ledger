@@ -2,7 +2,7 @@ import { AuthError } from "@/auth/current";
 import type { LlmProvider } from "./provider";
 import { buildSystemPrompt, refusalFor } from "./prompt";
 import { toolsFor } from "./tools/registry";
-import type { AgentTool, ToolContext, ToolResult } from "./tools/types";
+import type { AgentTool, ToolContext, ToolPreview, ToolResult } from "./tools/types";
 import type { ChatMessage, JsonSchema, ToolCall, ToolDefinition } from "./types";
 import { ProviderError } from "./errors";
 
@@ -13,6 +13,8 @@ export interface ProposedToolCall {
   tool: string;
   arguments: Record<string, unknown>;
   requiresConfirm: boolean;
+  /** What the write will do, for the confirmation card. Side-effect-free. */
+  preview?: ToolPreview;
   /** Present for a read tool: the result already obtained. */
   result?: ToolResult;
 }
@@ -140,8 +142,17 @@ export async function runAssistantTurn(input: RunTurnInput): Promise<AssistantTu
       }
       if (tool.kind === "write") {
         // The first write ends the turn as a proposal; any reads the model asked
-        // for in the same round already ran above.
-        proposed = { tool: tool.name, arguments: call.arguments, requiresConfirm: true };
+        // for in the same round already ran above. Build the side-effect-free
+        // preview now so the confirmation card can show what it will do.
+        let preview: ToolPreview | undefined;
+        if (tool.preview) {
+          try {
+            preview = await tool.preview(call.arguments, ctx);
+          } catch {
+            preview = undefined;
+          }
+        }
+        proposed = { tool: tool.name, arguments: call.arguments, requiresConfirm: true, preview };
         break;
       }
       const result = await runTool(tool, call.arguments, ctx);
