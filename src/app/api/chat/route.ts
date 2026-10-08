@@ -12,6 +12,7 @@ import { can } from "@/auth/roles";
 import { aiConfig } from "@/ai/config";
 import { configuredProvider } from "@/ai/registry";
 import { configuredEmbedder } from "@/ai/embeddings/config";
+import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
 import { assistantReply, toHistory } from "@/ai/service";
 import { loadToolContext } from "@/ai/context";
 import { appendMessage, createThread, loadMessages, loadThread, recordToolCall } from "@/db/ai";
@@ -85,8 +86,10 @@ export async function POST(request: Request): Promise<Response> {
     title: titleFrom(userText),
     entityScope: session.entityScope.join(","),
   }));
-  await appendMessage({ organizationId: session.organizationId, threadId, role: "user", content: userText });
-
+  const userMessageId = await appendMessage({ organizationId: session.organizationId, threadId, role: "user", content: userText });
+  // Embed the user turn now so it is retrievable immediately (awaited, not
+  // detached: a Worker may cancel a detached promise when the response ends).
+  await indexMessageEmbedding({ organizationId: session.organizationId, threadId, messageId: userMessageId, content: userText });
   const ctx = await loadToolContext(session.demo ? null : (body.csrf ?? null));
   if (!ctx) return Response.json({ error: "Your session ended." }, { status: 401 });
 
@@ -99,7 +102,7 @@ export async function POST(request: Request): Promise<Response> {
       const send = (event: ChatEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
         const turn = await assistantReply({
-          deps: { provider, embedder: configuredEmbedder(), memory: body.memory !== "off", ...tuning() },
+          deps: { provider, embedder: configuredEmbedder(), memory: body.memory !== "off", excludeMessageId: userMessageId, ...tuning() },
           ctx,
           history,
           userText,
@@ -119,6 +122,7 @@ export async function POST(request: Request): Promise<Response> {
           inputTokens: turn.usage?.inputTokens ?? null,
           outputTokens: turn.usage?.outputTokens ?? null,
         });
+        await indexMessageEmbedding({ organizationId: session.organizationId, threadId, messageId: assistantMessageId, content: turn.text });
 
         if (turn.status === "awaiting_confirmation" && turn.proposal) {
           const toolCallId = await recordToolCall({

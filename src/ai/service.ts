@@ -16,6 +16,8 @@ export interface AssistantDeps {
   embedder?: EmbeddingProvider | null;
   /** Whether to retrieve memories at all (a per-thread toggle can disable it). */
   memory?: boolean;
+  /** The id of the user message being answered; excluded from its own retrieval. */
+  excludeMessageId?: string | null;
   /** Sampling tuning from the deployment config. */
   temperature?: number | null;
   maxTokens?: number | null;
@@ -42,6 +44,10 @@ export async function assistantReply(input: RunAssistantInput): Promise<Assistan
         embedder: deps.embedder,
         k: MEMORY_K,
         maxCharactersPerMemory: 1200,
+        // The turn's own message was just embedded; never retrieve it as a memory.
+        allow: deps.excludeMessageId
+          ? (candidate) => candidate.messageId !== deps.excludeMessageId
+          : undefined,
       });
       context = formatMemories(memories);
     } catch {

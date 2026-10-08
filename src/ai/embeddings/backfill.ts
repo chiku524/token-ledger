@@ -1,4 +1,6 @@
 import { listUnembeddedMessages, upsertMessageEmbedding } from "@/db/ai";
+import { listOrganizationIds } from "@/db/read";
+import { configuredEmbedder } from "./config";
 import type { EmbeddingProvider } from "./provider";
 
 /**
@@ -49,4 +51,23 @@ export async function backfillEmbeddings(input: {
     result.failed += usable.length;
   }
   return result;
+}
+
+/**
+ * The scheduled safety net: embed any message that missed its insert-time embed
+ * (a provider outage, a timeout) across every organization. Bounded per run and
+ * idempotent, so it is safe on a cron. A no-op when no embedder is configured.
+ * Returns null when the assistant's retrieval is off.
+ */
+export async function backfillAllEmbeddings(options: { limit?: number } = {}): Promise<BackfillResult | null> {
+  const embedder = configuredEmbedder();
+  if (!embedder) return null;
+  const total: BackfillResult = { embedded: 0, skipped: 0, failed: 0 };
+  for (const organizationId of await listOrganizationIds()) {
+    const result = await backfillEmbeddings({ organizationId, embedder, limit: options.limit ?? 100 });
+    total.embedded += result.embedded;
+    total.failed += result.failed;
+    total.skipped += result.skipped;
+  }
+  return total;
 }
