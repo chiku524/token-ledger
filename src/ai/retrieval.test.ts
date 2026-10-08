@@ -103,6 +103,21 @@ describe("retrieveRelevant", () => {
     expect(result.map((memory) => memory.messageId)).toEqual(["m1"]);
   });
 
+  it("excludes the current turn's own message by id", async () => {
+    db.candidates = [
+      { messageId: "self", content: "what did we decide", vector: [1, 0], threadId: "t1", threadTitle: "T", role: "user", model: "f" },
+      { messageId: "other", content: "we decided to close March", vector: [0.9, 0.1], threadId: "t1", threadTitle: "T", role: "assistant", model: "f" },
+    ];
+    const embedder = fakeEmbedder({ "what did we decide": [1, 0] });
+    const result = await retrieveRelevant({
+      organizationId: "org",
+      query: "what did we decide",
+      embedder,
+      allow: (candidate) => candidate.messageId !== "self",
+    });
+    expect(result.map((memory) => memory.messageId)).toEqual(["other"]);
+  });
+
   it("caps the injected content length", async () => {
     db.candidates = [{ messageId: "m1", content: "x".repeat(100), vector: [1, 0], threadId: "t1", threadTitle: "T", role: "user", model: "f" }];
     const embedder = fakeEmbedder({ q: [1, 0] });

@@ -14,6 +14,7 @@ import { actorName, assertCsrf, AuthError, requireSession } from "@/auth/current
 import { aiConfig } from "@/ai/config";
 import { configuredProvider } from "@/ai/registry";
 import { configuredEmbedder } from "@/ai/embeddings/config";
+import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
 import { assistantReply, toHistory } from "@/ai/service";
 import { toolByName } from "@/ai/tools/registry";
 import { loadToolContext } from "@/ai/context";
@@ -85,7 +86,8 @@ export async function sendMessageAction(formData: FormData): Promise<ChatActionR
     entityScope: session.entityScope.join(","),
   }));
 
-  await appendMessage({ organizationId: session.organizationId, threadId: activeThreadId, role: "user", content: userText });
+  const userMessageId = await appendMessage({ organizationId: session.organizationId, threadId: activeThreadId, role: "user", content: userText });
+  await indexMessageEmbedding({ organizationId: session.organizationId, threadId: activeThreadId, messageId: userMessageId, content: userText });
 
   const ctx = await loadToolContext(session.demo ? null : String(formData.get("csrf") ?? "") || null);
   if (!ctx) return { status: "error", text: "Your session ended. Sign in again." };
@@ -96,7 +98,7 @@ export async function sendMessageAction(formData: FormData): Promise<ChatActionR
   let turn;
   try {
     turn = await assistantReply({
-      deps: { provider, embedder: configuredEmbedder(), memory: formData.get("memory") !== "off", ...tuning() },
+      deps: { provider, embedder: configuredEmbedder(), memory: formData.get("memory") !== "off", excludeMessageId: userMessageId, ...tuning() },
       ctx,
       history,
       userText,
@@ -115,6 +117,7 @@ export async function sendMessageAction(formData: FormData): Promise<ChatActionR
     inputTokens: turn.usage?.inputTokens ?? null,
     outputTokens: turn.usage?.outputTokens ?? null,
   });
+  await indexMessageEmbedding({ organizationId: session.organizationId, threadId: activeThreadId, messageId: assistantMessageId, content: turn.text });
 
   if (turn.status === "awaiting_confirmation" && turn.proposal) {
     const toolCallId = await recordToolCall({
@@ -197,7 +200,8 @@ export async function confirmToolCallAction(formData: FormData): Promise<ChatAct
     result: turn.readResults[0]?.result.data ?? turn.text,
     auditEventId,
   });
-  await appendMessage({ organizationId: session.organizationId, threadId: call.threadId, role: "assistant", content: turn.text });
+  const confirmationMessageId = await appendMessage({ organizationId: session.organizationId, threadId: call.threadId, role: "assistant", content: turn.text });
+  await indexMessageEmbedding({ organizationId: session.organizationId, threadId: call.threadId, messageId: confirmationMessageId, content: turn.text });
   return { status: "answered", threadId: call.threadId, text: turn.text, route: turn.route };
 }
 

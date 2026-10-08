@@ -84,9 +84,20 @@ separately from the chat model (`AI_EMBEDDING_PROVIDER`). `retrieveRelevant`
 embeds the query, ranks the organization's embedded messages by cosine
 similarity, and returns the top-k with thread citations. Scope is enforced twice:
 the candidate load is org-scoped in the store, and the `allow` predicate is where
-a caller passes the entity-scope rule. Retrieval is best-effort — a failure
-degrades to "no memory" and the turn still runs. `pnpm ai:embed-backfill` embeds
-existing messages idempotently.
+a caller passes the entity-scope rule (and excludes the current turn's own
+message).
+
+**Messages are embedded as they are written**, not on a nightly job:
+`indexMessageEmbedding` runs right after every `appendMessage` (user and
+assistant turns, and a confirmation result). It is **awaited**, because on
+Cloudflare a detached promise may be cancelled once the response ends — that is
+what makes retrieval recall a fact from an earlier turn immediately. It never
+blocks or breaks a turn: it returns false on no embedder, short content, a
+provider error, or a 10s timeout, and the message simply stays unembedded. A
+bounded sweep in the indexer cron (`backfillAllEmbeddings`) catches up anything
+that missed, and `pnpm ai:embed-backfill` remains the manual path. Retrieval
+itself is best-effort — a failure degrades to "no memory" and the turn still
+runs.
 
 ### Frontend: assistant-ui, with the backend authoritative (#267)
 

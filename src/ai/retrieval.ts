@@ -40,9 +40,9 @@ export interface RetrieveInput {
   /**
    * Whether a candidate may be retrieved. Defaults to allow-all within the org;
    * a caller passes the session's entity-scope rule here so retrieval never
-   * crosses it.
+   * crosses it, or excludes the current turn's own message.
    */
-  allow?: (candidate: { threadId: string }) => boolean;
+  allow?: (candidate: { threadId: string; messageId: string }) => boolean;
 }
 
 export interface RankedCandidate<T> {
@@ -92,7 +92,9 @@ export async function retrieveRelevant(input: RetrieveInput): Promise<RetrievalS
   if (!queryVector?.length) return [];
 
   const all = await listEmbeddingCandidates(input.organizationId);
-  const allowed = input.allow ? all.filter((candidate) => input.allow!({ threadId: candidate.threadId })) : all;
+  const allowed = input.allow
+    ? all.filter((candidate) => input.allow!({ threadId: candidate.threadId, messageId: candidate.messageId }))
+    : all;
   if (allowed.length === 0) return [];
 
   const ranked = rankBySimilarity(queryVector, allowed, { k, floor });
