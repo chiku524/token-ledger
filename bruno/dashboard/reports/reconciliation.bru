@@ -1,0 +1,21 @@
+meta {
+  name: Export reconciliation (CSV)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/dashboard/reports/export?kind=reconciliation&entity=&from=&to=
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: tl_session={{sessionCookie}}
+}
+
+docs {
+  # GET /dashboard/reports/export?kind=reconciliation
+
+  Reconciliation CSV for the period. Needs the tl_session cookie.
+}

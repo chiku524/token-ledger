@@ -1,0 +1,23 @@
+meta {
+  name: Cron indexer
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/cron/indexer
+  body: none
+  auth: none
+}
+
+headers {
+  authorization: Bearer {{cronSecret}}
+}
+
+docs {
+  # GET /api/cron/indexer
+
+  Advances the chain cursor to finality, records decoded events, projects
+  entitlements for finalized mandates. Auth matches the sync cron. Without a
+  database or a configured contract deployment it is a no-op that says why.
+}

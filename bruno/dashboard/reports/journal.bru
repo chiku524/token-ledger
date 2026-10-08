@@ -1,0 +1,21 @@
+meta {
+  name: Export journal (CSV)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/dashboard/reports/export?kind=journal&entity=&from=&to=
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: tl_session={{sessionCookie}}
+}
+
+docs {
+  # GET /dashboard/reports/export?kind=journal
+
+  Journal CSV for the period. Needs the tl_session cookie.
+}

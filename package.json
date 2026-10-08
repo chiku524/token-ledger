@@ -19,6 +19,7 @@
     "sync:run": "tsx scripts/sync-run.ts",
     "webhook:send": "tsx scripts/webhook-send.ts",
     "market:refresh": "tsx scripts/market-refresh.ts",
+    "ai:embed-backfill": "tsx scripts/ai-embed-backfill.ts",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
