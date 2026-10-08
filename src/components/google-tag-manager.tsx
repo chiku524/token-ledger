@@ -33,12 +33,12 @@ export function GoogleTagManager() {
 export function GoogleTagManagerNoScript() {
   return (
     <noscript>
+      {/* The snippet verbatim: Google's own hidden, unnamed iframe. */}
       <iframe
         src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
         height="0"
         width="0"
         style={{ display: "none", visibility: "hidden" }}
-        title="Google Tag Manager"
       />
     </noscript>
   );
