@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { ensureCsrf } from "@/auth/current";
+import { assistantConfigured } from "@/ai/config";
+import { embeddingConfigured } from "@/ai/embeddings/config";
 import { CONNECTION_TOUR_COOKIE } from "@/auth/cookies";
 import { can } from "@/auth/roles";
 import { shouldShowConnectionTour } from "@/auth/tour";
@@ -48,6 +50,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       scopeLabel={scopeLabel}
       showConnectionTour={showConnectionTour}
       sidebarOpen={sidebarOpen}
+      assistantEnabled={assistantConfigured()}
+      assistantMemory={embeddingConfigured()}
     >
       {children}
     </DashboardShell>

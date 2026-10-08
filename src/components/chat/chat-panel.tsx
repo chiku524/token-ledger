@@ -1,0 +1,231 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AnimatePresence, m } from "motion/react";
+import { ArrowUp, MessageSquare, PanelRightClose, Sparkles, Square } from "lucide-react";
+import {
+  AuiIf,
+  ComposerPrimitive,
+  MessagePrimitive,
+  ThreadPrimitive,
+  type ToolCallMessagePartComponent,
+} from "@assistant-ui/react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ChatToolCard } from "./chat-tool-card";
+import { ChatRuntimeProvider } from "./chat-runtime-provider";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+/** Starter prompts, matching docs/ai-chatbot.md §6. */
+const STARTERS = [
+  "Open matching",
+  "Summarize the books this month",
+  "Show unmatched movements this week",
+  "Why is this connection still Waiting?",
+] as const;
+
+/** Register our one tool renderer under the fallback slot. */
+const toolComponents = { Fallback: ChatToolCard as ToolCallMessagePartComponent };
+
+function AssistantMark() {
+  return (
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+      <Sparkles className="size-3.5" aria-hidden />
+    </span>
+  );
+}
+
+function AssistantAvatarSlot() {
+  return (
+    <span className="label-caps flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      You
+    </span>
+  );
+}
+
+function ChatThread() {
+  return (
+    <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
+      <ThreadPrimitive.Viewport className="relative flex-1 overflow-y-auto px-4 py-4">
+        <AuiIf condition={(s) => s.thread.isEmpty}>
+          <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-8 text-center">
+            <AssistantMark />
+            <p className="font-heading text-base font-medium text-foreground">Token Ledger assistant</p>
+            <p className="text-sm text-muted-foreground">
+              Ask about the books, or tell me what to do — I&apos;ll open the page or prepare the entry for your
+              confirmation.
+            </p>
+            <div className="mt-1 flex flex-wrap justify-center gap-2">
+              {STARTERS.map((prompt) => (
+                <ThreadPrimitive.Suggestion
+                  key={prompt}
+                  prompt={prompt}
+                  send
+                  className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  {prompt}
+                </ThreadPrimitive.Suggestion>
+              ))}
+            </div>
+          </div>
+        </AuiIf>
+
+        <ThreadPrimitive.Messages>
+          {({ message }) =>
+            message.role === "user" ? (
+              <MessagePrimitive.Root className="mb-4 flex items-start justify-end gap-2">
+                <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">
+                  <MessagePrimitive.Parts
+                    components={{
+                      Text: ({ text }) => <p className="whitespace-pre-wrap">{text}</p>,
+                    }}
+                  />
+                </div>
+                <AssistantAvatarSlot />
+              </MessagePrimitive.Root>
+            ) : (
+              <MessagePrimitive.Root className="mb-4 flex items-start gap-2">
+                <AssistantMark />
+                <div className="min-w-0 max-w-[85%] text-sm text-foreground">
+                  <MessagePrimitive.Parts
+                    components={{
+                      Text: ({ text }) => <p className="whitespace-pre-wrap leading-relaxed">{text}</p>,
+                      tools: toolComponents,
+                    }}
+                  />
+                </div>
+              </MessagePrimitive.Root>
+            )
+          }
+        </ThreadPrimitive.Messages>
+
+        <ThreadPrimitive.ScrollToBottom className="sticky bottom-2 z-10 mx-auto flex size-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm disabled:hidden">
+          <ArrowUp className="size-4" aria-hidden />
+        </ThreadPrimitive.ScrollToBottom>
+      </ThreadPrimitive.Viewport>
+
+      <ComposerPrimitive.Root className="border-t border-border p-3">
+        <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 focus-within:ring-2 focus-within:ring-ring/40">
+          <ComposerPrimitive.Input
+            placeholder="Ask, or tell me what to do…"
+            submitMode="enter"
+            rows={1}
+            className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <AuiIf condition={(s) => !s.thread.isRunning}>
+            <ComposerPrimitive.Send asChild>
+              <Button size="icon" aria-label="Send">
+                <ArrowUp className="size-4" aria-hidden />
+              </Button>
+            </ComposerPrimitive.Send>
+          </AuiIf>
+          <AuiIf condition={(s) => s.thread.isRunning}>
+            <ComposerPrimitive.Cancel asChild>
+              <Button size="icon" variant="secondary" aria-label="Stop">
+                <Square className="size-3.5" aria-hidden />
+              </Button>
+            </ComposerPrimitive.Cancel>
+          </AuiIf>
+        </div>
+      </ComposerPrimitive.Root>
+    </ThreadPrimitive.Root>
+  );
+}
+
+export interface ChatPanelProps {
+  csrf: string;
+  /** Whether a provider is configured; when false the panel explains it is off. */
+  enabled?: boolean;
+  memory?: boolean;
+}
+
+/** Shown when no provider is configured, so the launcher never errors. */
+function AssistantOff() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <AssistantMark />
+      <p className="font-heading text-base font-medium">The assistant is not configured</p>
+      <p className="text-sm text-muted-foreground">
+        Set <code className="font-mono text-xs">AI_PROVIDER</code> on the server to turn it on. Everything else keeps
+        working.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The assistant launcher and panel. It is available on every dashboard page
+ * (mounted from the shell). On a small screen it is a bottom-right floating
+ * window; on `lg` and up it docks as a right-hand sidebar. Motion is
+ * opacity/transform only and respects reduced motion via the app's MotionConfig.
+ */
+export function ChatPanel({ csrf, enabled = true, memory = true }: ChatPanelProps) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const panel = (
+    <m.aside
+      key="panel"
+      role="dialog"
+      aria-label="Token Ledger assistant"
+      data-print="hide"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 12 }}
+      transition={{ duration: 0.25, ease: EASE }}
+      className={cn(
+        "fixed z-40 flex flex-col overflow-hidden border border-border bg-popover shadow-xl",
+        // Small screens: a floating window above the launcher.
+        "inset-x-3 bottom-3 top-20 rounded-2xl",
+        // Large screens: a docked right sidebar, full height.
+        "lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[26rem] lg:max-w-[92vw] lg:rounded-none lg:border-y-0 lg:border-r-0",
+      )}
+    >
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <AssistantMark />
+          <span className="font-heading text-sm font-medium">Assistant</span>
+        </div>
+        <Button variant="ghost" size="icon-sm" aria-label="Close the assistant" onClick={() => setOpen(false)}>
+          <PanelRightClose className="size-4" aria-hidden />
+        </Button>
+      </header>
+      {enabled ? <ChatThread /> : <AssistantOff />}
+    </m.aside>
+  );
+
+  return (
+    <ChatRuntimeProvider csrf={csrf} memory={memory}>
+      <AnimatePresence>
+        {!open ? (
+          <m.button
+            key="launcher"
+            type="button"
+            onClick={() => setOpen(true)}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2, ease: EASE }}
+            aria-label="Open the assistant"
+            data-print="hide"
+            className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 md:right-6 md:bottom-6"
+          >
+            <MessageSquare className="size-4" aria-hidden />
+            Assistant
+          </m.button>
+        ) : (
+          panel
+        )}
+      </AnimatePresence>
+    </ChatRuntimeProvider>
+  );
+}

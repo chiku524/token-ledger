@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { configuredEmbedder } from "@/ai/embeddings/config";
 import { backfillEmbeddings } from "@/ai/embeddings/backfill";
+import { closeDb } from "@/db/client";
 import { listOrganizationIds } from "@/db/read";
 import { readDatabaseUrl } from "@/env";
 
@@ -41,6 +42,7 @@ async function main() {
     failed += result.failed;
   }
   console.log(`Embedded ${embedded}, skipped ${skipped}, failed ${failed} across ${organizationIds.length} organization(s).`);
+  await closeDb();
   if (failed > 0) process.exitCode = 1;
   else console.log("OK: message history embedded.");
 }

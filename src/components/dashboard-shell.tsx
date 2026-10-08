@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSidebar } from "./app-sidebar";
+import { ChatPanel } from "./chat/chat-panel";
 import { ConnectionTour } from "./connection-tour";
 import { DashboardHeader } from "./dashboard-header";
 import { ExampleBanner } from "./example-banner";
@@ -23,6 +24,8 @@ export function DashboardShell({
   scopeLabel,
   showConnectionTour,
   sidebarOpen,
+  assistantEnabled,
+  assistantMemory,
 }: {
   children: React.ReactNode;
   origin: "example" | "live";
@@ -36,6 +39,10 @@ export function DashboardShell({
   scopeLabel: string | null;
   showConnectionTour: boolean;
   sidebarOpen: boolean;
+  /** Whether a provider is configured; the launcher explains it is off otherwise. */
+  assistantEnabled: boolean;
+  /** Whether retrieval (RAG) is on for this deployment. */
+  assistantMemory: boolean;
 }) {
   return (
     <TooltipProvider>
@@ -81,6 +88,7 @@ export function DashboardShell({
           </main>
           {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}
         </SidebarInset>
+        <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} />
       </SidebarProvider>
     </TooltipProvider>
   );
