@@ -1,105 +1,135 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { completeConnectionTourAction } from "@/app/dashboard/tour-actions";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { WATCH_CHAIN_LABELS } from "@/data/connections";
-
-const STEPS = [
-  {
-    title: "A connection only reads",
-    body: "A wallet, exchange, or custodian is added as a read-only connection. Token Ledger can see balances and movements. It cannot withdraw, trade, or sign. Permissions stay read-only.",
-    href: "/dashboard/settings#connections",
-  },
-  {
-    title: "Choose how the place is held",
-    body: `In Settings, watch a public address on ${WATCH_CHAIN_LABELS}. Or record an exchange account id, or a custodian vault id. A wallet also needs a type: hot, cold, or staking.`,
-    href: "/dashboard/settings#wallet",
-  },
-  {
-    title: "One connection, several accounts",
-    body: "The connection is the grant. The accounts under it are the addresses, sub-accounts, or vaults. Waiting means it has not been checked yet. Up to date means the last check succeeded. Needs attention means a later check failed. Disconnected means future reads have stopped.",
-    href: "/dashboard/settings#connections",
-  },
-  {
-    title: "Check, then compare with the books",
-    body: "Check asks that venue’s reader. Until the reader is live, nothing is sent and the connection stays waiting. Observed balances are what was read, including activity that is not in the journal yet. Booked value is what an accountant has posted.",
-    href: "/dashboard/sources#observed-balances",
-  },
-  {
-    title: "Disconnect leaves the history",
-    body: "Disconnect stops future reads. Past observations and the journal stay. The guide shows the same path as a diagram, including who is allowed to add a connection.",
-    href: "/dashboard/guide",
-  },
-] as const;
+import {
+  gettingStartedPhases,
+  gettingStartedStep,
+  isLastGettingStartedPhase,
+  isSoftPhase,
+  phaseIndex,
+  resolveGettingStartedPhase,
+  type GettingStartedPhase,
+  type GettingStartedProgress,
+} from "@/data/getting-started";
+import { cn } from "@/lib/utils";
 
 export function ConnectionTourStep({
-  step,
+  phase,
+  progress,
   error,
-  onBack,
-  onNext,
+  onContinue,
   onFinish,
+  onMinimize,
 }: {
-  step: number;
+  phase: GettingStartedPhase;
+  progress: GettingStartedProgress;
   error: string | null;
-  onBack: () => void;
-  onNext: () => void;
+  onContinue: () => void;
   onFinish: () => void;
+  onMinimize?: () => void;
 }) {
-  const current = STEPS[step];
-  if (!current) return null;
-  const last = step === STEPS.length - 1;
+  const current = gettingStartedStep(phase, progress);
+  const phases = gettingStartedPhases();
+  const index = phaseIndex(phase);
+  const last = isLastGettingStartedPhase(phase);
+  const canContinue = isSoftPhase(phase) && !last;
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       <p className="eyebrow">
-        Connection tour · {step + 1} of {STEPS.length}
+        Getting started · {index + 1} of {phases.length}
       </p>
-      <DialogTitle className="mt-2 text-lg font-semibold tracking-tight">{current.title}</DialogTitle>
-      <DialogDescription className="mt-3 text-sm leading-relaxed">{current.body}</DialogDescription>
+      <ol className="mt-3 flex flex-wrap gap-1.5" aria-label="Getting started progress">
+        {phases.map((item) => {
+          const done = phaseIndex(item) < index;
+          const active = item === phase;
+          return (
+            <li
+              key={item}
+              className={cn(
+                "rounded-md px-2 py-1 text-[0.65rem] tracking-[0.12em] uppercase",
+                active && "bg-primary/15 text-foreground",
+                done && "bg-muted text-muted-foreground",
+                !active && !done && "bg-transparent text-muted-foreground/70",
+              )}
+            >
+              {gettingStartedStep(item, progress).label}
+            </li>
+          );
+        })}
+      </ol>
+      <h2 className="mt-4 text-lg font-semibold tracking-tight">{current.title}</h2>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{current.body}</p>
       {error ? (
         <p role="alert" className="mt-3 text-sm text-danger">
           {error}
         </p>
       ) : null}
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        {step > 0 ? (
-          <Button type="button" variant="secondary" onClick={onBack}>
-            Back
+        <Button asChild>
+          <Link href={current.href}>{current.cta}</Link>
+        </Button>
+        {canContinue ? (
+          <Button type="button" variant="secondary" onClick={onContinue}>
+            {phase === "holdings" ? "I see where balances are" : "Continue"}
           </Button>
         ) : null}
-        <Button type="button" onClick={last ? onFinish : onNext}>
-          {last ? "Finish" : "Next"}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onFinish}>
-          Skip
-        </Button>
         {last ? (
-          <a href="/dashboard/guide" className="px-2 text-sm underline">
-            Open the guide
-          </a>
+          <Button type="button" variant="secondary" onClick={onFinish}>
+            Finish
+          </Button>
+        ) : null}
+        <Button type="button" variant="ghost" onClick={onFinish}>
+          Skip guide
+        </Button>
+        {onMinimize ? (
+          <Button type="button" variant="ghost" onClick={onMinimize}>
+            Hide for now
+          </Button>
         ) : null}
       </div>
-    </>
+      {last ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          Prefer the long version?{" "}
+          <Link href="/dashboard/guide" className="underline">
+            Open the guide
+          </Link>
+          .
+        </p>
+      ) : null}
+    </div>
   );
 }
 
-export function ConnectionTour({ csrf }: { csrf: string }) {
+export function ConnectionTour({
+  csrf,
+  progress,
+}: {
+  csrf: string;
+  progress: GettingStartedProgress;
+}) {
   const router = useRouter();
   const pathname = usePathname();
-  const [step, setStep] = useState(0);
+  const [softIndex, setSoftIndex] = useState(0);
   const [open, setOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const id = STEPS[step]?.href.split("#")[1];
-    if (!id) return;
-    document.getElementById(id)?.scrollIntoView({ block: "start" });
-  }, [step, pathname]);
+  const phase = resolveGettingStartedPhase(progress, softIndex);
+  const step = gettingStartedStep(phase, progress);
 
-  if (!open || pathname.startsWith("/dashboard/setup")) return null;
+  useEffect(() => {
+    if (!open) return;
+    const id = step.href.split("#")[1];
+    if (!id) return;
+    if (!pathname.startsWith(step.href.split("#")[0] ?? "")) return;
+    document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [open, pathname, step.href]);
+
+  if (pathname.startsWith("/dashboard/setup")) return null;
 
   async function finish() {
     setError(null);
@@ -110,32 +140,44 @@ export function ConnectionTour({ csrf }: { csrf: string }) {
       setOpen(false);
       router.refresh();
     } catch {
-      setError("The tour could not be saved. Refresh and try again.");
+      setError("The guide could not be saved. Refresh and try again.");
     }
   }
 
-  function go(next: number) {
-    const target = STEPS[next];
-    if (!target) return;
-    setStep(next);
-    router.push(target.href);
+  function continuePhase() {
+    if (!isSoftPhase(phase) || isLastGettingStartedPhase(phase)) return;
+    setSoftIndex((current) => current + 1);
+    setOpen(true);
+  }
+
+  if (!open) {
+    return (
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-end p-4 md:p-6">
+        <Button
+          type="button"
+          className="pointer-events-auto shadow-lg"
+          variant="secondary"
+          onClick={() => setOpen(true)}
+        >
+          Show getting started
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <Dialog open onOpenChange={(next) => (next ? undefined : void finish())}>
-      <DialogContent
-        showCloseButton={false}
-        className="max-w-lg gap-0 p-6"
-        onInteractOutside={(event) => event.preventDefault()}
-      >
-        <ConnectionTourStep
-          step={step}
-          error={error}
-          onBack={() => go(step - 1)}
-          onNext={() => go(step + 1)}
-          onFinish={() => void finish()}
-        />
-      </DialogContent>
-    </Dialog>
+    <aside
+      aria-label="Getting started guide"
+      className="fixed inset-x-3 bottom-3 z-40 max-h-[min(28rem,70vh)] overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-lg sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-full sm:max-w-md"
+    >
+      <ConnectionTourStep
+        phase={phase}
+        progress={progress}
+        error={error}
+        onContinue={continuePhase}
+        onFinish={() => void finish()}
+        onMinimize={() => setOpen(false)}
+      />
+    </aside>
   );
 }

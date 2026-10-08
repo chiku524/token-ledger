@@ -196,13 +196,17 @@ describe("role gating", () => {
     expect((await redirectOf(SetupPage({ searchParams: Promise.resolve({}) }))).url).toBe("/dashboard");
   });
 
-  it("offers the tour again only to an admin who has dismissed it", async () => {
+  it("offers the tour again to an owner or admin who has dismissed it", async () => {
     signInDemo("admin");
     expect(await pageText(GuidePage as Page)).not.toContain("Restart getting-started tour");
     setCookie(CONNECTION_TOUR_COOKIE, "1");
     expect(await pageText(GuidePage as Page)).toContain("Restart getting-started tour");
     resetRequest();
     signInDemo("owner");
+    setCookie(CONNECTION_TOUR_COOKIE, "1");
+    expect(await pageText(GuidePage as Page)).toContain("Restart getting-started tour");
+    resetRequest();
+    signInDemo("accountant");
     setCookie(CONNECTION_TOUR_COOKIE, "1");
     expect(await pageText(GuidePage as Page)).not.toContain("Restart getting-started tour");
   });

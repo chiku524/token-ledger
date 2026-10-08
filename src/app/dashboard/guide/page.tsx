@@ -5,6 +5,7 @@ import { shouldShowConnectionTour } from "@/auth/tour";
 import { AiChatbotGuide } from "@/components/ai-chatbot-guide";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { canTakeConnectionTour } from "@/data/getting-started";
 import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "Guide" };
@@ -27,7 +28,7 @@ export default async function GuidePage() {
         title="Guide"
         description="Ask for reports, matching, connections, and more — the assistant can do anything you can, under your role. Observations stay observed; journals stay deliberate."
       />
-      <AiChatbotGuide csrf={csrf} canRestartTour={session.role === "admin" && !tourPending} />
+      <AiChatbotGuide csrf={csrf} canRestartTour={canTakeConnectionTour(session.role) && !tourPending} />
     </>
   );
 }

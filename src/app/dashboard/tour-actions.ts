@@ -5,12 +5,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { actorName, assertCsrf, requireSession } from "@/auth/current";
 import { CONNECTION_TOUR_COOKIE, cookieSecure, sessionCookieOptions } from "@/auth/cookies";
+import { canTakeConnectionTour } from "@/data/getting-started";
 import { completeConnectionTour, reopenConnectionTour, writeAudit } from "@/db/auth-store";
 
 export async function completeConnectionTourAction(formData: FormData): Promise<void> {
   await assertCsrf(formData);
   const session = await requireSession();
-  if (session.role !== "admin") return;
+  if (!canTakeConnectionTour(session.role)) return;
   if (session.demo) {
     const jar = await cookies();
     jar.set(CONNECTION_TOUR_COOKIE, "1", { ...sessionCookieOptions(cookieSecure()), maxAge: 60 * 60 * 24 * 365 });
@@ -22,7 +23,7 @@ export async function completeConnectionTourAction(formData: FormData): Promise<
       action: "connection.tour_completed",
       subjectType: "user",
       subjectId: session.id,
-      detail: "Finished the connection tour.",
+      detail: "Finished the getting started guide.",
     });
   }
   revalidatePath("/dashboard", "layout");
@@ -31,7 +32,7 @@ export async function completeConnectionTourAction(formData: FormData): Promise<
 export async function reopenConnectionTourAction(formData: FormData): Promise<void> {
   await assertCsrf(formData);
   const session = await requireSession();
-  if (session.role !== "admin") return;
+  if (!canTakeConnectionTour(session.role)) return;
   if (session.demo) {
     const jar = await cookies();
     jar.delete(CONNECTION_TOUR_COOKIE);
@@ -43,7 +44,7 @@ export async function reopenConnectionTourAction(formData: FormData): Promise<vo
       action: "connection.tour_reopened",
       subjectType: "user",
       subjectId: session.id,
-      detail: "Opened the connection tour again.",
+      detail: "Opened the getting started guide again.",
     });
   }
   revalidatePath("/dashboard", "layout");

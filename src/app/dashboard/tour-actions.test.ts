@@ -42,9 +42,18 @@ describe("completeConnectionTourAction", () => {
       action: "connection.tour_completed",
       subjectType: "user",
       subjectId: admin.id,
-      detail: "Finished the connection tour.",
+      detail: "Finished the getting started guide.",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/dashboard", "layout");
+  });
+
+  it("records a live owner's first completion", async () => {
+    const owner = signInLive("owner");
+    await completeConnectionTourAction(form({}));
+    expect(completeConnectionTour).toHaveBeenCalledWith(owner.id);
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "connection.tour_completed", subjectId: owner.id }),
+    );
   });
 
   it("does not record a second completion", async () => {
@@ -63,7 +72,7 @@ describe("completeConnectionTourAction", () => {
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it.each(["owner", "accountant", "approver", "viewer"] as const)("does nothing for a %s", async (role) => {
+  it.each(["accountant", "approver", "viewer"] as const)("does nothing for a %s", async (role) => {
     signInLive(role);
     await completeConnectionTourAction(form({}));
     expect(completeConnectionTour).not.toHaveBeenCalled();
@@ -101,7 +110,14 @@ describe("reopenConnectionTourAction", () => {
     expect(reopenConnectionTour).not.toHaveBeenCalled();
   });
 
-  it.each(["owner", "accountant", "approver", "viewer"] as const)("does nothing for a %s", async (role) => {
+  it("reopens a live owner's tour", async () => {
+    const owner = signInLive("owner", { connectionTourCompletedAt: new Date("2026-09-01T00:00:00.000Z") });
+    const result = await redirectOf(reopenConnectionTourAction(form({})));
+    expect(result.pathname).toBe("/dashboard/sources");
+    expect(reopenConnectionTour).toHaveBeenCalledWith(owner.id);
+  });
+
+  it.each(["accountant", "approver", "viewer"] as const)("does nothing for a %s", async (role) => {
     signInLive(role);
     await expect(reopenConnectionTourAction(form({}))).resolves.toBeUndefined();
     expect(reopenConnectionTour).not.toHaveBeenCalled();

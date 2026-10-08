@@ -12,9 +12,11 @@ import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
+import { Link2, Wallet } from "lucide-react";
 import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
@@ -135,7 +137,19 @@ export default async function SourcesPage({
           }
         />
         {books.connections.length === 0 ? (
-          <EmptyState className="mt-4">No connections yet.</EmptyState>
+          <EmptyState
+            className="mt-4"
+            icon={Link2}
+            action={
+              canSource ? (
+                <Button asChild variant="secondary">
+                  <Link href="/dashboard/setup">Open the connection steps</Link>
+                </Button>
+              ) : undefined
+            }
+          >
+            No connections yet. Connect a venue first, then Check it so balances can appear below.
+          </EmptyState>
         ) : (
           <ConnectionsTable books={books} />
         )}
@@ -148,7 +162,25 @@ export default async function SourcesPage({
           description="The latest quantity observed per wallet, exchange, or custodian and asset. Not a market price and not the booked value. Activity that has not been journaled still appears here."
         />
         {books.balanceSnapshots.length === 0 ? (
-          <EmptyState className="mt-4">No balances observed yet.</EmptyState>
+          <EmptyState
+            className="mt-4"
+            icon={Wallet}
+            action={
+              canSource && books.connections.length > 0 ? (
+                <Button asChild variant="secondary">
+                  <Link href="/dashboard/settings#connections">Check a connection in Settings</Link>
+                </Button>
+              ) : canSource ? (
+                <Button asChild variant="secondary">
+                  <Link href="/dashboard/setup">Connect a venue</Link>
+                </Button>
+              ) : undefined
+            }
+          >
+            {books.connections.length === 0
+              ? "No balances observed yet. Connect a read-only venue, then press Check."
+              : "No balances observed yet. Press Check on the connection in Settings — connecting alone does not pull coins."}
+          </EmptyState>
         ) : (
           <>
             <SnapshotTable caption="Latest observed balances" snapshots={latest} books={books} />
@@ -278,7 +310,19 @@ export default async function SourcesPage({
         description="Each row is one address, exchange account, or vault under a connection."
       />
       {books.sources.length === 0 ? (
-        <EmptyState className="mt-8">No wallets, exchanges, or custodians yet.</EmptyState>
+        <EmptyState
+          className="mt-8"
+          icon={Link2}
+          action={
+            canSource ? (
+              <Button asChild variant="secondary">
+                <Link href="/dashboard/setup">Open the connection steps</Link>
+              </Button>
+            ) : undefined
+          }
+        >
+          No wallets, exchanges, or custodians yet. Accounts appear here after you connect a venue.
+        </EmptyState>
       ) : (
         <TableCard className="mt-8">
           <Table>

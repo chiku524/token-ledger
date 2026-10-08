@@ -33,4 +33,13 @@ describe("security headers", () => {
     // GA4, which GTM commonly injects.
     expect(csp).toContain("https://www.google-analytics.com");
   });
+
+  it("allows WalletConnect / Coinbase WalletLink for Reown AppKit", async () => {
+    const headers = await securityHeaders();
+    const csp = headers["Content-Security-Policy"];
+    expect(csp).toContain("wss://www.walletlink.org");
+    expect(csp).toContain("wss://relay.walletconnect.com");
+    expect(csp).toContain("https://api.web3modal.org");
+    expect(csp).toContain("https://verify.walletconnect.org");
+  });
 });

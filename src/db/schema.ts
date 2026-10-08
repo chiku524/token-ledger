@@ -613,7 +613,7 @@ export const users = pgTable(
     platformAdmin: boolean("platform_admin").notNull().default(false),
     /** Comma-separated entity ids. Empty means every entity in the organization. */
     entityScope: text("entity_scope").notNull().default(""),
-    /** Set when an admin finishes or skips the connection tour. Null means a new admin still needs it. */
+    /** Set when an owner or admin finishes or skips the getting started guide. Null means they still need it. */
     connectionTourCompletedAt: timestamp("connection_tour_completed_at", { withTimezone: true }),
     /**
      * When the email was confirmed. Null means unverified: the account works, but

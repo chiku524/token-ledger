@@ -5,6 +5,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import type { GettingStartedProgress } from "@/data/getting-started";
 import { AppSidebar } from "./app-sidebar";
 import { ChatPanel } from "./chat/chat-panel";
 import { ConnectionTour } from "./connection-tour";
@@ -24,6 +25,7 @@ export function DashboardShell({
   hiddenTabs,
   scopeLabel,
   showConnectionTour,
+  tourProgress,
   sidebarOpen,
   assistantEnabled,
   assistantMemory,
@@ -43,6 +45,7 @@ export function DashboardShell({
   hiddenTabs: readonly string[];
   scopeLabel: string | null;
   showConnectionTour: boolean;
+  tourProgress: GettingStartedProgress;
   sidebarOpen: boolean;
   /** Whether a provider is configured; the launcher explains it is off otherwise. */
   assistantEnabled: boolean;
@@ -96,7 +99,7 @@ export function DashboardShell({
           <main id="content" className="dashboard-width px-4 py-6 md:px-8 md:py-8">
             {children}
           </main>
-          {showConnectionTour ? <ConnectionTour csrf={csrf} /> : null}
+          {showConnectionTour ? <ConnectionTour csrf={csrf} progress={tourProgress} /> : null}
         </SidebarInset>
         <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} speech={assistantSpeech} canManageAi={assistantManage} />
       </SidebarProvider>

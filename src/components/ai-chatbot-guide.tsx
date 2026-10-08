@@ -365,7 +365,9 @@ export function AiChatbotGuide({ csrf, canRestartTour }: { csrf: string; canRest
         <form action={reopenConnectionTourAction} className="flex flex-wrap items-center gap-3">
           <input type="hidden" name="csrf" value={csrf} />
           <SubmitButton>Restart getting-started tour</SubmitButton>
-          <p className="text-sm text-muted-foreground">Opens the coach again for Connect → Check → Holdings.</p>
+          <p className="text-sm text-muted-foreground">
+            Opens the coach again for Connect → Check → Balances → Match → Journal → Reports.
+          </p>
         </form>
       ) : null}
     </div>

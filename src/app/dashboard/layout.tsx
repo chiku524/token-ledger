@@ -8,6 +8,7 @@ import { can } from "@/auth/roles";
 import { shouldShowConnectionTour } from "@/auth/tour";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import type { GettingStartedProgress } from "@/data/getting-started";
 import { booksAreWritable } from "@/data/load-books";
 import { loadOnboardingHiddenTabs } from "@/data/onboarding";
 
@@ -37,6 +38,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     completedAt: session.connectionTourCompletedAt,
     dismissedInBrowser: dismissed,
   });
+  const tourProgress: GettingStartedProgress = {
+    connections: books.connections.map((connection) => ({
+      status: connection.status,
+      lastSyncedAt: connection.lastSyncedAt,
+    })),
+    observedBalanceCount: books.balanceSnapshots.length,
+  };
 
   return (
     <DashboardShell
@@ -51,6 +59,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       hiddenTabs={hiddenTabs}
       scopeLabel={scopeLabel}
       showConnectionTour={showConnectionTour}
+      tourProgress={tourProgress}
       sidebarOpen={sidebarOpen}
       assistantEnabled={assistantConfigured()}
       assistantMemory={embeddingConfigured()}
