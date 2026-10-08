@@ -1,4 +1,5 @@
 import { speechConfig, type SpeechConfig, type SpeechEnv } from "./config";
+import { isAssistantVoice } from "./voices";
 
 /**
  * Text-to-speech through ElevenLabs. Server-only: it holds the API key and is
@@ -41,7 +42,10 @@ export async function synthesizeSpeech(
   const text = prepareSpeechText(input.text);
   if (!text) throw new SpeechError("Nothing to speak.", 400);
 
-  const voiceId = input.voiceId?.trim() || config.voiceId;
+  // A caller may pick a voice, but only one from the offered catalog; anything
+  // else falls back to the configured default, so an arbitrary id is not spoken.
+  const requested = input.voiceId?.trim();
+  const voiceId = isAssistantVoice(requested) ? requested! : config.voiceId;
   const modelId = input.modelId?.trim() || config.modelId;
   const transport: SpeechTransport = options.transport ?? ((url, init) => globalThis.fetch(url, init));
 

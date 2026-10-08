@@ -19,6 +19,8 @@ import { ChatRuntimeProvider } from "./chat-runtime-provider";
 import { ChatMarkdown } from "./chat-markdown";
 import { ChatThinking } from "./chat-thinking";
 import { ModelSelector } from "./model-selector";
+import { VoicePicker } from "./voice-picker";
+import { useVoicePreference } from "./use-voice-preference";
 import {
   listThreadsAction,
   loadThreadMessagesAction,
@@ -257,6 +259,7 @@ function AssistantOff() {
  */
 export function ChatPanel({ csrf, enabled = true, memory = true, speech = false, canManageAi = false }: ChatPanelProps) {
   const [open, setOpen] = useState(false);
+  const { voiceId, setVoiceId } = useVoicePreference();
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -371,6 +374,7 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
           <span className="font-heading text-sm font-medium">Assistant</span>
         </div>
         <div className="flex items-center gap-1">
+          {enabled && speech ? <VoicePicker voiceId={voiceId} onSelect={setVoiceId} /> : null}
           {enabled && canManageAi ? <ModelSelector csrf={csrf} /> : null}
           {enabled ? (
             <Button
@@ -403,6 +407,7 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
           csrf={csrf}
           memory={memory}
           speech={speech}
+          voiceId={voiceId}
           initialThreadId={activeThreadId}
           initialMessages={initialMessages}
         >
