@@ -75,7 +75,7 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
   const label = settings?.model || active?.name || "Model";
 
   return (
-    <div className="relative">
+    <div>
       <Button
         variant="outline"
         size="sm"
@@ -90,7 +90,7 @@ export function ModelSelector({ csrf }: ModelSelectorProps) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-1 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
         >
           <p className="label-caps px-2 py-1.5 text-muted-foreground">Assistant model · owner &amp; admin</p>
           {!settings ? (

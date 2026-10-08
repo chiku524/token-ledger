@@ -48,14 +48,6 @@ function AssistantMark() {
   );
 }
 
-function UserMark() {
-  return (
-    <span className="label-caps flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-      You
-    </span>
-  );
-}
-
 function ChatThread({ speech }: { speech: boolean }) {
   return (
     <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
@@ -92,7 +84,6 @@ function ChatThread({ speech }: { speech: boolean }) {
                     components={{ Text: ({ text }) => <p className="whitespace-pre-wrap">{text}</p> }}
                   />
                 </div>
-                <UserMark />
               </MessagePrimitive.Root>
             ) : (
               <MessagePrimitive.Root className="mb-4 flex items-start gap-2">
@@ -365,10 +356,10 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
         // Small screens: a floating window above the launcher.
         "inset-x-3 bottom-3 top-20 rounded-2xl",
         // Large screens: a docked right sidebar, full height.
-        "lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[26rem] lg:max-w-[92vw] lg:rounded-none lg:border-y-0 lg:border-r-0",
+        "lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[30rem] lg:max-w-[92vw] lg:rounded-none lg:border-y-0 lg:border-r-0",
       )}
     >
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+      <header className="relative flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <AssistantMark />
           <span className="font-heading text-sm font-medium">Assistant</span>

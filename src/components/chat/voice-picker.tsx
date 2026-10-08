@@ -31,7 +31,7 @@ export function VoicePicker({ voiceId, onSelect }: VoicePickerProps) {
   const active = ASSISTANT_VOICES.find((voice) => voice.id === voiceId) ?? ASSISTANT_VOICES[0];
 
   return (
-    <div className="relative">
+    <div>
       <Button
         variant="outline"
         size="sm"
@@ -47,7 +47,7 @@ export function VoicePicker({ voiceId, onSelect }: VoicePickerProps) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl"
         >
           <p className="label-caps px-2 py-1.5 text-muted-foreground">Voice</p>
           {ASSISTANT_VOICES.map((voice) => {
