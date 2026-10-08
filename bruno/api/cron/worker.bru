@@ -1,0 +1,23 @@
+meta {
+  name: Cron worker
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/cron/worker
+  body: none
+  auth: none
+}
+
+headers {
+  authorization: Bearer {{cronSecret}}
+}
+
+docs {
+  # GET /api/cron/worker
+
+  Drains a bounded slice of the contract job outbox. Auth matches the sync cron.
+  Reports `skipped` when the execution transport is not wired yet, rather than
+  pretending to run.
+}

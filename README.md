@@ -35,6 +35,8 @@ pnpm build
 
 How the tests are organized, and how to test a new server action or page, is in [docs/testing.md](docs/testing.md).
 
+Manual HTTP tests for the route handlers ship as a [Bruno](https://www.usebruno.com/) collection in [`bruno/`](bruno/README.md) (chat, crons, webhook, and the CSV/PDF exports). Open that folder as a collection, or run a request with `npx @usebruno/cli run bruno/api/cron/sync.bru --env local`.
+
 ## Database
 
 Optional until you want to record entities, sources, journals, reversals, or a CSV import. The forms stay read-only when `DATABASE_URL` is unset.

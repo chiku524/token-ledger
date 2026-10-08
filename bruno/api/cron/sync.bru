@@ -1,0 +1,26 @@
+meta {
+  name: Cron sync
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/cron/sync
+  body: none
+  auth: none
+}
+
+headers {
+  authorization: Bearer {{cronSecret}}
+}
+
+docs {
+  # GET /api/cron/sync
+
+  The scheduled sync pass. Pulls every due connection and refreshes market data.
+  Read-only: never posts a journal.
+
+  Auth: when CRON_SECRET is set the request needs `Authorization: Bearer <secret>`.
+  Leave cronSecret blank locally to skip the check.
+  Without a database the pass is a no-op.
+}
