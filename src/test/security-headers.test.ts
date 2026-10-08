@@ -23,4 +23,14 @@ describe("security headers", () => {
     const headers = await securityHeaders();
     expect(headers["Permissions-Policy"]).toContain("microphone=(self)");
   });
+
+  it("allows Google Tag Manager to load and send", async () => {
+    const headers = await securityHeaders();
+    const csp = headers["Content-Security-Policy"];
+    expect(csp).toContain("https://www.googletagmanager.com");
+    // The GTM noscript fallback is an iframe of its own page.
+    expect(csp).toContain("frame-src https://www.googletagmanager.com");
+    // GA4, which GTM commonly injects.
+    expect(csp).toContain("https://www.google-analytics.com");
+  });
 });
