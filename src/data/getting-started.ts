@@ -89,15 +89,25 @@ export function activeConnections(
   return connections.filter((connection) => connection.status !== "revoked");
 }
 
+/** True when at least one live connection has never completed a Check. */
 export function needsConnectionCheck(
   connections: GettingStartedProgress["connections"],
 ): boolean {
   return activeConnections(connections).some((connection) => connection.lastSyncedAt === null);
 }
 
+/** True when every live connection still needs its first Check. */
+export function awaitingFirstSuccessfulCheck(
+  connections: GettingStartedProgress["connections"],
+): boolean {
+  const live = activeConnections(connections);
+  return live.length > 0 && live.every((connection) => connection.lastSyncedAt === null);
+}
+
 /**
  * Picks the earliest incomplete phase from live books state.
- * `softIndex` advances through Holdings → Match → Journal → Reports after the user confirms each step.
+ * Once any connection has synced, soft steps unlock (Holdings → Match → Journal → Reports).
+ * Remaining Waiting connections stay visible in Settings but do not trap the coach.
  */
 export function resolveGettingStartedPhase(
   progress: GettingStartedProgress,
@@ -105,7 +115,7 @@ export function resolveGettingStartedPhase(
 ): GettingStartedPhase {
   const live = activeConnections(progress.connections);
   if (live.length === 0) return "connect";
-  if (needsConnectionCheck(live)) return "check";
+  if (awaitingFirstSuccessfulCheck(live)) return "check";
   const index = Math.min(Math.max(softIndex, 0), SOFT_PHASES.length - 1);
   return SOFT_PHASES[index]!;
 }

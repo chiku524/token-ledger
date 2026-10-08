@@ -40,13 +40,25 @@ describe("resolveGettingStartedPhase", () => {
     ).toBe("connect");
   });
 
-  it("asks for Check until a connection has synced", () => {
+  it("asks for Check until the first connection has synced", () => {
     expect(
       resolveGettingStartedPhase({
         connections: [{ status: "pending", lastSyncedAt: null }],
         observedBalanceCount: 0,
       }),
     ).toBe("check");
+  });
+
+  it("does not trap on Check when another connection already synced", () => {
+    expect(
+      resolveGettingStartedPhase({
+        connections: [
+          { status: "healthy", lastSyncedAt: "2026-10-05T10:00:00.000Z" },
+          { status: "pending", lastSyncedAt: null },
+        ],
+        observedBalanceCount: 1,
+      }),
+    ).toBe("holdings");
   });
 
   it("walks Holdings → Match → Journal → Reports after Check", () => {
