@@ -12,7 +12,7 @@
  * resumes the same thread. Switching threads remounts this provider (the panel
  * keys it by thread id), which is how a conversation is swapped cleanly.
  */
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AssistantRuntimeProvider, useLocalRuntime, WebSpeechDictationAdapter, type ThreadMessageLike } from "@assistant-ui/react";
 import { createChatAdapter } from "./chat-adapter";
@@ -26,6 +26,8 @@ export interface ChatRuntimeProviderProps {
   memory?: boolean;
   /** Whether text-to-speech (ElevenLabs) is on for this deployment. */
   speech?: boolean;
+  /** The user's chosen voice id, applied to the next spoken reply. */
+  voiceId?: string;
   /** The thread to resume; its id is sent with each turn so history appends there. */
   initialThreadId?: string | null;
   /** Messages to seed the thread with, from our store. */
@@ -42,10 +44,17 @@ export function ChatRuntimeProvider({
   csrf,
   memory = true,
   speech = false,
+  voiceId,
   initialThreadId = null,
   initialMessages = [],
 }: ChatRuntimeProviderProps) {
   const router = useRouter();
+  // A ref so the speech adapter reads the latest voice at call time; it is
+  // updated in an effect (not during render) to satisfy the immutability rule.
+  const voiceRef = useRef<string | undefined>(voiceId);
+  useEffect(() => {
+    voiceRef.current = voiceId;
+  }, [voiceId]);
 
   const adapter = useMemo(() => {
     const threadIdRef: ThreadIdHolder = { current: initialThreadId ?? null };
@@ -83,7 +92,10 @@ export function ChatRuntimeProvider({
   }, [csrf, memory, router]);
 
   const adapters = useMemo(() => {
-    const speechAdapter = speech ? createElevenLabsSpeechAdapter() : undefined;
+    // The getter is only called when a reply is spoken (an event), not during
+    // render, so reading the ref there is safe and picks up the latest voice.
+    // eslint-disable-next-line react-hooks/refs
+    const speechAdapter = speech ? createElevenLabsSpeechAdapter({ getVoiceId: () => voiceRef.current }) : undefined;
     // Dictation uses the browser's built-in speech recognition; it needs no key.
     const dictationAdapter = WebSpeechDictationAdapter.isSupported() ? new WebSpeechDictationAdapter({ continuous: true }) : undefined;
     return { speech: speechAdapter, dictation: dictationAdapter };

@@ -13,7 +13,7 @@ import type { SpeechSynthesisAdapter } from "@assistant-ui/react";
 type Utterance = SpeechSynthesisAdapter.Utterance;
 type Status = SpeechSynthesisAdapter.Status;
 
-export function createElevenLabsSpeechAdapter(): SpeechSynthesisAdapter {
+export function createElevenLabsSpeechAdapter(options: { getVoiceId?: () => string | undefined } = {}): SpeechSynthesisAdapter {
   return {
     speak(text: string): Utterance {
       const controller = new AbortController();
@@ -34,7 +34,8 @@ export function createElevenLabsSpeechAdapter(): SpeechSynthesisAdapter {
           const response = await fetch("/api/speech", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ text }),
+            // The picked voice, read at call time so a change applies without a remount.
+            body: JSON.stringify({ text, voiceId: options.getVoiceId?.() }),
             signal: controller.signal,
           });
           if (!response.ok) {

@@ -16,7 +16,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatRuntimeProvider } from "./chat-runtime-provider";
+import { ChatMarkdown } from "./chat-markdown";
+import { ChatThinking } from "./chat-thinking";
 import { ModelSelector } from "./model-selector";
+import { VoicePicker } from "./voice-picker";
+import { useVoicePreference } from "./use-voice-preference";
 import {
   listThreadsAction,
   loadThreadMessagesAction,
@@ -96,20 +100,22 @@ function ChatThread({ speech }: { speech: boolean }) {
                 <div className="min-w-0 max-w-[85%] text-sm text-foreground">
                   <MessagePrimitive.Parts
                     components={{
-                      Text: ({ text }) => <p className="whitespace-pre-wrap leading-relaxed">{text}</p>,
+                      Text: () => <ChatMarkdown />,
                       tools: toolComponents,
                     }}
                   />
                   {speech ? (
-                    <ActionBarPrimitive.Root hideWhenRunning autohide="not-last" className="mt-1 flex items-center gap-1">
+                    <ActionBarPrimitive.Root hideWhenRunning autohide="not-last" className="mt-2 flex items-center gap-1.5">
                       <ActionBarPrimitive.Speak asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label="Read aloud">
-                          <Volume2 className="size-3.5" aria-hidden />
+                        <Button variant="success" size="sm" className="gap-1.5 px-3 font-medium" aria-label="Read aloud">
+                          <Volume2 className="size-4" aria-hidden />
+                          Read aloud
                         </Button>
                       </ActionBarPrimitive.Speak>
                       <ActionBarPrimitive.StopSpeaking asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label="Stop reading">
-                          <Square className="size-3 w-3" aria-hidden />
+                        <Button variant="secondary" size="sm" className="gap-1.5 px-2.5" aria-label="Stop reading">
+                          <Square className="size-3.5" aria-hidden />
+                          Stop
                         </Button>
                       </ActionBarPrimitive.StopSpeaking>
                     </ActionBarPrimitive.Root>
@@ -119,6 +125,22 @@ function ChatThread({ speech }: { speech: boolean }) {
             )
           }
         </ThreadPrimitive.Messages>
+
+        {/*
+          The thinking indicator, while a turn is in flight and the latest
+          message is not yet a populated assistant reply. It sits after the
+          messages so it reads as the reply forming.
+        */}
+        <AuiIf
+          condition={(s) => {
+            if (!s.thread.isRunning) return false;
+            const last = s.thread.messages.at(-1);
+            const hasAssistantText = last?.role === "assistant" && last.content.some((part) => part.type === "text" && part.text.trim() !== "");
+            return !hasAssistantText;
+          }}
+        >
+          <ChatThinking />
+        </AuiIf>
 
         <ThreadPrimitive.ScrollToBottom className="sticky bottom-2 z-10 mx-auto flex size-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm disabled:hidden">
           <ArrowUp className="size-4" aria-hidden />
@@ -237,6 +259,7 @@ function AssistantOff() {
  */
 export function ChatPanel({ csrf, enabled = true, memory = true, speech = false, canManageAi = false }: ChatPanelProps) {
   const [open, setOpen] = useState(false);
+  const { voiceId, setVoiceId } = useVoicePreference();
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -351,6 +374,7 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
           <span className="font-heading text-sm font-medium">Assistant</span>
         </div>
         <div className="flex items-center gap-1">
+          {enabled && speech ? <VoicePicker voiceId={voiceId} onSelect={setVoiceId} /> : null}
           {enabled && canManageAi ? <ModelSelector csrf={csrf} /> : null}
           {enabled ? (
             <Button
@@ -383,6 +407,7 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
           csrf={csrf}
           memory={memory}
           speech={speech}
+          voiceId={voiceId}
           initialThreadId={activeThreadId}
           initialMessages={initialMessages}
         >

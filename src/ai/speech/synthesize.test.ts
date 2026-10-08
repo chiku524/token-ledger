@@ -33,10 +33,16 @@ describe("synthesizeSpeech", () => {
     expect(JSON.parse(String(init?.body))).toMatchObject({ text: "hello", model_id: "model_1" });
   });
 
-  it("uses a request voice override", async () => {
+  it("uses a request voice override from the catalog", async () => {
     const transport = vi.fn<SpeechTransport>(async () => audioResponse());
-    await synthesizeSpeech({ text: "hi", voiceId: "other" }, { config: CONFIG, transport });
-    expect(transport.mock.calls[0][0]).toContain("/text-to-speech/other");
+    await synthesizeSpeech({ text: "hi", voiceId: "ErXwobaYiN019PkySvjV" }, { config: CONFIG, transport });
+    expect(transport.mock.calls[0][0]).toContain("/text-to-speech/ErXwobaYiN019PkySvjV");
+  });
+
+  it("falls back to the configured voice for an id outside the catalog", async () => {
+    const transport = vi.fn<SpeechTransport>(async () => audioResponse());
+    await synthesizeSpeech({ text: "hi", voiceId: "some-arbitrary-id" }, { config: CONFIG, transport });
+    expect(transport.mock.calls[0][0]).toContain("/text-to-speech/voice_1");
   });
 
   it("surfaces the provider's error message and status", async () => {
