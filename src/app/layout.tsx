@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GoogleTagManager } from "@/components/google-tag-manager";
+import { GoogleTagManager, GoogleTagManagerNoScript } from "@/components/google-tag-manager";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -30,8 +30,11 @@ const themeScript = `(function(){try{var stored=localStorage.getItem("tl-theme")
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" className="dark h-full" suppressHydrationWarning>
-      <body className="min-h-full bg-paper font-sans text-ink antialiased">
+      <head>
         <GoogleTagManager />
+      </head>
+      <body className="min-h-full bg-paper font-sans text-ink antialiased">
+        <GoogleTagManagerNoScript />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <MotionProvider>{children}</MotionProvider>
         <Toaster />
