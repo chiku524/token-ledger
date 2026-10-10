@@ -21,11 +21,16 @@ jobs:
         run: pnpm db:migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - name: Seed Harbourline example (demo login)
+      - name: Seed Harbourline example books
+        continue-on-error: true
         run: pnpm db:seed
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - name: Confirm Harbourline demo rows (no secrets printed)
+      - name: Repair Harbourline demo passwords
+        run: pnpm exec tsx scripts/repair-harbourline-passwords.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Confirm Harbourline demo owner password
         run: pnpm exec tsx scripts/confirm-harbourline-seed.ts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

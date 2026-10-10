@@ -10,23 +10,31 @@ import { exampleBooks } from "../data/example-books";
 import { closeDb, getDb } from "./client";
 import {
   accounts,
+  aiMessageEmbeddings,
+  aiMessages,
+  aiThreads,
+  aiToolCalls,
   assetPrices,
   assets,
   auditEvents,
   balanceSnapshots,
+  bindingChallenges,
   connections,
+  emailVerifications,
   entities,
   fxRates,
   invites,
   journalEntries,
   journalLines,
   organizations,
+  passwordResets,
   reconciliationRecords,
   sessions,
   signInAttempts,
   sourceTransactions,
   sources,
   users,
+  walletBindings,
 } from "./schema";
 
 loadEnvFile();
@@ -40,8 +48,18 @@ async function main() {
   await db.transaction(async (tx) => {
     await tx.execute(sql`select set_config('token_ledger.allow_journal_delete', 'on', true)`);
     const existingUsers = await tx.select({ id: users.id }).from(users).where(eq(users.organizationId, organizationId));
-    if (existingUsers.length > 0) {
-      await tx.delete(sessions).where(inArray(sessions.userId, existingUsers.map((user) => user.id)));
+    const userIds = existingUsers.map((user) => user.id);
+    // Clear tables that reference users (added after the original seed wipe list).
+    await tx.delete(aiToolCalls).where(eq(aiToolCalls.organizationId, organizationId));
+    await tx.delete(aiMessageEmbeddings).where(eq(aiMessageEmbeddings.organizationId, organizationId));
+    await tx.delete(aiMessages).where(eq(aiMessages.organizationId, organizationId));
+    await tx.delete(aiThreads).where(eq(aiThreads.organizationId, organizationId));
+    await tx.delete(walletBindings).where(eq(walletBindings.organizationId, organizationId));
+    await tx.delete(bindingChallenges).where(eq(bindingChallenges.organizationId, organizationId));
+    await tx.delete(passwordResets).where(eq(passwordResets.organizationId, organizationId));
+    await tx.delete(emailVerifications).where(eq(emailVerifications.organizationId, organizationId));
+    if (userIds.length > 0) {
+      await tx.delete(sessions).where(inArray(sessions.userId, userIds));
     }
     await tx.delete(invites).where(eq(invites.organizationId, organizationId));
     await tx.delete(users).where(eq(users.organizationId, organizationId));
