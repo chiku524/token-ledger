@@ -1,0 +1,31 @@
+# Manually reload the Harbourline example org into the production Postgres
+# used by Cloudflare Workers (secrets.DATABASE_URL / Hyperdrive origin).
+# Safe: seed replaces only org_harbourline; other organizations are left alone.
+name: Seed demo books
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrate production database
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Seed Harbourline example (demo login)
+        run: pnpm db:seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Confirm Harbourline demo rows (no secrets printed)
+        run: pnpm exec tsx scripts/confirm-harbourline-seed.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
