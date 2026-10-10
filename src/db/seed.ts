@@ -19,6 +19,7 @@ import {
   auditEvents,
   balanceSnapshots,
   bindingChallenges,
+  connectionCredentials,
   connections,
   emailVerifications,
   entities,
@@ -27,14 +28,18 @@ import {
   journalEntries,
   journalLines,
   organizations,
+  ownershipChallenges,
   passwordResets,
   reconciliationRecords,
   sessions,
   signInAttempts,
   sourceTransactions,
   sources,
+  syncRunPayloads,
+  syncRuns,
   users,
   walletBindings,
+  webhookEvents,
 } from "./schema";
 
 loadEnvFile();
@@ -74,6 +79,11 @@ async function main() {
     await tx.delete(assetPrices).where(eq(assetPrices.organizationId, organizationId));
     await tx.delete(accounts).where(eq(accounts.organizationId, organizationId));
     await tx.delete(sources).where(eq(sources.organizationId, organizationId));
+    await tx.delete(syncRunPayloads).where(eq(syncRunPayloads.organizationId, organizationId));
+    await tx.delete(syncRuns).where(eq(syncRuns.organizationId, organizationId));
+    await tx.delete(webhookEvents).where(eq(webhookEvents.organizationId, organizationId));
+    await tx.delete(connectionCredentials).where(eq(connectionCredentials.organizationId, organizationId));
+    await tx.delete(ownershipChallenges).where(eq(ownershipChallenges.organizationId, organizationId));
     await tx.delete(connections).where(eq(connections.organizationId, organizationId));
     await tx.delete(assets).where(eq(assets.organizationId, organizationId));
     await tx.delete(entities).where(eq(entities.organizationId, organizationId));
