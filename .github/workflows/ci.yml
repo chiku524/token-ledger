@@ -84,14 +84,17 @@ jobs:
       # Reload Harbourline example users/books for the Cloudflare Hyperdrive DB.
       # Replaces only org_harbourline; other orgs are untouched. Keeps
       # app.tokenledger.win demo logins in sync with README credentials.
+      # Passwords first so demo login works even if the full books wipe fails.
+      - name: Repair Harbourline demo passwords
+        run: pnpm exec tsx scripts/repair-harbourline-passwords.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Seed Harbourline example (demo login)
         continue-on-error: true
         run: pnpm db:seed
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      # Always reset demo passwords — covers the Hyperdrive DB even when a full
-      # seed cannot wipe newer user-linked rows.
-      - name: Repair Harbourline demo passwords
+      - name: Re-repair passwords after seed
         run: pnpm exec tsx scripts/repair-harbourline-passwords.ts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
