@@ -646,10 +646,10 @@ describe("postRevaluationAction", () => {
   });
 
   it("refuses when there is nothing to revalue", async () => {
-    // No MYR market prices → MY entity holdings stay unpriced, so the proposal is empty.
+    // No asset prices at all — Holdings FX fallbacks must not invent a revaluation from USD.
     vi.mocked(loadBooks).mockResolvedValue({
       ...exampleBooks,
-      assetPrices: exampleBooks.assetPrices.filter((price) => price.quoteCurrency !== "MYR"),
+      assetPrices: [],
     });
     signInLive("accountant");
     await expectError(
