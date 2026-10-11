@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Download, FileSpreadsheet, FileText, Calendar } from "lucide-react";
+import { Building2, Download, FileSpreadsheet, Calendar } from "lucide-react";
 import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { RevaluationForm } from "@/components/record-forms";
@@ -11,7 +11,6 @@ import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { Flash } from "@/components/flash";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
@@ -77,11 +76,10 @@ export default async function ReportsPage({
   });
   const exportQuery = `entity=${encodeURIComponent(entity.id)}&from=${range.from}&to=${range.to}`;
 
-  const exportItems: [string, string, React.ComponentType<{ className?: string }>][] = [
+  const moreExports: [string, string, React.ComponentType<{ className?: string }>][] = [
     ["trial-balance", "Balances", FileSpreadsheet],
     ["journal", "Journal", FileSpreadsheet],
     ["reconciliation", "Matching", FileSpreadsheet],
-    ["pdf", "Report", FileText],
   ];
 
   return (
@@ -134,24 +132,30 @@ export default async function ReportsPage({
           </form>
         </div>
 
-        {/* Right: export actions */}
+        {/* Right: one primary export; the rest stay available but quieter */}
         {can(session.role, "books.export") ? (
-          <div className="flex flex-wrap items-center gap-1 border-t border-border/40 pt-3 sm:border-0 sm:pt-0">
-            {exportItems.map(([kind, label, Icon]) => (
-              <Button key={kind} asChild variant="ghost" size="sm">
-                <a href={`/dashboard/reports/export?kind=${kind}&${exportQuery}`} className="gap-1.5">
-                  <Icon className="size-3.5" />
-                  {label}
-                </a>
-              </Button>
-            ))}
-            <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3 sm:border-0 sm:pt-0">
             <Button asChild variant="outline" size="sm">
               <a href={`/dashboard/reports/export?kind=pdf&${exportQuery}`} className="gap-1.5">
                 <Download className="size-3.5" />
                 PDF
               </a>
             </Button>
+            <details className="group">
+              <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                More exports
+              </summary>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                {moreExports.map(([kind, label, Icon]) => (
+                  <Button key={kind} asChild variant="ghost" size="sm">
+                    <a href={`/dashboard/reports/export?kind=${kind}&${exportQuery}`} className="gap-1.5">
+                      <Icon className="size-3.5" />
+                      {label}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            </details>
           </div>
         ) : null}
       </div>

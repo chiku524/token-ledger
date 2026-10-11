@@ -27,9 +27,9 @@ export default async function TreasuryPage() {
   return (
     <>
       <PageHeader
-        kicker="Accounts Payable"
+        kicker="Payments"
         title="Treasury"
-        description="A separately funded USDC treasury with a signer policy. Every payment needs a threshold of distinct approvals within the limits; Token Ledger support has no override, and connecting a read-only wallet never enables spending."
+        description="Funded USDC treasury with multi-signer approvals. A read-only wallet never enables spending."
       />
 
       {!configured ? (

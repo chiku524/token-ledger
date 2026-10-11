@@ -25,24 +25,22 @@ function groupNames(html: string): string[] {
 }
 
 describe("NavMain", () => {
-  it("groups the sections and keeps every link", () => {
+  it("groups the sections around the day-to-day path and keeps every link", () => {
     const html = render();
-    expect(groupNames(html)).toEqual(["Books", "Payments", "Reporting", "Workspace", "Account"]);
+    // Billing starts collapsed so its links are not in the closed panel markup.
+    expect(groupNames(html)).toEqual(["Day to day", "Books", "Billing", "Account"]);
     expect(labels(html)).toEqual([
       "Overview",
-      "Companies",
       "Holdings",
-      "Journal",
-      "Approvals",
       "Matching",
-      "Billing",
-      "Treasury",
-      "Payables",
+      "Journal",
       "Reports",
+      "Companies",
+      "Approvals",
       "Combined",
+      "Guide",
       "Operations",
       "History",
-      "Guide",
       "Settings",
     ]);
   });
@@ -68,13 +66,14 @@ describe("NavMain", () => {
     expect(labels(html)).not.toContain("Billing");
     expect(labels(html)).not.toContain("Treasury");
     expect(labels(html)).not.toContain("Payables");
-    expect(groupNames(html)).not.toContain("Payments");
+    expect(groupNames(html)).not.toContain("Billing");
     expect(labels(html)).toContain("Overview");
     expect(labels(html)).toContain("Settings");
   });
 
   it("does not hide anything from other roles", () => {
     const html = render({ role: "accountant", hiddenTabs: ["/dashboard/billing"] });
-    expect(labels(html)).toContain("Billing");
+    // Billing stays as a nav group (collapsed); hiddenTabs only apply to onboarding.
+    expect(groupNames(html)).toContain("Billing");
   });
 });

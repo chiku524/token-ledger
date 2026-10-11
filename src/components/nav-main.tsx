@@ -41,47 +41,50 @@ import {
 
 export type NavLink = { href: string; label: string; icon: LucideIcon };
 
-export type NavGroup = { label: string | null; links: NavLink[] };
+export type NavGroup = { label: string | null; links: NavLink[]; defaultOpen?: boolean };
 
+/**
+ * Day-to-day path first (Connect → Check → Balances → Match → Journal → Reports),
+ * then quieter secondary groups. Billing starts collapsed so vaults do not compete
+ * with the core ledger walk.
+ */
 const groups: NavGroup[] = [
   {
     label: null,
     links: [{ href: "/dashboard", label: "Overview", icon: LayoutDashboard }],
   },
   {
-    label: "Books",
+    label: "Day to day",
     links: [
-      { href: "/dashboard/entities", label: "Companies", icon: Building2 },
       { href: "/dashboard/sources", label: "Holdings", icon: Wallet },
-      { href: "/dashboard/ledger", label: "Journal", icon: BookText },
-      { href: "/dashboard/approvals", label: "Approvals", icon: ClipboardCheck },
       { href: "/dashboard/reconciliation", label: "Matching", icon: GitCompareArrows },
+      { href: "/dashboard/ledger", label: "Journal", icon: BookText },
+      { href: "/dashboard/reports", label: "Reports", icon: ChartColumn },
     ],
   },
   {
-    label: "Payments",
+    label: "Books",
+    links: [
+      { href: "/dashboard/entities", label: "Companies", icon: Building2 },
+      { href: "/dashboard/approvals", label: "Approvals", icon: ClipboardCheck },
+      { href: "/dashboard/consolidation", label: "Combined", icon: Layers },
+    ],
+  },
+  {
+    label: "Billing",
+    defaultOpen: false,
     links: [
       { href: "/dashboard/billing", label: "Billing", icon: Receipt },
       { href: "/dashboard/treasury", label: "Treasury", icon: Landmark },
       { href: "/dashboard/payables", label: "Payables", icon: HandCoins },
     ],
   },
-  {
-    label: "Reporting",
-    links: [
-      { href: "/dashboard/reports", label: "Reports", icon: ChartColumn },
-      { href: "/dashboard/consolidation", label: "Combined", icon: Layers },
-    ],
-  },
-  {
-    label: "Workspace",
-    links: [
-      { href: "/dashboard/operations", label: "Operations", icon: Activity },
-      { href: "/dashboard/audit", label: "History", icon: History },
-      { href: "/dashboard/guide", label: "Guide", icon: BookOpen },
-    ],
-  },
 ];
+
+/** Groups that start collapsed so the sidebar opens focused on the day-to-day path. */
+function initiallyClosed(visible: NavGroup[]): Set<string> {
+  return new Set(visible.filter((group) => group.label && group.defaultOpen === false).map((group) => group.label as string));
+}
 
 export type NavAccess = {
   showUsers: boolean;
@@ -94,6 +97,9 @@ export type NavAccess = {
 
 export function navGroups({ showUsers, showOnboarding, showPlatform, role, hiddenTabs = [] }: NavAccess): NavGroup[] {
   const accountLinks: NavLink[] = [
+    { href: "/dashboard/guide", label: "Guide", icon: BookOpen },
+    { href: "/dashboard/operations", label: "Operations", icon: Activity },
+    { href: "/dashboard/audit", label: "History", icon: History },
     ...(showUsers ? [{ href: "/dashboard/users", label: "Users", icon: Users }] : []),
     ...(showOnboarding ? [{ href: "/dashboard/onboarding", label: "Onboarding", icon: UserPlus }] : []),
     ...(showPlatform ? [{ href: "/dashboard/platform", label: "Platform", icon: Globe }] : []),
@@ -101,7 +107,7 @@ export function navGroups({ showUsers, showOnboarding, showPlatform, role, hidde
   ];
   return [
     ...groups.map((group) => ({ ...group, links: group.links.filter((link) => !isHiddenForRole(role, link.href, hiddenTabs)) })),
-    { label: "Account", links: accountLinks },
+    { label: "Account", links: accountLinks.filter((link) => !isHiddenForRole(role, link.href, hiddenTabs)) },
   ].filter((group) => group.links.length > 0);
 }
 
@@ -115,7 +121,7 @@ export function NavMain(access: NavAccess) {
   const { state, isMobile, setOpenMobile } = useSidebar();
   const iconRail = state === "collapsed" && !isMobile;
   const visible = navGroups(access);
-  const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
+  const [closed, setClosed] = useState<ReadonlySet<string>>(() => initiallyClosed(visible));
   const [seenPath, setSeenPath] = useState(pathname);
 
   if (seenPath !== pathname) {

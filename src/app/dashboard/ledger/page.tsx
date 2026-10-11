@@ -66,7 +66,14 @@ export default async function LedgerPage({
       {canPost ? (
         <>
           {writable ? null : <ReadOnlyNote demo={session.demo} />}
-          <JournalForm books={books} csrf={csrf} />
+          <details className="group mb-8" {...(visible.length === 0 ? { open: true } : {})}>
+            <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+              Post an entry
+            </summary>
+            <div className="mt-4">
+              <JournalForm books={books} csrf={csrf} />
+            </div>
+          </details>
         </>
       ) : (
         <RoleNote>You can view entries and download CSVs. Posting and corrections are hidden.</RoleNote>

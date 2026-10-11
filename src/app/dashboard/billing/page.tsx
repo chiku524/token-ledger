@@ -33,9 +33,9 @@ export default async function BillingPage() {
   return (
     <>
       <PageHeader
-        kicker="Service Balance"
+        kicker="Subscription"
         title="Billing"
-        description="Subscribe to Token Ledger: fund a USDC vault and authorize bounded, recurring 30-day charges. You can cancel renewal and withdraw unspent funds at any time — no merchant signature. Merely connecting a read-only wallet never enables spending."
+        description="Fund a USDC vault for recurring access. Cancel or withdraw anytime — a read-only wallet never enables spending."
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
