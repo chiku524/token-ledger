@@ -234,7 +234,7 @@ export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf
       <input type="hidden" name="next" value={next} />
       <SubmitButton variant="secondary">Refresh prices and rates</SubmitButton>
       <span className="text-sm text-muted-foreground">
-        Fetches live prices and FX rates, stored with their source and date. Never posts a journal.
+        Fetches live CoinGecko prices (USD, SGD, MYR) and FX rates, stored with their source and date. Never posts a journal.
       </span>
     </form>
   );

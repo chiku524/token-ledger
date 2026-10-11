@@ -16,9 +16,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { Link2, Wallet } from "lucide-react";
+import { SegmentedLinks } from "@/components/app/segmented-links";
 import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
 import { latestSnapshots, valueBooksHoldings } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
 import { booksAreWritable } from "@/data/load-books";
@@ -91,7 +93,7 @@ function SnapshotTable({
 export default async function SourcesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
+  searchParams: Promise<{ currency?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
   await requireSectionAccess("/dashboard/sources");
@@ -100,11 +102,12 @@ export default async function SourcesPage({
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
+  const quoteCurrency = resolveHoldingsDisplayCurrency(one(params.currency));
   const valuation = valueBooksHoldings({
     snapshots: books.balanceSnapshots,
     prices: books.assetPrices,
     assets: books.assets,
-    quoteCurrency: "USD",
+    quoteCurrency,
     asOf: new Date().toISOString(),
   });
   const connectors = listStubAdapters();
@@ -112,6 +115,12 @@ export default async function SourcesPage({
   const latest = sortSnapshots(latestSnapshots(books.balanceSnapshots));
   const history = books.balanceSnapshots.length > latest.length ? sortSnapshots(books.balanceSnapshots) : [];
   const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
+  const currencyLinks = HOLDINGS_DISPLAY_CURRENCIES.map((currency) => ({
+    key: currency,
+    href: `/dashboard/sources?currency=${currency}`,
+    label: currency,
+    current: currency === quoteCurrency,
+  }));
 
   return (
     <>
@@ -122,6 +131,11 @@ export default async function SourcesPage({
         </p>
       </header>
       <Flash error={one(params.error)} saved={one(params.saved)} />
+
+      <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <p className="text-sm text-muted-foreground">Market value currency</p>
+        <SegmentedLinks label="Market value currency" items={currencyLinks} />
+      </div>
 
       <section id="observed-balances" className="scroll-mt-6">
         <SectionHeader
@@ -214,7 +228,7 @@ export default async function SourcesPage({
             />
             {canSource && writable ? (
               <div className="mt-4">
-                <MarketDataControls csrf={csrf} next="/dashboard/sources" />
+                <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} />
               </div>
             ) : null}
             {valuation.stale ? (

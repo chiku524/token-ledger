@@ -5,9 +5,15 @@
  * Prices are observations for valuation only; they never post to the journal.
  */
 import { booksAreWritable, loadBooksForJob } from "./load-books";
+import { HOLDINGS_DISPLAY_CURRENCIES } from "./display-currency";
 import { insertAssetPrices, insertFxRate } from "@/db/write";
 import { CoinGeckoPriceProvider, type NormalizedPrice } from "@/adapters/market/prices";
 import { EcbFxProvider } from "@/adapters/market/fx";
+
+/** CoinGecko quote currencies Holdings can toggle (USD, SGD, MYR). */
+function holdingsPriceProvider(provider?: CoinGeckoPriceProvider): CoinGeckoPriceProvider {
+  return provider ?? new CoinGeckoPriceProvider({ quoteCurrencies: HOLDINGS_DISPLAY_CURRENCIES });
+}
 
 export interface MarketRefreshOutcome {
   organizationId: string;
@@ -32,20 +38,21 @@ function trackedAssetCodes(books: { assets: readonly { code: string }[]; balance
 
 export async function refreshAssetPrices(
   organizationId: string,
-  provider: CoinGeckoPriceProvider = new CoinGeckoPriceProvider(),
+  provider?: CoinGeckoPriceProvider,
 ): Promise<MarketRefreshOutcome> {
+  const priceProvider = holdingsPriceProvider(provider);
   const books = await loadBooksForJob(organizationId);
   const held = trackedAssetCodes(books);
 
   let prices: NormalizedPrice[] = [];
   try {
-    prices = await provider.fetchPrices(held);
+    prices = await priceProvider.fetchPrices(held);
   } catch (error) {
     return {
       organizationId,
       assets: held,
       stored: 0,
-      source: provider.source,
+      source: priceProvider.source,
       skipped: true,
       message: error instanceof Error ? error.message : "The price source could not be reached.",
     };
@@ -60,7 +67,7 @@ export async function refreshAssetPrices(
     organizationId,
     assets: held,
     stored,
-    source: provider.source,
+    source: priceProvider.source,
     skipped: false,
     message: stored > 0 ? `Stored ${stored} price${stored === 1 ? "" : "s"}.` : "No prices were returned.",
   };

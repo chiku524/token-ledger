@@ -14,9 +14,9 @@ This ADR records the sources, the storage, and the valuation rules.
 ### Sources (both keyless, read-only)
 
 - **Prices:** CoinGecko `simple/price`, mapped from asset codes to CoinGecko ids
-  in `src/adapters/market/prices.ts`.
-- **FX:** the ECB reference rates via `exchangerate.host` in
-  `src/adapters/market/fx.ts`.
+  in `src/adapters/market/prices.ts`. Refresh stores USD, SGD, and MYR quotes in
+  one call so Holdings can toggle display currency without a second fetch.
+- **FX:** the ECB reference rates via Frankfurter (`src/adapters/market/fx.ts`).
 
 Both are fetched with an injectable `fetch`, so they are tested without the
 network. A failed fetch is best-effort: the last stored value stays and the

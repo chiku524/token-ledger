@@ -169,6 +169,24 @@ describe("role gating", () => {
     expect(content).not.toContain("Import activity");
   });
 
+  it("opens Charts and statements on Overview by default", async () => {
+    signInDemo("owner");
+    const html = await renderPage(OverviewPage as Page);
+    expect(html).toMatch(/<details[^>]*\bopen\b[^>]*>[\s\S]*Charts and statements/);
+    expect(text(html)).toContain("Balance Sheet");
+  });
+
+  it("values Holdings in the selected display currency", async () => {
+    signInDemo("owner");
+    const usd = await pageText(SourcesPage as Page, { currency: "USD" });
+    expect(usd).toContain("Market value currency");
+    expect(usd).toContain("Value · USD");
+    const myr = await pageText(SourcesPage as Page, { currency: "MYR" });
+    expect(myr).toContain("Value · MYR");
+    const sgd = await pageText(SourcesPage as Page, { currency: "SGD" });
+    expect(sgd).toContain("Value · SGD");
+  });
+
   it("hides the manual re-run on Operations from a viewer", async () => {
     signInDemo("viewer");
     expect(await pageText(OperationsPage as Page)).toContain("You can view connector health. A manual re-run is for an owner or an admin.");

@@ -43,7 +43,13 @@ export interface PriceProviderOptions {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
-  /** The quote currency to request. Fiat scale is 2. */
+  /**
+   * Quote currencies to request in one CoinGecko call (`vs_currencies`).
+   * Prefer this when Holdings can toggle USD / SGD / MYR. Falls back to
+   * `quoteCurrency` (default USD) when omitted.
+   */
+  quoteCurrencies?: readonly string[];
+  /** Single quote currency. Used when `quoteCurrencies` is omitted. Fiat scale is 2. */
   quoteCurrency?: string;
   quoteScale?: number;
   now?: () => Date;
@@ -57,7 +63,9 @@ export class CoinGeckoPriceProvider {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
-  private readonly quoteCurrency: string;
+  /** First requested quote currency (kept for callers that inspect a single code). */
+  readonly quoteCurrency: string;
+  private readonly quoteCurrencies: readonly string[];
   private readonly quoteScale: number;
   private readonly now: () => Date;
 
@@ -65,7 +73,12 @@ export class CoinGeckoPriceProvider {
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    this.quoteCurrency = (options.quoteCurrency ?? "USD").toUpperCase();
+    const currencies = (options.quoteCurrencies?.length
+      ? options.quoteCurrencies
+      : [options.quoteCurrency ?? "USD"]
+    ).map((code) => code.toUpperCase());
+    this.quoteCurrencies = [...new Set(currencies)];
+    this.quoteCurrency = this.quoteCurrencies[0] ?? "USD";
     this.quoteScale = options.quoteScale ?? 2;
     this.now = options.now ?? (() => new Date());
   }
@@ -73,7 +86,7 @@ export class CoinGeckoPriceProvider {
   /**
    * Fetch prices for the given asset codes. Codes with no known CoinGecko id
    * are skipped (the caller keeps its last stored price). Returns one row per
-   * asset that returned a usable price.
+   * asset × quote currency that returned a usable price.
    */
   async fetchPrices(assetCodes: readonly string[]): Promise<NormalizedPrice[]> {
     const wanted = assetCodes
@@ -82,8 +95,8 @@ export class CoinGeckoPriceProvider {
     if (wanted.length === 0) return [];
 
     const ids = wanted.map((entry) => entry.id).join(",");
-    const vs = this.quoteCurrency.toLowerCase();
-    const url = `${this.baseUrl}/simple/price?ids=${encodeURIComponent(ids)}&vs_currencies=${encodeURIComponent(vs)}`;
+    const vsList = this.quoteCurrencies.map((code) => code.toLowerCase());
+    const url = `${this.baseUrl}/simple/price?ids=${encodeURIComponent(ids)}&vs_currencies=${encodeURIComponent(vsList.join(","))}`;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -112,16 +125,18 @@ export class CoinGeckoPriceProvider {
     const asOf = this.now().toISOString();
     const prices: NormalizedPrice[] = [];
     for (const { code, id } of wanted) {
-      const value = payload[id]?.[vs];
-      if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) continue;
-      prices.push({
-        assetCode: code,
-        quoteCurrency: this.quoteCurrency,
-        priceMinor: toMinorRounded(value.toFixed(8), this.quoteScale),
-        quoteScale: this.quoteScale,
-        asOf,
-        source: this.source,
-      });
+      for (const quoteCurrency of this.quoteCurrencies) {
+        const value = payload[id]?.[quoteCurrency.toLowerCase()];
+        if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) continue;
+        prices.push({
+          assetCode: code,
+          quoteCurrency,
+          priceMinor: toMinorRounded(value.toFixed(8), this.quoteScale),
+          quoteScale: this.quoteScale,
+          asOf,
+          source: this.source,
+        });
+      }
     }
     return prices;
   }

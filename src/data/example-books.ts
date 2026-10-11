@@ -371,11 +371,12 @@ export const exampleFxRates: StoredFxRate[] = [
 ];
 
 /**
- * Illustrative example prices, in USD, as of the example period. These are
- * made-up figures for the sample books, not a market price, and are shown as
- * example data (origin "example") so no one mistakes them for live values.
+ * Illustrative example prices as of the example period. USD figures are the
+ * seed; SGD and MYR use fixed demo FX (1 USD = 1.35 SGD, 1 USD = 4.70 MYR) so
+ * Holdings can toggle display currency without a live CoinGecko fetch. Not
+ * market prices — origin "example".
  */
-const EXAMPLE_PRICES: Array<{ assetCode: string; priceMinor: bigint }> = [
+const EXAMPLE_PRICES_USD: Array<{ assetCode: string; priceMinor: bigint }> = [
   { assetCode: "ETH", priceMinor: 320000n },
   { assetCode: "SOL", priceMinor: 15000n },
   { assetCode: "USDC", priceMinor: 100n },
@@ -384,17 +385,34 @@ const EXAMPLE_PRICES: Array<{ assetCode: string; priceMinor: bigint }> = [
   { assetCode: "SUI", priceMinor: 300n },
 ];
 
-export const exampleAssetPrices: StoredAssetPrice[] = EXAMPLE_PRICES.map((price) => ({
-  id: `price_example_${price.assetCode.toLowerCase()}`,
-  organizationId: ORG_ID,
-  assetCode: price.assetCode,
-  quoteCurrency: "USD",
-  priceMinor: price.priceMinor,
-  quoteScale: 2,
-  asOf: `${EXAMPLE_PERIOD.end}T00:00:00.000Z`,
-  origin: "example",
-  source: "example",
-}));
+/** Demo-only FX multipliers from USD minor units (scale 2) into SGD / MYR. */
+const EXAMPLE_USD_TO_SGD_NUM = 135n;
+const EXAMPLE_USD_TO_SGD_DEN = 100n;
+const EXAMPLE_USD_TO_MYR_NUM = 470n;
+const EXAMPLE_USD_TO_MYR_DEN = 100n;
+
+function examplePriceRows(
+  quoteCurrency: "USD" | "SGD" | "MYR",
+  convert: (usdMinor: bigint) => bigint,
+): StoredAssetPrice[] {
+  return EXAMPLE_PRICES_USD.map((price) => ({
+    id: `price_example_${price.assetCode.toLowerCase()}_${quoteCurrency.toLowerCase()}`,
+    organizationId: ORG_ID,
+    assetCode: price.assetCode,
+    quoteCurrency,
+    priceMinor: convert(price.priceMinor),
+    quoteScale: 2,
+    asOf: `${EXAMPLE_PERIOD.end}T00:00:00.000Z`,
+    origin: "example" as const,
+    source: "example",
+  }));
+}
+
+export const exampleAssetPrices: StoredAssetPrice[] = [
+  ...examplePriceRows("USD", (usd) => usd),
+  ...examplePriceRows("SGD", (usd) => (usd * EXAMPLE_USD_TO_SGD_NUM) / EXAMPLE_USD_TO_SGD_DEN),
+  ...examplePriceRows("MYR", (usd) => (usd * EXAMPLE_USD_TO_MYR_NUM) / EXAMPLE_USD_TO_MYR_DEN),
+];
 
 export const exampleAuditEvents: AuditEvent[] = exampleJournalEntries.map((entry) => ({
   id: `audit_${entry.id}`,
