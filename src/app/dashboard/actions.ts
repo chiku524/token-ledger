@@ -174,8 +174,9 @@ export async function refreshMarketDataAction(formData: FormData) {
   requireWritable(path, session);
   let message = "";
   await save(path, async () => {
-    const prices = await refreshAssetPrices(session.organizationId);
+    // FX first so price backfill can convert USD → SGD/MYR when CoinGecko omits a quote.
     const fx = await refreshFxRates(session.organizationId);
+    const prices = await refreshAssetPrices(session.organizationId);
     message = `${prices.message} ${fx.message}`.trim();
     if (prices.skipped && fx.skipped) throw new BooksWriteError(prices.message);
   });

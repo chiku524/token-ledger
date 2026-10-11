@@ -368,6 +368,28 @@ export const exampleFxRates: StoredFxRate[] = [
     origin: "example",
     note: "Illustrative example rate for the Harbourline quarter. Not a market price. SGD amounts use the exact inverse of this rate.",
   },
+  {
+    id: "fx_example_usd_sgd",
+    organizationId: ORG_ID,
+    baseCurrency: "USD",
+    quoteCurrency: "SGD",
+    numerator: 13500n,
+    scale: 4,
+    asOf: "2026-04-01",
+    origin: "example",
+    note: "Illustrative demo rate (1 USD = 1.35 SGD) so Holdings can convert USD prices when a native SGD quote is missing.",
+  },
+  {
+    id: "fx_example_usd_myr",
+    organizationId: ORG_ID,
+    baseCurrency: "USD",
+    quoteCurrency: "MYR",
+    numerator: 47000n,
+    scale: 4,
+    asOf: "2026-04-01",
+    origin: "example",
+    note: "Illustrative demo rate (1 USD = 4.70 MYR) so Holdings can convert USD prices when a native MYR quote is missing.",
+  },
 ];
 
 /**

@@ -81,7 +81,7 @@ describe("valueObservedSnapshot", () => {
     expect(priced).toMatchObject({ quoteCurrency: "SGD", valueMinor: 216000n });
   });
 
-  it("returns null when there is no price in that currency", () => {
+  it("returns null when there is no price and no FX path", () => {
     expect(
       valueObservedSnapshot({
         snapshot: { assetCode: "ETH", quantityMinor: 1n },
@@ -93,5 +93,31 @@ describe("valueObservedSnapshot", () => {
         asOf: "2026-06-14T12:00:00Z",
       }),
     ).toBeNull();
+  });
+
+  it("converts USD via FX when the native quote row is missing", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "ETH", quantityMinor: 1_000000000000000000n },
+      prices: [
+        { id: "p_eth", organizationId: "org_1", assetCode: "ETH", quoteCurrency: "USD", priceMinor: 320000n, quoteScale: 2, asOf: "2026-06-14T00:00:00Z", origin: "live", source: "coingecko" },
+      ],
+      rates: [
+        {
+          id: "fx_usd_myr",
+          organizationId: "org_1",
+          baseCurrency: "USD",
+          quoteCurrency: "MYR",
+          numerator: 47000n,
+          scale: 4,
+          asOf: "2026-06-01",
+          origin: "live",
+          note: "",
+        },
+      ],
+      assets: [{ code: "ETH", decimals: 18 }],
+      quoteCurrency: "MYR",
+      asOf: "2026-06-14T12:00:00Z",
+    });
+    expect(priced).toMatchObject({ quoteCurrency: "MYR", valueMinor: 1504000n, source: "coingecko+fx" });
   });
 });

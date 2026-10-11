@@ -25,6 +25,7 @@ export {
   DEFAULT_STALENESS_MS,
   priceAge,
   selectAssetPrice,
+  selectDisplayPrice,
   valueHolding,
   valueHoldings,
 } from "./valuation";

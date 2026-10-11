@@ -75,6 +75,7 @@ function SnapshotTable({
       assets: books.assets,
       quoteCurrency,
       asOf,
+      rates: books.fxRates,
     }),
   }));
   const priced = rows.flatMap((row) => (row.value ? [row.value] : []));
@@ -147,6 +148,7 @@ export default async function SourcesPage({
     assets: books.assets,
     quoteCurrency,
     asOf,
+    rates: books.fxRates,
   });
   const connectors = listStubAdapters();
   const liveConnectors = listLiveAdapters();

@@ -9,12 +9,13 @@ import {
   valueHolding,
   valueHoldings,
   type AssetPrice,
+  type FxRate,
   type PricedValue,
   type RevaluationProposal,
   type ValuationSummary,
 } from "@/ledger";
 import type { PostedJournalEntry } from "@/ledger";
-import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice } from "./books";
+import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice, StoredFxRate } from "./books";
 
 export function latestSnapshots(snapshots: readonly BooksBalanceSnapshot[]): BooksBalanceSnapshot[] {
   const latest = new Map<string, BooksBalanceSnapshot>();
@@ -43,6 +44,7 @@ export function valueBooksHoldings(input: {
   assets: readonly { code: string; decimals: number }[];
   quoteCurrency: string;
   asOf: string;
+  rates?: readonly StoredFxRate[];
   stalenessMs?: number;
 }): ValuationSummary {
   const decimals = new Map(input.assets.map((asset) => [asset.code, asset.decimals]));
@@ -55,13 +57,14 @@ export function valueBooksHoldings(input: {
     holdings,
     quoteCurrency: input.quoteCurrency,
     asOf: input.asOf,
+    rates: input.rates as readonly FxRate[] | undefined,
     stalenessMs: input.stalenessMs,
   });
 }
 
 /**
  * Market value for one observed snapshot row in the display currency.
- * Uses the newest saved price on or before `asOf`; null when unpriced.
+ * Prefers a native quote-currency price; falls back to USD × FX when needed.
  */
 export function valueObservedSnapshot(input: {
   snapshot: Pick<BooksBalanceSnapshot, "assetCode" | "quantityMinor">;
@@ -69,6 +72,7 @@ export function valueObservedSnapshot(input: {
   assets: readonly { code: string; decimals: number }[];
   quoteCurrency: string;
   asOf: string;
+  rates?: readonly StoredFxRate[];
   stalenessMs?: number;
 }): PricedValue | null {
   if (input.snapshot.quantityMinor === 0n) return null;
@@ -80,6 +84,7 @@ export function valueObservedSnapshot(input: {
     quantityScale: decimals,
     quoteCurrency: input.quoteCurrency,
     asOf: input.asOf,
+    rates: input.rates as readonly FxRate[] | undefined,
     stalenessMs: input.stalenessMs,
   });
 }
