@@ -5,9 +5,49 @@
  * Prices are observations for valuation only; they never post to the journal.
  */
 import { booksAreWritable, loadBooksForJob } from "./load-books";
+import { HOLDINGS_DISPLAY_CURRENCIES } from "./display-currency";
 import { insertAssetPrices, insertFxRate } from "@/db/write";
 import { CoinGeckoPriceProvider, type NormalizedPrice } from "@/adapters/market/prices";
 import { EcbFxProvider } from "@/adapters/market/fx";
+import { findAppliedRate, HOLDINGS_DISPLAY_FX_FALLBACKS, translateWithRate, type FxRate } from "@/ledger";
+import type { StoredFxRate } from "./books";
+
+/** CoinGecko quote currencies Holdings can toggle (USD, SGD, MYR). */
+function holdingsPriceProvider(provider?: CoinGeckoPriceProvider): CoinGeckoPriceProvider {
+  return provider ?? new CoinGeckoPriceProvider({ quoteCurrencies: HOLDINGS_DISPLAY_CURRENCIES });
+}
+
+/**
+ * When CoinGecko omits a display quote, derive it from USD × FX (saved rates,
+ * then built-in Holdings fallbacks) so SGD/MYR rows exist after refresh even if
+ * the price API only returned USD and the org never stored USD FX pairs.
+ */
+export function backfillDisplayQuotes(
+  prices: readonly NormalizedPrice[],
+  rates: readonly StoredFxRate[] | readonly FxRate[],
+  asOf: string,
+): NormalizedPrice[] {
+  const seen = new Set(prices.map((price) => `${price.assetCode}|${price.quoteCurrency}`));
+  const extras: NormalizedPrice[] = [];
+  for (const usd of prices.filter((price) => price.quoteCurrency === "USD")) {
+    for (const quote of HOLDINGS_DISPLAY_CURRENCIES) {
+      if (quote === "USD" || seen.has(`${usd.assetCode}|${quote}`)) continue;
+      const applied =
+        findAppliedRate(rates as readonly FxRate[], "USD", quote, asOf) ??
+        findAppliedRate(HOLDINGS_DISPLAY_FX_FALLBACKS, "USD", quote, asOf);
+      if (!applied) continue;
+      const viaFallback = applied.rate.id.startsWith("fx_holdings_fallback_");
+      extras.push({
+        ...usd,
+        quoteCurrency: quote,
+        priceMinor: translateWithRate(usd.priceMinor, applied, usd.quoteScale),
+        source: viaFallback ? `${usd.source}+fx-fallback` : `${usd.source}+fx`,
+      });
+      seen.add(`${usd.assetCode}|${quote}`);
+    }
+  }
+  return extras.length === 0 ? [...prices] : [...prices, ...extras];
+}
 
 export interface MarketRefreshOutcome {
   organizationId: string;
@@ -32,35 +72,39 @@ function trackedAssetCodes(books: { assets: readonly { code: string }[]; balance
 
 export async function refreshAssetPrices(
   organizationId: string,
-  provider: CoinGeckoPriceProvider = new CoinGeckoPriceProvider(),
+  provider?: CoinGeckoPriceProvider,
 ): Promise<MarketRefreshOutcome> {
+  const priceProvider = holdingsPriceProvider(provider);
   const books = await loadBooksForJob(organizationId);
   const held = trackedAssetCodes(books);
 
   let prices: NormalizedPrice[] = [];
   try {
-    prices = await provider.fetchPrices(held);
+    prices = await priceProvider.fetchPrices(held);
   } catch (error) {
     return {
       organizationId,
       assets: held,
       stored: 0,
-      source: provider.source,
+      source: priceProvider.source,
       skipped: true,
       message: error instanceof Error ? error.message : "The price source could not be reached.",
     };
   }
 
+  const asOf = prices[0]?.asOf ?? new Date().toISOString();
+  const toStore = backfillDisplayQuotes(prices, books.fxRates, asOf);
+
   const stored = await insertAssetPrices(
     books,
-    prices.map((price) => ({ ...price, origin: "live" as const })),
+    toStore.map((price) => ({ ...price, origin: "live" as const })),
     "market data",
   );
   return {
     organizationId,
     assets: held,
     stored,
-    source: provider.source,
+    source: priceProvider.source,
     skipped: false,
     message: stored > 0 ? `Stored ${stored} price${stored === 1 ? "" : "s"}.` : "No prices were returned.",
   };
@@ -90,16 +134,22 @@ export interface FxRefreshOutcome {
 }
 
 /**
- * Refresh live FX rates for an organization's presentation currencies. Each
- * ordered pair is stored once (origin live); the inverse is derived, never
- * stored twice, matching the manual FX form.
+ * Refresh live FX rates for entity functional currencies plus Holdings display
+ * currencies (USD/SGD/MYR), so a USD CoinGecko price can be converted when a
+ * native quote row is missing. Each ordered pair is stored when the source
+ * returns it; the inverse is derived at use time via findAppliedRate.
  */
 export async function refreshFxRates(
   organizationId: string,
   provider: EcbFxProvider = new EcbFxProvider(),
 ): Promise<FxRefreshOutcome> {
   const books = await loadBooksForJob(organizationId);
-  const currencies = [...new Set(books.entities.map((entity) => entity.functionalCurrency))].sort();
+  const currencies = [
+    ...new Set([
+      ...books.entities.map((entity) => entity.functionalCurrency),
+      ...HOLDINGS_DISPLAY_CURRENCIES,
+    ]),
+  ].sort();
   const pairs: Array<{ base: string; quote: string }> = [];
   for (const base of currencies) {
     for (const quote of currencies) {

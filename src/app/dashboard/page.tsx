@@ -158,7 +158,7 @@ export default async function DashboardPage() {
         ))}
       </section>
 
-      <details className="group mt-10">
+      <details className="group mt-10" open>
         <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
           Charts and statements
         </summary>

@@ -148,7 +148,15 @@ const JOURNAL = {
 const CSV = "external_id,occurred_on,asset_code,direction,quantity,description\nx-1,2026-06-20,ETH,in,0.5,Test receipt";
 
 function revaluableBooks(): Books {
-  return { ...exampleBooks, assetPrices: exampleBooks.assetPrices.map((price) => ({ ...price, quoteCurrency: "MYR" })) };
+  // Use the USD illustrative prices as MYR quotes (one row per asset). The sample
+  // books also store SGD/MYR demo prices for Holdings; remapping every row would
+  // collide on quoteCurrency and pick the wrong market value.
+  return {
+    ...exampleBooks,
+    assetPrices: exampleBooks.assetPrices
+      .filter((price) => price.quoteCurrency === "USD")
+      .map((price) => ({ ...price, quoteCurrency: "MYR" })),
+  };
 }
 
 interface ActionSpec {
@@ -638,6 +646,11 @@ describe("postRevaluationAction", () => {
   });
 
   it("refuses when there is nothing to revalue", async () => {
+    // No asset prices at all — Holdings FX fallbacks must not invent a revaluation from USD.
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      assetPrices: [],
+    });
     signInLive("accountant");
     await expectError(
       postRevaluationAction(form({ entityId: MY, asOf: "2026-06-30T00:00:00.000Z", reference: "REVAL-Q2" })),

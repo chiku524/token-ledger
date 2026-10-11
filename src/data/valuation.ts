@@ -3,9 +3,19 @@
  * Pure, so it is testable without a database. The latest observed snapshot per
  * source and asset is the holding; `valueHoldings` prices it.
  */
-import { assetCarryingSchedule, proposeRevaluation, valueHoldings, type AssetPrice, type RevaluationProposal, type ValuationSummary } from "@/ledger";
+import {
+  assetCarryingSchedule,
+  proposeRevaluation,
+  valueHolding,
+  valueHoldings,
+  type AssetPrice,
+  type FxRate,
+  type PricedValue,
+  type RevaluationProposal,
+  type ValuationSummary,
+} from "@/ledger";
 import type { PostedJournalEntry } from "@/ledger";
-import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice } from "./books";
+import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice, StoredFxRate } from "./books";
 
 export function latestSnapshots(snapshots: readonly BooksBalanceSnapshot[]): BooksBalanceSnapshot[] {
   const latest = new Map<string, BooksBalanceSnapshot>();
@@ -34,6 +44,7 @@ export function valueBooksHoldings(input: {
   assets: readonly { code: string; decimals: number }[];
   quoteCurrency: string;
   asOf: string;
+  rates?: readonly StoredFxRate[];
   stalenessMs?: number;
 }): ValuationSummary {
   const decimals = new Map(input.assets.map((asset) => [asset.code, asset.decimals]));
@@ -46,6 +57,34 @@ export function valueBooksHoldings(input: {
     holdings,
     quoteCurrency: input.quoteCurrency,
     asOf: input.asOf,
+    rates: input.rates as readonly FxRate[] | undefined,
+    stalenessMs: input.stalenessMs,
+  });
+}
+
+/**
+ * Market value for one observed snapshot row in the display currency.
+ * Prefers a native quote-currency price; falls back to USD × FX when needed.
+ */
+export function valueObservedSnapshot(input: {
+  snapshot: Pick<BooksBalanceSnapshot, "assetCode" | "quantityMinor">;
+  prices: readonly StoredAssetPrice[];
+  assets: readonly { code: string; decimals: number }[];
+  quoteCurrency: string;
+  asOf: string;
+  rates?: readonly StoredFxRate[];
+  stalenessMs?: number;
+}): PricedValue | null {
+  if (input.snapshot.quantityMinor === 0n) return null;
+  const decimals = input.assets.find((asset) => asset.code === input.snapshot.assetCode)?.decimals ?? 0;
+  return valueHolding({
+    prices: input.prices as readonly AssetPrice[],
+    assetCode: input.snapshot.assetCode,
+    quantityMinor: input.snapshot.quantityMinor,
+    quantityScale: decimals,
+    quoteCurrency: input.quoteCurrency,
+    asOf: input.asOf,
+    rates: input.rates as readonly FxRate[] | undefined,
     stalenessMs: input.stalenessMs,
   });
 }

@@ -7,7 +7,12 @@
  *
  * A price never posts to the journal by itself. This module produces a value
  * for display and for a reviewable revaluation draft.
+ *
+ * When a native quote (SGD/MYR) is missing but a USD price and an FX rate exist,
+ * the USD price is translated into the display currency so Holdings can toggle
+ * without waiting for a second CoinGecko quote row.
  */
+import { findAppliedRate, translateWithRate, type FxRate } from "./fx";
 import type { AssetPrice } from "./pricing";
 
 export type PriceAge = "fresh" | "stale" | "missing";
@@ -28,6 +33,36 @@ export interface PricedValue {
 }
 
 export const DEFAULT_STALENESS_MS = 24 * 60 * 60 * 1000;
+const USD = "USD";
+
+/**
+ * Built-in USD→SGD / USD→MYR rates used when the books have no saved pair.
+ * Harbourline DBs seeded before display-FX rows only had MYR→SGD, so SGD/MYR
+ * Holdings values would otherwise stay "No price" despite USD asset prices.
+ * Prefer any saved rate; these are last-resort display rates only.
+ */
+export const HOLDINGS_DISPLAY_FX_FALLBACKS: readonly FxRate[] = [
+  {
+    id: "fx_holdings_fallback_usd_sgd",
+    baseCurrency: "USD",
+    quoteCurrency: "SGD",
+    numerator: 13500n,
+    scale: 4,
+    asOf: "1970-01-01",
+    origin: "example",
+    note: "Built-in Holdings display rate (1 USD = 1.35 SGD).",
+  },
+  {
+    id: "fx_holdings_fallback_usd_myr",
+    baseCurrency: "USD",
+    quoteCurrency: "MYR",
+    numerator: 47000n,
+    scale: 4,
+    asOf: "1970-01-01",
+    origin: "example",
+    note: "Built-in Holdings display rate (1 USD = 4.70 MYR).",
+  },
+];
 
 /**
  * Pick the price of one whole asset unit on or before `asOf`. A live price wins
@@ -56,6 +91,39 @@ export function selectAssetPrice(
   return candidates[0] ?? null;
 }
 
+/**
+ * Prefer a native quote-currency price; otherwise convert a USD price with FX.
+ * Uses saved rates first, then {@link HOLDINGS_DISPLAY_FX_FALLBACKS}. Returns
+ * null only when there is no USD price (or no path to the display currency).
+ */
+export function selectDisplayPrice(
+  prices: readonly AssetPrice[],
+  assetCode: string,
+  quoteCurrency: string,
+  asOf: string,
+  rates: readonly FxRate[] = [],
+): AssetPrice | null {
+  const direct = selectAssetPrice(prices, assetCode, quoteCurrency, asOf);
+  if (direct) return direct;
+  if (quoteCurrency === USD) return null;
+
+  const usd = selectAssetPrice(prices, assetCode, USD, asOf);
+  if (!usd) return null;
+  const applied =
+    findAppliedRate(rates, USD, quoteCurrency, asOf) ??
+    findAppliedRate(HOLDINGS_DISPLAY_FX_FALLBACKS, USD, quoteCurrency, asOf);
+  if (!applied) return null;
+
+  const viaFallback = applied.rate.id.startsWith("fx_holdings_fallback_");
+  return {
+    ...usd,
+    id: `${usd.id}_fx_${quoteCurrency}`,
+    quoteCurrency,
+    priceMinor: translateWithRate(usd.priceMinor, applied, usd.quoteScale),
+    source: viaFallback ? `${usd.source}+fx-fallback` : `${usd.source}+fx`,
+  };
+}
+
 /** How old a price is at a reference instant, against a staleness threshold. */
 export function priceAge(price: Pick<AssetPrice, "asOf">, asOf: string, thresholdMs = DEFAULT_STALENESS_MS): PriceAge {
   const observed = Date.parse(price.asOf);
@@ -68,6 +136,8 @@ export function priceAge(price: Pick<AssetPrice, "asOf">, asOf: string, threshol
  * Value one holding. `quantityMinor` is at the asset's scale; the result is in
  * minor units of the quote currency. Returns null when no price is available on
  * or before `asOf`, so a caller can show "unpriced" rather than a silent zero.
+ * Optional `rates` enable USD → display-currency conversion when a native quote
+ * row is missing.
  */
 export function valueHolding(input: {
   prices: readonly AssetPrice[];
@@ -76,9 +146,16 @@ export function valueHolding(input: {
   quantityScale: number;
   quoteCurrency: string;
   asOf: string;
+  rates?: readonly FxRate[];
   stalenessMs?: number;
 }): PricedValue | null {
-  const price = selectAssetPrice(input.prices, input.assetCode, input.quoteCurrency, input.asOf);
+  const price = selectDisplayPrice(
+    input.prices,
+    input.assetCode,
+    input.quoteCurrency,
+    input.asOf,
+    input.rates ?? [],
+  );
   if (!price) return null;
   if (!Number.isInteger(input.quantityScale) || input.quantityScale < 0 || input.quantityScale > 36) {
     throw new Error(`Invalid quantity scale ${input.quantityScale}.`);
@@ -126,6 +203,7 @@ export function valueHoldings(input: {
   holdings: readonly { assetCode: string; quantityMinor: bigint; quantityScale: number }[];
   quoteCurrency: string;
   asOf: string;
+  rates?: readonly FxRate[];
   stalenessMs?: number;
 }): ValuationSummary {
   const rows: PricedValue[] = [];
@@ -139,6 +217,7 @@ export function valueHoldings(input: {
       quantityScale: holding.quantityScale,
       quoteCurrency: input.quoteCurrency,
       asOf: input.asOf,
+      rates: input.rates,
       stalenessMs: input.stalenessMs,
     });
     if (value) rows.push(value);

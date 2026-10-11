@@ -16,10 +16,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { Link2, Wallet } from "lucide-react";
+import { SegmentedLinks } from "@/components/app/segmented-links";
 import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
-import { latestSnapshots, valueBooksHoldings } from "@/data/valuation";
+import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
+import { latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
@@ -54,11 +56,31 @@ function SnapshotTable({
   caption,
   snapshots,
   books,
+  quoteCurrency,
+  asOf,
+  showTotal = false,
 }: {
   caption: string;
   snapshots: readonly BooksBalanceSnapshot[];
   books: Books;
+  quoteCurrency: string;
+  asOf: string;
+  showTotal?: boolean;
 }) {
+  const rows = snapshots.map((snapshot) => ({
+    snapshot,
+    value: valueObservedSnapshot({
+      snapshot,
+      prices: books.assetPrices,
+      assets: books.assets,
+      quoteCurrency,
+      asOf,
+      rates: books.fxRates,
+    }),
+  }));
+  const priced = rows.flatMap((row) => (row.value ? [row.value] : []));
+  const totalMinor = priced.reduce((sum, value) => sum + value.valueMinor, 0n);
+
   return (
     <TableCard>
       <Table>
@@ -69,20 +91,38 @@ function SnapshotTable({
             <TableHead scope="col">Held at</TableHead>
             <TableHead scope="col">Asset</TableHead>
             <NumberHead scope="col">Quantity</NumberHead>
+            <NumberHead scope="col">Value · {quoteCurrency}</NumberHead>
             <TableHead scope="col">As of</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {snapshots.map((snapshot) => (
+          {rows.map(({ snapshot, value }) => (
             <TableRow key={snapshot.id}>
               <TableCell>{entityName(snapshot.entityId, books.entities)}</TableCell>
               <TableCell>{sourceName(snapshot.sourceId, books.sources)}</TableCell>
               <TableCell>{snapshot.assetCode}</TableCell>
               <NumberCell>{formatQuantity(snapshot.quantityMinor, snapshot.assetCode, books.assets)}</NumberCell>
+              <NumberCell>
+                {value ? formatMoney(value.valueMinor, quoteCurrency) : <span className="text-muted-foreground">No price</span>}
+              </NumberCell>
               <NumberCell align="left">{formatTimestamp(snapshot.asOf)}</NumberCell>
             </TableRow>
           ))}
         </TableBody>
+        {showTotal && priced.length > 0 ? (
+          <TableFooter>
+            <TableRow>
+              <TableHead scope="row">Total</TableHead>
+              <TableCell />
+              <TableCell />
+              <TableCell />
+              <NumberCell>{formatMoney(totalMinor, quoteCurrency)}</NumberCell>
+              <TableCell className="text-muted-foreground">
+                {priced.length < rows.length ? "Partial: some rows unpriced." : null}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        ) : null}
       </Table>
     </TableCard>
   );
@@ -91,7 +131,7 @@ function SnapshotTable({
 export default async function SourcesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
+  searchParams: Promise<{ currency?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
   await requireSectionAccess("/dashboard/sources");
@@ -100,18 +140,27 @@ export default async function SourcesPage({
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
+  const quoteCurrency = resolveHoldingsDisplayCurrency(one(params.currency));
+  const asOf = new Date().toISOString();
   const valuation = valueBooksHoldings({
     snapshots: books.balanceSnapshots,
     prices: books.assetPrices,
     assets: books.assets,
-    quoteCurrency: "USD",
-    asOf: new Date().toISOString(),
+    quoteCurrency,
+    asOf,
+    rates: books.fxRates,
   });
   const connectors = listStubAdapters();
   const liveConnectors = listLiveAdapters();
   const latest = sortSnapshots(latestSnapshots(books.balanceSnapshots));
   const history = books.balanceSnapshots.length > latest.length ? sortSnapshots(books.balanceSnapshots) : [];
   const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
+  const currencyLinks = HOLDINGS_DISPLAY_CURRENCIES.map((currency) => ({
+    key: currency,
+    href: `/dashboard/sources?currency=${currency}`,
+    label: currency,
+    current: currency === quoteCurrency,
+  }));
 
   return (
     <>
@@ -123,10 +172,15 @@ export default async function SourcesPage({
       </header>
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
+      <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <p className="text-sm text-muted-foreground">Market value currency</p>
+        <SegmentedLinks label="Market value currency" items={currencyLinks} />
+      </div>
+
       <section id="observed-balances" className="scroll-mt-6">
         <SectionHeader
           title="Observed balances"
-          description="The latest quantity per venue and asset. Activity that has not been journaled still appears here."
+          description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}. Activity that has not been journaled still appears here.`}
           action={
             canSource ? (
               <Link href="/dashboard/settings#connections" className="text-sm text-link underline">
@@ -157,13 +211,26 @@ export default async function SourcesPage({
           </EmptyState>
         ) : (
           <>
-            <SnapshotTable caption="Latest observed balances" snapshots={latest} books={books} />
+            <SnapshotTable
+              caption="Latest observed balances"
+              snapshots={latest}
+              books={books}
+              quoteCurrency={quoteCurrency}
+              asOf={asOf}
+              showTotal
+            />
             {history.length > 0 ? (
               <details className="group mt-3">
                 <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   Balance history ({books.balanceSnapshots.length} observations)
                 </summary>
-                <SnapshotTable caption="All observed balances" snapshots={history} books={books} />
+                <SnapshotTable
+                  caption="All observed balances"
+                  snapshots={history}
+                  books={books}
+                  quoteCurrency={quoteCurrency}
+                  asOf={asOf}
+                />
               </details>
             ) : null}
           </>
@@ -214,7 +281,7 @@ export default async function SourcesPage({
             />
             {canSource && writable ? (
               <div className="mt-4">
-                <MarketDataControls csrf={csrf} next="/dashboard/sources" />
+                <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} />
               </div>
             ) : null}
             {valuation.stale ? (

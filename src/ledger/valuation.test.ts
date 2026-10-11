@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { FxRate } from "./fx";
 import type { AssetPrice } from "./pricing";
-import { priceAge, selectAssetPrice, valueHolding, valueHoldings } from "./valuation";
+import { priceAge, selectAssetPrice, selectDisplayPrice, valueHolding, valueHoldings } from "./valuation";
 
 function price(overrides: Partial<AssetPrice> & Pick<AssetPrice, "assetCode" | "priceMinor" | "asOf">): AssetPrice {
   return {
@@ -47,6 +48,52 @@ describe("priceAge", () => {
   });
 });
 
+describe("selectDisplayPrice", () => {
+  const usdEth = price({ assetCode: "ETH", priceMinor: 320000n, asOf: "2026-06-14T00:00:00Z" });
+  const rates: FxRate[] = [
+    {
+      id: "fx_usd_sgd",
+      baseCurrency: "USD",
+      quoteCurrency: "SGD",
+      numerator: 13500n,
+      scale: 4,
+      asOf: "2026-06-01",
+      origin: "live",
+      note: "",
+    },
+  ];
+
+  it("prefers a native quote over USD conversion", () => {
+    const native = price({
+      id: "p_eth_sgd",
+      assetCode: "ETH",
+      quoteCurrency: "SGD",
+      priceMinor: 999999n,
+      asOf: "2026-06-14T00:00:00Z",
+    });
+    expect(selectDisplayPrice([usdEth, native], "ETH", "SGD", "2026-06-15T00:00:00Z", rates)?.priceMinor).toBe(999999n);
+  });
+
+  it("converts USD via FX when the native quote is missing", () => {
+    const converted = selectDisplayPrice([usdEth], "ETH", "SGD", "2026-06-15T00:00:00Z", rates);
+    // 3200.00 USD * 1.35 = 4320.00 SGD
+    expect(converted).toMatchObject({ quoteCurrency: "SGD", priceMinor: 432000n, source: "coingecko+fx" });
+  });
+
+  it("uses built-in fallbacks when books have no USD→display rate (old Harbourline seed)", () => {
+    const converted = selectDisplayPrice([usdEth], "ETH", "SGD", "2026-06-15T00:00:00Z", []);
+    expect(converted).toMatchObject({
+      quoteCurrency: "SGD",
+      priceMinor: 432000n,
+      source: "coingecko+fx-fallback",
+    });
+  });
+
+  it("returns null only when there is no USD price to convert", () => {
+    expect(selectDisplayPrice([], "ETH", "MYR", "2026-06-15T00:00:00Z", rates)).toBeNull();
+  });
+});
+
 describe("valueHolding", () => {
   const prices = [price({ assetCode: "ETH", priceMinor: 320000n, asOf: "2026-06-01T00:00:00Z" })];
 
@@ -78,6 +125,31 @@ describe("valueHolding", () => {
         asOf: "2026-06-15T00:00:00Z",
       }),
     ).toBeNull();
+  });
+
+  it("values MYR via USD × FX when only a USD price exists", () => {
+    const value = valueHolding({
+      prices,
+      assetCode: "ETH",
+      quantityMinor: 1_000000000000000000n,
+      quantityScale: 18,
+      quoteCurrency: "MYR",
+      asOf: "2026-06-15T00:00:00Z",
+      rates: [
+        {
+          id: "fx_usd_myr",
+          baseCurrency: "USD",
+          quoteCurrency: "MYR",
+          numerator: 47000n,
+          scale: 4,
+          asOf: "2026-06-01",
+          origin: "live",
+          note: "",
+        },
+      ],
+    });
+    // 3200.00 USD * 4.70 = 15040.00 MYR
+    expect(value).toMatchObject({ quoteCurrency: "MYR", valueMinor: 1504000n, source: "coingecko+fx" });
   });
 });
 
