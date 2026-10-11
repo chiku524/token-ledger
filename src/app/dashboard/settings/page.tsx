@@ -17,7 +17,6 @@ import { Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Flash } from "@/components/flash";
-import { PageHeader } from "@/components/page-header";
 import { ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
@@ -40,65 +39,18 @@ export default async function SettingsPage({
 
   return (
     <>
-      <PageHeader
-        kicker="Account"
-        title="Settings"
-        description="Your account, and the read-only connections for this organization. A connection cannot withdraw, trade, or sign."
-      />
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Connect venues, press Check, and manage your account. Connections are read-only — they cannot withdraw, trade, or sign.
+        </p>
+      </header>
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
-      <section>
-        <SectionHeader title="Your details" />
-        <FormCard action={changeNameAction} className="mt-4 md:grid-cols-2">
-          <input type="hidden" name="csrf" value={csrf} />
-          <Field label="Name">
-            <Input name="name" required maxLength={80} defaultValue={session.name} autoComplete="name" />
-          </Field>
-          <div className="flex items-end">
-            <SubmitButton>Save name</SubmitButton>
-          </div>
-          <p className="text-sm text-muted-foreground md:col-span-2">
-            {session.demo
-              ? "This demo is read-only, so a change lasts for this session only and is not saved."
-              : "Your email is the sign-in identity and is changed separately."}
-          </p>
-          <dl className="grid gap-3 border-t border-border pt-4 text-sm md:col-span-2 md:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Email</dt>
-              <dd className="mt-1">{session.email}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Role</dt>
-              <dd className="mt-1">{roleLabel(session.role)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Organization</dt>
-              <dd className="mt-1">{books.organization.name}</dd>
-            </div>
-          </dl>
-        </FormCard>
-      </section>
-
-      {canSource ? (
-        <section id="track-wallet" className="mt-10 scroll-mt-6">
-          <SectionHeader
-            title="Track a wallet address"
-            description="Add any public address to track. No wallet connection and no signature are required — paste an address and it is read-only. Use this for a cold address, a customer wallet, or any address you cannot sign with."
-          />
-          {books.entities.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Add a company before tracking a wallet.</p>
-          ) : (
-            <FormCard action={createConnectionAction} className="mt-4 md:grid-cols-2">
-              <WatchWalletFields books={books} csrf={csrf} next="/dashboard/settings" />
-            </FormCard>
-          )}
-        </section>
-      ) : null}
-
-      <section id="connections" className="mt-10 scroll-mt-6">
+      <section id="connections" className="scroll-mt-6">
         <SectionHeader
           title="Connections"
-          description="Add a wallet, an exchange, or a custodian here. One connection can cover several accounts. Connections stay read-only — scopes are balances and movements."
+          description="Add a wallet, an exchange, or a custodian, then press Check so Holdings can show balances."
           action={
             canSource ? (
               <Link href="/dashboard/setup" className="text-sm text-link underline">
@@ -112,7 +64,7 @@ export default async function SettingsPage({
           <div className="mt-4">
             <RoleNote>
               {canConnect
-                ? "You can connect and sign your own wallet above. Adding an exchange or custodian, tracking an arbitrary address, checking, or disconnecting is for an owner or an admin."
+                ? "You can connect and sign your own wallet. Adding an exchange or custodian, tracking an arbitrary address, checking, or disconnecting is for an owner or an admin."
                 : "You can view connections. Adding, checking, or disconnecting one is for an owner or an admin."}
             </RoleNote>
           </div>
@@ -152,6 +104,64 @@ export default async function SettingsPage({
       {canConnect && books.entities.length === 0 ? (
         <p className="mt-8 text-sm text-muted-foreground">Add a company before connecting a wallet, exchange, or custodian.</p>
       ) : null}
+
+      {canSource ? (
+        <details className="group mt-10">
+          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+            Track a wallet address
+          </summary>
+          <section id="track-wallet" className="mt-4 scroll-mt-6">
+            <SectionHeader
+              title="Track a wallet address"
+              description="Paste any public address — no signature required. Use this for a cold address or any wallet you cannot sign with."
+            />
+            {books.entities.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">Add a company before tracking a wallet.</p>
+            ) : (
+              <FormCard action={createConnectionAction} className="mt-4 md:grid-cols-2">
+                <WatchWalletFields books={books} csrf={csrf} next="/dashboard/settings" />
+              </FormCard>
+            )}
+          </section>
+        </details>
+      ) : null}
+
+      <details className="group mt-10">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+          Your details
+        </summary>
+        <section className="mt-4">
+          <SectionHeader title="Your details" />
+          <FormCard action={changeNameAction} className="mt-4 md:grid-cols-2">
+            <input type="hidden" name="csrf" value={csrf} />
+            <Field label="Name">
+              <Input name="name" required maxLength={80} defaultValue={session.name} autoComplete="name" />
+            </Field>
+            <div className="flex items-end">
+              <SubmitButton>Save name</SubmitButton>
+            </div>
+            <p className="text-sm text-muted-foreground md:col-span-2">
+              {session.demo
+                ? "This demo is read-only, so a change lasts for this session only and is not saved."
+                : "Your email is the sign-in identity and is changed separately."}
+            </p>
+            <dl className="grid gap-3 border-t border-border pt-4 text-sm md:col-span-2 md:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground">Email</dt>
+                <dd className="mt-1">{session.email}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Role</dt>
+                <dd className="mt-1">{roleLabel(session.role)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Organization</dt>
+                <dd className="mt-1">{books.organization.name}</dd>
+              </div>
+            </dl>
+          </FormCard>
+        </section>
+      </details>
     </>
   );
 }

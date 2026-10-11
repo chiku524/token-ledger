@@ -94,25 +94,30 @@ export default async function ReconciliationPage({
         <EmptyState icon={GitCompare}>Nothing to match in these dates.</EmptyState>
       ) : (
         <>
-          <div className="mb-8 grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <ChartFrame
-              title="Status"
-              description="Matched and unmatched activity in these dates."
-              rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
-            >
-              <StatusDonut rows={status.rows} total={status.total} />
-            </ChartFrame>
-            <ChartFrame
-              title="By place"
-              description="Matched and unmatched activity, counted separately for each wallet, exchange, and custodian."
-              rows={bySource.map((row) => ({
-                label: row.label,
-                detail: `${row.matched} matched, ${row.exception} unmatched`,
-              }))}
-            >
-              <StatusBars rows={bySource} />
-            </ChartFrame>
-          </div>
+          <details className="group mb-6">
+            <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+              Status charts
+            </summary>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
+              <ChartFrame
+                title="Status"
+                description="Matched and unmatched activity in these dates."
+                rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
+              >
+                <StatusDonut rows={status.rows} total={status.total} />
+              </ChartFrame>
+              <ChartFrame
+                title="By place"
+                description="Matched and unmatched activity, counted separately for each wallet, exchange, and custodian."
+                rows={bySource.map((row) => ({
+                  label: row.label,
+                  detail: `${row.matched} matched, ${row.exception} unmatched`,
+                }))}
+              >
+                <StatusBars rows={bySource} />
+              </ChartFrame>
+            </div>
+          </details>
           <TableCard className="mt-0">
             <Table>
               <caption className="sr-only">Matching for {range.from} to {range.to}</caption>
@@ -176,50 +181,55 @@ export default async function ReconciliationPage({
       )}
 
       {writable && canMatch ? (
-        <section className="mt-10">
-          <SectionHeader
-            title="Period close"
-            description="A closed period cannot be posted to, reversed, or re-matched until it is reopened. Closing is for an owner or admin."
-          />
-          {locks.length > 0 ? (
-            <TableCard>
-              <Table>
-                <caption className="sr-only">Closed periods</caption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>From</TableHead>
-                    <TableHead>To</TableHead>
-                    <TableHead>Note</TableHead>
-                    {canClose ? <TableHead>Action</TableHead> : null}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {locks.map((lock) => (
-                    <TableRow key={lock.id}>
-                      <TableCell className="min-w-36">{entityName(lock.entityId, books.entities)}</TableCell>
-                      <NumberCell align="left">{lock.periodStart}</NumberCell>
-                      <NumberCell align="left">{lock.periodEnd}</NumberCell>
-                      <TableCell className="min-w-48">{lock.note}</TableCell>
-                      {canClose ? (
-                        <TableCell>
-                          <form action={reopenPeriodAction}>
-                            <input type="hidden" name="csrf" value={csrf} />
-                            <input type="hidden" name="lockId" value={lock.id} />
-                            <SubmitButton variant="secondary">Reopen</SubmitButton>
-                          </form>
-                        </TableCell>
-                      ) : null}
+        <details className="group mt-10">
+          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+            Period close
+          </summary>
+          <section className="mt-4">
+            <SectionHeader
+              title="Period close"
+              description="A closed period cannot be posted to, reversed, or re-matched until it is reopened. Closing is for an owner or admin."
+            />
+            {locks.length > 0 ? (
+              <TableCard>
+                <Table>
+                  <caption className="sr-only">Closed periods</caption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>Note</TableHead>
+                      {canClose ? <TableHead>Action</TableHead> : null}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableCard>
-          ) : (
-            <EmptyState className="mt-4">No periods are closed.</EmptyState>
-          )}
-          {canClose ? <PeriodCloseForm entities={books.entities} csrf={csrf} defaultDate={range.to} /> : null}
-        </section>
+                  </TableHeader>
+                  <TableBody>
+                    {locks.map((lock) => (
+                      <TableRow key={lock.id}>
+                        <TableCell className="min-w-36">{entityName(lock.entityId, books.entities)}</TableCell>
+                        <NumberCell align="left">{lock.periodStart}</NumberCell>
+                        <NumberCell align="left">{lock.periodEnd}</NumberCell>
+                        <TableCell className="min-w-48">{lock.note}</TableCell>
+                        {canClose ? (
+                          <TableCell>
+                            <form action={reopenPeriodAction}>
+                              <input type="hidden" name="csrf" value={csrf} />
+                              <input type="hidden" name="lockId" value={lock.id} />
+                              <SubmitButton variant="secondary">Reopen</SubmitButton>
+                            </form>
+                          </TableCell>
+                        ) : null}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableCard>
+            ) : (
+              <EmptyState className="mt-4">No periods are closed.</EmptyState>
+            )}
+            {canClose ? <PeriodCloseForm entities={books.entities} csrf={csrf} defaultDate={range.to} /> : null}
+          </section>
+        </details>
       ) : null}
     </>
   );

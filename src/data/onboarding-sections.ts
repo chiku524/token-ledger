@@ -18,17 +18,17 @@ export interface OnboardingSection {
  * an operator can toggle; an href absent here is never hideable.
  */
 export const ONBOARDING_SECTIONS: readonly OnboardingSection[] = [
-  { href: "/dashboard/entities", label: "Companies" },
   { href: "/dashboard/sources", label: "Holdings" },
-  { href: "/dashboard/guide", label: "Guide" },
-  { href: "/dashboard/ledger", label: "Journal" },
-  { href: "/dashboard/approvals", label: "Approvals" },
   { href: "/dashboard/reconciliation", label: "Matching" },
+  { href: "/dashboard/ledger", label: "Journal" },
+  { href: "/dashboard/reports", label: "Reports" },
+  { href: "/dashboard/entities", label: "Companies" },
+  { href: "/dashboard/approvals", label: "Approvals" },
+  { href: "/dashboard/consolidation", label: "Combined" },
   { href: "/dashboard/billing", label: "Billing" },
   { href: "/dashboard/treasury", label: "Treasury" },
   { href: "/dashboard/payables", label: "Payables" },
-  { href: "/dashboard/reports", label: "Reports" },
-  { href: "/dashboard/consolidation", label: "Combined" },
+  { href: "/dashboard/guide", label: "Guide" },
   { href: "/dashboard/operations", label: "Operations" },
   { href: "/dashboard/audit", label: "History" },
 ];
