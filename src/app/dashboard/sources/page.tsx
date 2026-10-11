@@ -21,7 +21,7 @@ import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/com
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
-import { latestSnapshots, valueBooksHoldings } from "@/data/valuation";
+import { latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
@@ -56,11 +56,30 @@ function SnapshotTable({
   caption,
   snapshots,
   books,
+  quoteCurrency,
+  asOf,
+  showTotal = false,
 }: {
   caption: string;
   snapshots: readonly BooksBalanceSnapshot[];
   books: Books;
+  quoteCurrency: string;
+  asOf: string;
+  showTotal?: boolean;
 }) {
+  const rows = snapshots.map((snapshot) => ({
+    snapshot,
+    value: valueObservedSnapshot({
+      snapshot,
+      prices: books.assetPrices,
+      assets: books.assets,
+      quoteCurrency,
+      asOf,
+    }),
+  }));
+  const priced = rows.flatMap((row) => (row.value ? [row.value] : []));
+  const totalMinor = priced.reduce((sum, value) => sum + value.valueMinor, 0n);
+
   return (
     <TableCard>
       <Table>
@@ -71,20 +90,38 @@ function SnapshotTable({
             <TableHead scope="col">Held at</TableHead>
             <TableHead scope="col">Asset</TableHead>
             <NumberHead scope="col">Quantity</NumberHead>
+            <NumberHead scope="col">Value · {quoteCurrency}</NumberHead>
             <TableHead scope="col">As of</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {snapshots.map((snapshot) => (
+          {rows.map(({ snapshot, value }) => (
             <TableRow key={snapshot.id}>
               <TableCell>{entityName(snapshot.entityId, books.entities)}</TableCell>
               <TableCell>{sourceName(snapshot.sourceId, books.sources)}</TableCell>
               <TableCell>{snapshot.assetCode}</TableCell>
               <NumberCell>{formatQuantity(snapshot.quantityMinor, snapshot.assetCode, books.assets)}</NumberCell>
+              <NumberCell>
+                {value ? formatMoney(value.valueMinor, quoteCurrency) : <span className="text-muted-foreground">No price</span>}
+              </NumberCell>
               <NumberCell align="left">{formatTimestamp(snapshot.asOf)}</NumberCell>
             </TableRow>
           ))}
         </TableBody>
+        {showTotal && priced.length > 0 ? (
+          <TableFooter>
+            <TableRow>
+              <TableHead scope="row">Total</TableHead>
+              <TableCell />
+              <TableCell />
+              <TableCell />
+              <NumberCell>{formatMoney(totalMinor, quoteCurrency)}</NumberCell>
+              <TableCell className="text-muted-foreground">
+                {priced.length < rows.length ? "Partial: some rows unpriced." : null}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        ) : null}
       </Table>
     </TableCard>
   );
@@ -103,12 +140,13 @@ export default async function SourcesPage({
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
   const quoteCurrency = resolveHoldingsDisplayCurrency(one(params.currency));
+  const asOf = new Date().toISOString();
   const valuation = valueBooksHoldings({
     snapshots: books.balanceSnapshots,
     prices: books.assetPrices,
     assets: books.assets,
     quoteCurrency,
-    asOf: new Date().toISOString(),
+    asOf,
   });
   const connectors = listStubAdapters();
   const liveConnectors = listLiveAdapters();
@@ -140,7 +178,7 @@ export default async function SourcesPage({
       <section id="observed-balances" className="scroll-mt-6">
         <SectionHeader
           title="Observed balances"
-          description="The latest quantity per venue and asset. Activity that has not been journaled still appears here."
+          description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}. Activity that has not been journaled still appears here.`}
           action={
             canSource ? (
               <Link href="/dashboard/settings#connections" className="text-sm text-link underline">
@@ -171,13 +209,26 @@ export default async function SourcesPage({
           </EmptyState>
         ) : (
           <>
-            <SnapshotTable caption="Latest observed balances" snapshots={latest} books={books} />
+            <SnapshotTable
+              caption="Latest observed balances"
+              snapshots={latest}
+              books={books}
+              quoteCurrency={quoteCurrency}
+              asOf={asOf}
+              showTotal
+            />
             {history.length > 0 ? (
               <details className="group mt-3">
                 <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   Balance history ({books.balanceSnapshots.length} observations)
                 </summary>
-                <SnapshotTable caption="All observed balances" snapshots={history} books={books} />
+                <SnapshotTable
+                  caption="All observed balances"
+                  snapshots={history}
+                  books={books}
+                  quoteCurrency={quoteCurrency}
+                  asOf={asOf}
+                />
               </details>
             ) : null}
           </>

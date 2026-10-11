@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BooksBalanceSnapshot, StoredAssetPrice } from "./books";
-import { holdingsFromSnapshots, latestSnapshots, valueBooksHoldings } from "./valuation";
+import { holdingsFromSnapshots, latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "./valuation";
 
 function snapshot(overrides: Partial<BooksBalanceSnapshot> & Pick<BooksBalanceSnapshot, "sourceId" | "assetCode" | "quantityMinor" | "asOf">): BooksBalanceSnapshot {
   return {
@@ -63,5 +63,35 @@ describe("valueBooksHoldings", () => {
     expect(summary.unpriced.map((row) => row.assetCode)).toEqual(["SOL"]);
     expect(summary.incomplete).toBe(true);
     expect(summary.stale).toBe(false);
+  });
+});
+
+describe("valueObservedSnapshot", () => {
+  it("prices one venue row in the selected quote currency", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "ETH", quantityMinor: 500000000000000000n },
+      prices: [
+        { id: "p_eth_usd", organizationId: "org_1", assetCode: "ETH", quoteCurrency: "USD", priceMinor: 320000n, quoteScale: 2, asOf: "2026-06-14T00:00:00Z", origin: "live", source: "coingecko" },
+        { id: "p_eth_sgd", organizationId: "org_1", assetCode: "ETH", quoteCurrency: "SGD", priceMinor: 432000n, quoteScale: 2, asOf: "2026-06-14T00:00:00Z", origin: "live", source: "coingecko" },
+      ],
+      assets: [{ code: "ETH", decimals: 18 }],
+      quoteCurrency: "SGD",
+      asOf: "2026-06-14T12:00:00Z",
+    });
+    expect(priced).toMatchObject({ quoteCurrency: "SGD", valueMinor: 216000n });
+  });
+
+  it("returns null when there is no price in that currency", () => {
+    expect(
+      valueObservedSnapshot({
+        snapshot: { assetCode: "ETH", quantityMinor: 1n },
+        prices: [
+          { id: "p_eth", organizationId: "org_1", assetCode: "ETH", quoteCurrency: "USD", priceMinor: 320000n, quoteScale: 2, asOf: "2026-06-14T00:00:00Z", origin: "live", source: "coingecko" },
+        ],
+        assets: [{ code: "ETH", decimals: 18 }],
+        quoteCurrency: "MYR",
+        asOf: "2026-06-14T12:00:00Z",
+      }),
+    ).toBeNull();
   });
 });

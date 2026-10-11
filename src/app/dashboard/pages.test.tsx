@@ -176,15 +176,19 @@ describe("role gating", () => {
     expect(text(html)).toContain("Balance Sheet");
   });
 
-  it("values Holdings in the selected display currency", async () => {
+  it("values Holdings observed balances in the selected display currency", async () => {
     signInDemo("owner");
     const usd = await pageText(SourcesPage as Page, { currency: "USD" });
     expect(usd).toContain("Market value currency");
     expect(usd).toContain("Value · USD");
+    expect(usd).toMatch(/USD [\d,]+\.\d{2}/);
+    expect(usd).toContain("Total");
     const myr = await pageText(SourcesPage as Page, { currency: "MYR" });
     expect(myr).toContain("Value · MYR");
+    expect(myr).toMatch(/MYR [\d,]+\.\d{2}/);
     const sgd = await pageText(SourcesPage as Page, { currency: "SGD" });
     expect(sgd).toContain("Value · SGD");
+    expect(sgd).toMatch(/SGD [\d,]+\.\d{2}/);
   });
 
   it("hides the manual re-run on Operations from a viewer", async () => {

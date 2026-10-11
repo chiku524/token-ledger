@@ -3,7 +3,16 @@
  * Pure, so it is testable without a database. The latest observed snapshot per
  * source and asset is the holding; `valueHoldings` prices it.
  */
-import { assetCarryingSchedule, proposeRevaluation, valueHoldings, type AssetPrice, type RevaluationProposal, type ValuationSummary } from "@/ledger";
+import {
+  assetCarryingSchedule,
+  proposeRevaluation,
+  valueHolding,
+  valueHoldings,
+  type AssetPrice,
+  type PricedValue,
+  type RevaluationProposal,
+  type ValuationSummary,
+} from "@/ledger";
 import type { PostedJournalEntry } from "@/ledger";
 import type { BooksAccount, BooksAsset, BooksBalanceSnapshot, StoredAssetPrice } from "./books";
 
@@ -44,6 +53,31 @@ export function valueBooksHoldings(input: {
   return valueHoldings({
     prices: input.prices as readonly AssetPrice[],
     holdings,
+    quoteCurrency: input.quoteCurrency,
+    asOf: input.asOf,
+    stalenessMs: input.stalenessMs,
+  });
+}
+
+/**
+ * Market value for one observed snapshot row in the display currency.
+ * Uses the newest saved price on or before `asOf`; null when unpriced.
+ */
+export function valueObservedSnapshot(input: {
+  snapshot: Pick<BooksBalanceSnapshot, "assetCode" | "quantityMinor">;
+  prices: readonly StoredAssetPrice[];
+  assets: readonly { code: string; decimals: number }[];
+  quoteCurrency: string;
+  asOf: string;
+  stalenessMs?: number;
+}): PricedValue | null {
+  if (input.snapshot.quantityMinor === 0n) return null;
+  const decimals = input.assets.find((asset) => asset.code === input.snapshot.assetCode)?.decimals ?? 0;
+  return valueHolding({
+    prices: input.prices as readonly AssetPrice[],
+    assetCode: input.snapshot.assetCode,
+    quantityMinor: input.snapshot.quantityMinor,
+    quantityScale: decimals,
     quoteCurrency: input.quoteCurrency,
     asOf: input.asOf,
     stalenessMs: input.stalenessMs,
