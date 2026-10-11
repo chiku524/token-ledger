@@ -23,6 +23,7 @@ export type { AppliedRate, ConsolidatedTrialBalance, EntityTranslation, FxRate }
 export type { AssetPrice } from "./pricing";
 export {
   DEFAULT_STALENESS_MS,
+  HOLDINGS_DISPLAY_FX_FALLBACKS,
   priceAge,
   selectAssetPrice,
   selectDisplayPrice,

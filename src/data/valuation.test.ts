@@ -81,13 +81,11 @@ describe("valueObservedSnapshot", () => {
     expect(priced).toMatchObject({ quoteCurrency: "SGD", valueMinor: 216000n });
   });
 
-  it("returns null when there is no price and no FX path", () => {
+  it("returns null when there is no USD price to convert from", () => {
     expect(
       valueObservedSnapshot({
         snapshot: { assetCode: "ETH", quantityMinor: 1n },
-        prices: [
-          { id: "p_eth", organizationId: "org_1", assetCode: "ETH", quoteCurrency: "USD", priceMinor: 320000n, quoteScale: 2, asOf: "2026-06-14T00:00:00Z", origin: "live", source: "coingecko" },
-        ],
+        prices: [],
         assets: [{ code: "ETH", decimals: 18 }],
         quoteCurrency: "MYR",
         asOf: "2026-06-14T12:00:00Z",
@@ -119,5 +117,32 @@ describe("valueObservedSnapshot", () => {
       asOf: "2026-06-14T12:00:00Z",
     });
     expect(priced).toMatchObject({ quoteCurrency: "MYR", valueMinor: 1504000n, source: "coingecko+fx" });
+  });
+
+  it("prices SGD for old Harbourline shape (USD prices, MYR→SGD only) via fallbacks", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "SOL", quantityMinor: 100_000000000n },
+      prices: [
+        { id: "p_sol", organizationId: "org_harbourline", assetCode: "SOL", quoteCurrency: "USD", priceMinor: 15000n, quoteScale: 2, asOf: "2026-06-30T00:00:00.000Z", origin: "example", source: "example" },
+      ],
+      rates: [
+        {
+          id: "fx_example_myr_sgd",
+          organizationId: "org_harbourline",
+          baseCurrency: "MYR",
+          quoteCurrency: "SGD",
+          numerator: 3000n,
+          scale: 4,
+          asOf: "2026-04-01",
+          origin: "example",
+          note: "",
+        },
+      ],
+      assets: [{ code: "SOL", decimals: 9 }],
+      quoteCurrency: "SGD",
+      asOf: "2026-10-11T12:00:00Z",
+    });
+    // 100 SOL * 150.00 USD * 1.35 = 20,250.00 SGD
+    expect(priced).toMatchObject({ quoteCurrency: "SGD", valueMinor: 2025000n, source: "example+fx-fallback" });
   });
 });

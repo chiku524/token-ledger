@@ -80,8 +80,17 @@ describe("selectDisplayPrice", () => {
     expect(converted).toMatchObject({ quoteCurrency: "SGD", priceMinor: 432000n, source: "coingecko+fx" });
   });
 
-  it("returns null when USD and FX are both unavailable", () => {
-    expect(selectDisplayPrice([usdEth], "ETH", "MYR", "2026-06-15T00:00:00Z", rates)).toBeNull();
+  it("uses built-in fallbacks when books have no USD→display rate (old Harbourline seed)", () => {
+    const converted = selectDisplayPrice([usdEth], "ETH", "SGD", "2026-06-15T00:00:00Z", []);
+    expect(converted).toMatchObject({
+      quoteCurrency: "SGD",
+      priceMinor: 432000n,
+      source: "coingecko+fx-fallback",
+    });
+  });
+
+  it("returns null only when there is no USD price to convert", () => {
+    expect(selectDisplayPrice([], "ETH", "MYR", "2026-06-15T00:00:00Z", rates)).toBeNull();
   });
 });
 

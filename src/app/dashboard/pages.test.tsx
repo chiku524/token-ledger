@@ -186,9 +186,26 @@ describe("role gating", () => {
     const myr = await pageText(SourcesPage as Page, { currency: "MYR" });
     expect(myr).toContain("Value · MYR");
     expect(myr).toMatch(/MYR [\d,]+\.\d{2}/);
+    expect(myr).not.toContain("No price");
     const sgd = await pageText(SourcesPage as Page, { currency: "SGD" });
     expect(sgd).toContain("Value · SGD");
     expect(sgd).toMatch(/SGD [\d,]+\.\d{2}/);
+    expect(sgd).not.toContain("No price");
+  });
+
+  it("values SGD on Observed balances for USD-only Harbourline books (preview DB shape)", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      assetPrices: exampleBooks.assetPrices.filter((price) => price.quoteCurrency === "USD"),
+      fxRates: exampleBooks.fxRates.filter((rate) => rate.baseCurrency === "MYR" && rate.quoteCurrency === "SGD"),
+    });
+    signInLive("owner");
+    const sgd = await pageText(SourcesPage as Page, { currency: "SGD" });
+    expect(sgd).toContain("Value · SGD");
+    expect(sgd).toMatch(/SGD [\d,]+\.\d{2}/);
+    expect(sgd).not.toContain("No price");
+    expect(sgd).toContain("Total");
   });
 
   it("hides the manual re-run on Operations from a viewer", async () => {

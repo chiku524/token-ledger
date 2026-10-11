@@ -36,6 +36,35 @@ export const DEFAULT_STALENESS_MS = 24 * 60 * 60 * 1000;
 const USD = "USD";
 
 /**
+ * Built-in USD→SGD / USD→MYR rates used when the books have no saved pair.
+ * Harbourline DBs seeded before display-FX rows only had MYR→SGD, so SGD/MYR
+ * Holdings values would otherwise stay "No price" despite USD asset prices.
+ * Prefer any saved rate; these are last-resort display rates only.
+ */
+export const HOLDINGS_DISPLAY_FX_FALLBACKS: readonly FxRate[] = [
+  {
+    id: "fx_holdings_fallback_usd_sgd",
+    baseCurrency: "USD",
+    quoteCurrency: "SGD",
+    numerator: 13500n,
+    scale: 4,
+    asOf: "1970-01-01",
+    origin: "example",
+    note: "Built-in Holdings display rate (1 USD = 1.35 SGD).",
+  },
+  {
+    id: "fx_holdings_fallback_usd_myr",
+    baseCurrency: "USD",
+    quoteCurrency: "MYR",
+    numerator: 47000n,
+    scale: 4,
+    asOf: "1970-01-01",
+    origin: "example",
+    note: "Built-in Holdings display rate (1 USD = 4.70 MYR).",
+  },
+];
+
+/**
  * Pick the price of one whole asset unit on or before `asOf`. A live price wins
  * over an example one at the same instant; otherwise the newest wins.
  */
@@ -64,7 +93,8 @@ export function selectAssetPrice(
 
 /**
  * Prefer a native quote-currency price; otherwise convert a USD price with FX.
- * Returns null when neither path is available.
+ * Uses saved rates first, then {@link HOLDINGS_DISPLAY_FX_FALLBACKS}. Returns
+ * null only when there is no USD price (or no path to the display currency).
  */
 export function selectDisplayPrice(
   prices: readonly AssetPrice[],
@@ -75,19 +105,22 @@ export function selectDisplayPrice(
 ): AssetPrice | null {
   const direct = selectAssetPrice(prices, assetCode, quoteCurrency, asOf);
   if (direct) return direct;
-  if (quoteCurrency === USD || rates.length === 0) return null;
+  if (quoteCurrency === USD) return null;
 
   const usd = selectAssetPrice(prices, assetCode, USD, asOf);
   if (!usd) return null;
-  const applied = findAppliedRate(rates, USD, quoteCurrency, asOf);
+  const applied =
+    findAppliedRate(rates, USD, quoteCurrency, asOf) ??
+    findAppliedRate(HOLDINGS_DISPLAY_FX_FALLBACKS, USD, quoteCurrency, asOf);
   if (!applied) return null;
 
+  const viaFallback = applied.rate.id.startsWith("fx_holdings_fallback_");
   return {
     ...usd,
     id: `${usd.id}_fx_${quoteCurrency}`,
     quoteCurrency,
     priceMinor: translateWithRate(usd.priceMinor, applied, usd.quoteScale),
-    source: `${usd.source}+fx`,
+    source: viaFallback ? `${usd.source}+fx-fallback` : `${usd.source}+fx`,
   };
 }
 

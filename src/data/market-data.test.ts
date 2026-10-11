@@ -47,6 +47,28 @@ describe("backfillDisplayQuotes", () => {
     ]);
   });
 
+  it("backfills from built-in fallbacks when books have no USD FX pairs", () => {
+    const filled = backfillDisplayQuotes(
+      [
+        {
+          assetCode: "ETH",
+          quoteCurrency: "USD",
+          priceMinor: 320000n,
+          quoteScale: 2,
+          asOf: "2026-06-15T00:00:00.000Z",
+          source: "coingecko",
+        },
+      ],
+      [],
+      "2026-06-15T00:00:00.000Z",
+    );
+    expect(filled).toEqual([
+      expect.objectContaining({ quoteCurrency: "USD", priceMinor: 320000n }),
+      expect.objectContaining({ quoteCurrency: "SGD", priceMinor: 432000n, source: "coingecko+fx-fallback" }),
+      expect.objectContaining({ quoteCurrency: "MYR", priceMinor: 1504000n, source: "coingecko+fx-fallback" }),
+    ]);
+  });
+
   it("does not overwrite a native CoinGecko quote", () => {
     const filled = backfillDisplayQuotes(
       [
