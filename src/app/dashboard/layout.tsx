@@ -28,6 +28,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         : booksAreWritable()
           ? "Sample, saved"
           : "Sample";
+  /**
+   * The switch is about the source, not the origin label: a seeded database can
+   * hold books whose origin is already "example", so the books' origin cannot
+   * decide it. On means the session is showing the in-process example books.
+   */
+  const demoDataOn = session.demo === true || session.demoBooks === true;
   const scopeLabel =
     session.entityScope.length > 0
       ? `Limited to ${books.entities.map((entity) => entity.name).join(", ") || "no companies"}`
@@ -55,7 +61,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       subtitle={subtitle}
       session={session}
       csrf={csrf}
-      demoOn={books.organization.origin === "example"}
+      demoOn={demoDataOn}
       demoInteractive={booksAreWritable()}
       showUsers={can(session.role, "users.manage")}
       showOnboarding={can(session.role, "onboarding.manage")}
