@@ -67,7 +67,11 @@ async function main() {
       await tx.delete(sessions).where(inArray(sessions.userId, userIds));
     }
     await tx.delete(invites).where(eq(invites.organizationId, organizationId));
-    await tx.delete(users).where(eq(users.organizationId, organizationId));
+    // Users and the organization are upserted at the end, not deleted. The demo
+    // users have fixed ids shared with an older organization (they were adopted
+    // when the demo org was renamed), and rows in that older organization can
+    // still reference them, so deleting the users would trip a foreign key and
+    // roll back the whole seed — leaving the org with no books.
     await tx.delete(signInAttempts).where(inArray(signInAttempts.email, EXAMPLE_USERS.map((user) => user.email)));
     await tx.delete(reconciliationRecords).where(eq(reconciliationRecords.organizationId, organizationId));
     await tx.delete(balanceSnapshots).where(eq(balanceSnapshots.organizationId, organizationId));
@@ -87,9 +91,14 @@ async function main() {
     await tx.delete(connections).where(eq(connections.organizationId, organizationId));
     await tx.delete(assets).where(eq(assets.organizationId, organizationId));
     await tx.delete(entities).where(eq(entities.organizationId, organizationId));
-    await tx.delete(organizations).where(eq(organizations.id, organizationId));
 
-    await tx.insert(organizations).values(books.organization);
+    await tx
+      .insert(organizations)
+      .values(books.organization)
+      .onConflictDoUpdate({
+        target: organizations.id,
+        set: { name: sql`excluded.name`, origin: sql`excluded.origin` },
+      });
     await tx.insert(entities).values(books.entities[0]);
     await tx.insert(assets).values([...books.assets]);
     await tx.insert(connections).values(
@@ -214,18 +223,32 @@ async function main() {
     await tx.insert(assetPrices).values(
       books.assetPrices.map((price) => ({ ...price, asOf: new Date(price.asOf) })),
     );
-    await tx.insert(users).values(
-      EXAMPLE_USERS.map((user, index) => ({
-        id: `user_example_${user.role}${user.entityScope.length ? "_scoped" : ""}`,
-        organizationId,
-        email: user.email,
-        name: user.name,
-        passwordHash: passwordHashes[index] ?? null,
-        role: user.role,
-        status: "active" as const,
-        entityScope: user.entityScope.join(","),
-      })),
-    );
+    await tx
+      .insert(users)
+      .values(
+        EXAMPLE_USERS.map((user, index) => ({
+          id: `user_example_${user.role}${user.entityScope.length ? "_scoped" : ""}`,
+          organizationId,
+          email: user.email,
+          name: user.name,
+          passwordHash: passwordHashes[index] ?? null,
+          role: user.role,
+          status: "active" as const,
+          entityScope: user.entityScope.join(","),
+        })),
+      )
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          organizationId: sql`excluded.organization_id`,
+          email: sql`excluded.email`,
+          name: sql`excluded.name`,
+          passwordHash: sql`excluded.password_hash`,
+          role: sql`excluded.role`,
+          status: sql`excluded.status`,
+          entityScope: sql`excluded.entity_scope`,
+        },
+      });
     await tx.insert(auditEvents).values([
       ...books.auditEvents.map((event) => ({
         ...event,
