@@ -56,7 +56,7 @@ export const exampleEntities = [
 
 export const exampleAssets = [
   {
-    id: "asset_buidl",
+    id: "asset_ama_buidl",
     organizationId: ORG_ID,
     code: "BUIDL",
     name: "BlackRock USD Institutional Digital Liquidity Fund",
@@ -65,7 +65,7 @@ export const exampleAssets = [
     assetClass: "stablecoin" as const,
   },
   {
-    id: "asset_usdc",
+    id: "asset_ama_usdc",
     organizationId: ORG_ID,
     code: "USDC",
     name: "USD Coin",
@@ -74,7 +74,7 @@ export const exampleAssets = [
     assetClass: "stablecoin" as const,
   },
   {
-    id: "asset_gold",
+    id: "asset_ama_gold",
     organizationId: ORG_ID,
     code: "XAU",
     name: "DBS tokenised gold",
@@ -428,11 +428,11 @@ export const exampleReconciliations = buildReconciliations(
   exampleSourceTransactions,
   exampleJournalEntries,
   EXAMPLE_PERIOD.start,
-);
+).map((row, index) => ({ ...row, id: `recon_ama_${String(index + 1).padStart(2, "0")}` }));
 
 export const exampleFxRates: StoredFxRate[] = [
   {
-    id: "fx_example_usd_sgd",
+    id: "fx_ama_usd_sgd",
     organizationId: ORG_ID,
     baseCurrency: "USD",
     quoteCurrency: "SGD",
@@ -443,7 +443,7 @@ export const exampleFxRates: StoredFxRate[] = [
     note: "Illustrative example rate (1 USD = 1.35 SGD) so Holdings can convert USD prices when a native SGD quote is missing. Not a market price.",
   },
   {
-    id: "fx_example_usd_myr",
+    id: "fx_ama_usd_myr",
     organizationId: ORG_ID,
     baseCurrency: "USD",
     quoteCurrency: "MYR",
@@ -478,7 +478,7 @@ function examplePriceRows(
   convert: (usdMinor: bigint) => bigint,
 ): StoredAssetPrice[] {
   return EXAMPLE_PRICES_USD.map((price) => ({
-    id: `price_example_${price.assetCode.toLowerCase()}_${quoteCurrency.toLowerCase()}`,
+    id: `price_ama_${price.assetCode.toLowerCase()}_${quoteCurrency.toLowerCase()}`,
     organizationId: ORG_ID,
     assetCode: price.assetCode,
     quoteCurrency,
