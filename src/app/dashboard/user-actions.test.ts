@@ -31,7 +31,6 @@ import {
   resetRequest,
   revalidatePath,
   setHeader,
-  SG,
   signInDemo,
   signInLive,
 } from "@/test/server-harness";
@@ -108,7 +107,7 @@ describe.each([
 describe("inviteUserAction", () => {
   it("creates the invited user, emails the link, audits, and shows the token", async () => {
     const admin = signInLive("admin");
-    const result = await redirectOf(inviteUserAction(form({ ...INVITE, entityScope: `${MY}, ${SG}` })));
+    const result = await redirectOf(inviteUserAction(form({ ...INVITE, entityScope: `${MY}` })));
     expect(result.pathname).toBe(USERS);
     expect(result.params.get("issued")).toBe("invite-token");
     expect(result.params.get("emailed")).toBe("1");
@@ -117,7 +116,7 @@ describe("inviteUserAction", () => {
       email: "nadia@example.com",
       name: "Nadia",
       role: "accountant",
-      entityScope: [MY, SG],
+      entityScope: [MY],
       passwordHash: null,
       status: "invited",
     });
@@ -125,13 +124,13 @@ describe("inviteUserAction", () => {
       organizationId: ORG,
       email: "nadia@example.com",
       role: "accountant",
-      entityScope: [MY, SG],
+      entityScope: [MY],
       createdBy: admin.id,
     });
     const message = vi.mocked(deliver).mock.calls[0]![0];
     expect(message.to).toBe("nadia@example.com");
     expect(message.text).toContain("https://ledger.test/sign-in?invite=invite-token");
-    expect(message.text).toContain("Harbourline Digital");
+    expect(message.text).toContain("Asset Manager A");
     expect(writeAudit).toHaveBeenCalledWith({
       organizationId: ORG,
       actor: actorOf(admin),
@@ -218,11 +217,11 @@ describe("changeAccessAction", () => {
     vi.mocked(listOrganizationUsers).mockResolvedValue([owner, viewer]);
     vi.mocked(activeOwnerIds).mockResolvedValue([owner.id]);
     await expectSaved(
-      changeAccessAction(form({ userId: viewer.id, role: "accountant", entityScope: ` ${SG} ,` })),
+      changeAccessAction(form({ userId: viewer.id, role: "accountant", entityScope: ` ${MY} ,` })),
       USERS,
       `Updated ${viewer.email}.`,
     );
-    expect(setUserAccess).toHaveBeenCalledWith(viewer.id, "accountant", [SG]);
+    expect(setUserAccess).toHaveBeenCalledWith(viewer.id, "accountant", [MY]);
     expect(deleteUserSessions).toHaveBeenCalledWith(viewer.id);
     expect(writeAudit).toHaveBeenCalledWith({
       organizationId: ORG,

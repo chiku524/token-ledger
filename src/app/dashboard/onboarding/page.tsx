@@ -36,7 +36,7 @@ export default async function OnboardingPage({
     );
   }
 
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const csrf = await ensureCsrf();
   const hidden = writable ? await loadOnboardingHiddenTabs(session.organizationId) : [];
   const hiddenSet = new Set(hidden);

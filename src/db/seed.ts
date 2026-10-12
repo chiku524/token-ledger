@@ -1,5 +1,5 @@
 /**
- * Load the fictional Harbourline example into Postgres.
+ * Load the fictional Asset Manager A example into Postgres.
  * Re-running replaces that organization and its rows. It does not touch other organizations.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -91,7 +91,6 @@ async function main() {
 
     await tx.insert(organizations).values(books.organization);
     await tx.insert(entities).values(books.entities[0]);
-    if (books.entities[1]) await tx.insert(entities).values(books.entities[1]);
     await tx.insert(assets).values([...books.assets]);
     await tx.insert(connections).values(
       books.connections.map((connection) => ({
@@ -217,7 +216,7 @@ async function main() {
     );
     await tx.insert(users).values(
       EXAMPLE_USERS.map((user, index) => ({
-        id: `user_example_${user.role}${user.entityScope.length ? "_sg" : ""}`,
+        id: `user_example_${user.role}${user.entityScope.length ? "_scoped" : ""}`,
         organizationId,
         email: user.email,
         name: user.name,

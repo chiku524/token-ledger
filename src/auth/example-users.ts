@@ -1,7 +1,7 @@
 import type { Role } from "./roles";
 
 /**
- * Fictional Harbourline staff. Passwords are for local example books only.
+ * Fictional Asset Manager A staff. Passwords are for local example books only.
  * They are not production credentials. Do not import this module from a client component.
  */
 export const EXAMPLE_USERS: readonly {
@@ -12,52 +12,52 @@ export const EXAMPLE_USERS: readonly {
   password: string;
 }[] = [
   {
-    email: "owner@harbourline.example",
+    email: "owner@assetmanager-a.example",
     name: "Amina Rahman",
     role: "owner",
     entityScope: [],
-    password: "Harbourline-owner-1",
+    password: "AssetManagerA-owner-1",
   },
   {
-    email: "admin@harbourline.example",
+    email: "admin@assetmanager-a.example",
     name: "Ben Lim",
     role: "admin",
     entityScope: [],
-    password: "Harbourline-admin-1",
+    password: "AssetManagerA-admin-1",
   },
   {
-    email: "accountant@harbourline.example",
+    email: "accountant@assetmanager-a.example",
     name: "Chloe Tan",
     role: "accountant",
     entityScope: [],
-    password: "Harbourline-accountant-1",
+    password: "AssetManagerA-accountant-1",
   },
   {
-    email: "approver@harbourline.example",
+    email: "approver@assetmanager-a.example",
     name: "Farid Ismail",
     role: "approver",
     entityScope: [],
-    password: "Harbourline-approver-1",
+    password: "AssetManagerA-approver-1",
   },
   {
-    email: "viewer@harbourline.example",
+    email: "viewer@assetmanager-a.example",
     name: "David Ong",
     role: "viewer",
     entityScope: [],
-    password: "Harbourline-viewer-1",
+    password: "AssetManagerA-viewer-1",
   },
   {
-    email: "viewer.sg@harbourline.example",
+    email: "viewer.scoped@assetmanager-a.example",
     name: "Elena Khoo",
     role: "viewer",
-    entityScope: ["ent_harbourline_sg"],
-    password: "Harbourline-viewer-sg-1",
+    entityScope: ["ent_asset_manager_a"],
+    password: "AssetManagerA-viewer-scoped-1",
   },
   {
-    email: "onboarding@harbourline.example",
+    email: "onboarding@assetmanager-a.example",
     name: "Priya Nair",
     role: "onboarding",
     entityScope: [],
-    password: "Harbourline-onboarding-1",
+    password: "AssetManagerA-onboarding-1",
   },
 ];

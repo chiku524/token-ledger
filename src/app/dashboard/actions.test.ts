@@ -145,17 +145,17 @@ const JOURNAL = {
   line1_amount: "100.00",
 };
 
-const CSV = "external_id,occurred_on,asset_code,direction,quantity,description\nx-1,2026-06-20,ETH,in,0.5,Test receipt";
+const CSV = "external_id,occurred_on,asset_code,direction,quantity,description\nx-1,2026-06-20,BUIDL,in,0.5,Test receipt";
 
 function revaluableBooks(): Books {
-  // Use the USD illustrative prices as MYR quotes (one row per asset). The sample
-  // books also store SGD/MYR demo prices for Holdings; remapping every row would
-  // collide on quoteCurrency and pick the wrong market value.
+  // The example books store USD/SGD/MYR demo prices. Keep the USD rows (the
+  // entity's functional currency) and move gold below carrying value so the
+  // revaluation has a net loss to post.
   return {
     ...exampleBooks,
     assetPrices: exampleBooks.assetPrices
       .filter((price) => price.quoteCurrency === "USD")
-      .map((price) => ({ ...price, quoteCurrency: "MYR" })),
+      .map((price) => (price.assetCode === "XAU" ? { ...price, priceMinor: 230000n } : price)),
   };
 }
 
@@ -178,7 +178,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/entities",
     allowed: "admin",
     denied: "accountant",
-    fields: { name: "Harbourline Labs", jurisdiction: "my", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: MY },
+    fields: { name: "Asset Manager A Labs", jurisdiction: "my", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: MY },
     write: () => vi.mocked(insertEntity),
     saved: "Company added, with a standard set of accounts.",
   },
@@ -227,7 +227,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/sources",
     allowed: "admin",
     denied: "approver",
-    fields: { next: "/dashboard/sources", connectionId: "conn_my_eth" },
+    fields: { next: "/dashboard/sources", connectionId: "conn_blackrock_eth" },
     write: () => vi.mocked(runConnectionSync),
     saved: "Read 2 balances and 3 movements.",
   },
@@ -237,7 +237,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/settings",
     allowed: "owner",
     denied: "viewer",
-    fields: { connectionId: "conn_my_eth" },
+    fields: { connectionId: "conn_blackrock_eth" },
     write: () => vi.mocked(revokeConnection),
     saved: "Connection disconnected. Past observations stay. Nothing further will be read.",
   },
@@ -247,7 +247,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/sources",
     allowed: "accountant",
     denied: "approver",
-    fields: { sourceId: "src_my_hot", csv: CSV },
+    fields: { sourceId: "src_buidl_eth", csv: CSV },
     write: () => vi.mocked(insertSourceTransactions),
     saved: "Activity imported. Matching on the next load uses these rows.",
   },
@@ -287,7 +287,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/reconciliation",
     allowed: "accountant",
     denied: "viewer",
-    fields: { sourceTransactionId: "stx_my_unbooked", journalLine: "je_my_capital:1", note: "Same receipt" },
+    fields: { sourceTransactionId: "stx_a_unbooked", journalLine: "je_a_capital:1", note: "Same receipt" },
     write: () => vi.mocked(matchReconciliation),
     saved: "Matched. The decision is saved and survives a reload.",
   },
@@ -297,7 +297,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/reconciliation",
     allowed: "accountant",
     denied: "approver",
-    fields: { sourceTransactionId: "stx_my_buy", note: "Wrong pair" },
+    fields: { sourceTransactionId: "stx_a_buidl_eth", note: "Wrong pair" },
     write: () => vi.mocked(unmatchReconciliation),
     saved: "Match rejected. The row is an exception again.",
   },
@@ -337,7 +337,7 @@ const specs: ActionSpec[] = [
     path: "/dashboard/ledger",
     allowed: "accountant",
     denied: "approver",
-    fields: { entryId: "je_my_capital", reference: "JE-TEST-REV", entryDate: "2026-06-20", memo: "Wrong amount" },
+    fields: { entryId: "je_a_capital", reference: "JE-TEST-REV", entryDate: "2026-06-20", memo: "Wrong amount" },
     write: () => vi.mocked(insertReversal),
     saved: "Correction posted. The original entry is unchanged.",
   },
@@ -436,7 +436,7 @@ describe("save error branches", () => {
     signInLive("accountant");
     vi.mocked(insertReversal).mockRejectedValue(new LedgerError("DUPLICATE_ID", "JE-2026-001 already has a correction."));
     await expectError(
-      reverseJournalAction(form({ entryId: "je_my_capital", reference: "R-1", entryDate: "2026-06-20", memo: "Again" })),
+      reverseJournalAction(form({ entryId: "je_a_capital", reference: "R-1", entryDate: "2026-06-20", memo: "Again" })),
       "/dashboard/ledger",
       "JE-2026-001 already has a correction.",
     );
@@ -489,7 +489,7 @@ describe("save error branches", () => {
     signInLive("accountant");
     vi.mocked(matchReconciliation).mockRejectedValue(new ReconciliationError("Add a note explaining the match."));
     await expectError(
-      matchReconciliationAction(form({ sourceTransactionId: "stx_my_unbooked", journalLine: "je_my_capital:1", note: "" })),
+      matchReconciliationAction(form({ sourceTransactionId: "stx_a_unbooked", journalLine: "je_a_capital:1", note: "" })),
       "/dashboard/reconciliation",
       "Add a note explaining the match.",
     );
@@ -500,13 +500,13 @@ describe("createEntityAction", () => {
   it("uppercases the country code and records the actor", async () => {
     const user = signInLive("owner");
     await expectSaved(
-      createEntityAction(form({ name: "Harbourline Labs", jurisdiction: "my", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: MY })),
+      createEntityAction(form({ name: "Asset Manager A Labs", jurisdiction: "my", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: MY })),
       "/dashboard/entities",
       "Company added, with a standard set of accounts.",
     );
     expect(insertEntity).toHaveBeenCalledWith(
       exampleBooks,
-      { name: "Harbourline Labs", jurisdiction: "MY", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: MY },
+      { name: "Asset Manager A Labs", jurisdiction: "MY", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: MY },
       actorOf(user),
     );
     expect(loadBooks).toHaveBeenCalledWith(ORG);
@@ -699,14 +699,14 @@ describe("refreshMarketDataAction", () => {
 describe("refreshConnectionAction", () => {
   it("runs a manual sync as the signed-in user", async () => {
     const user = signInLive("admin");
-    await expectSaved(refreshConnectionAction(form({ connectionId: "conn_my_eth" })), "/dashboard/settings", "Read 2 balances and 3 movements.");
-    expect(runConnectionSync).toHaveBeenCalledWith(exampleBooks, "conn_my_eth", { actor: actorOf(user), trigger: "manual" });
+    await expectSaved(refreshConnectionAction(form({ connectionId: "conn_blackrock_eth" })), "/dashboard/settings", "Read 2 balances and 3 movements.");
+    expect(runConnectionSync).toHaveBeenCalledWith(exampleBooks, "conn_blackrock_eth", { actor: actorOf(user), trigger: "manual" });
   });
 
   it.each(["failed", "not_live"] as const)("reports a %s pull as an error", async (status) => {
     signInLive("admin");
-    vi.mocked(runConnectionSync).mockResolvedValue({ connectionId: "conn_my_eth", status, balances: 0, movements: 0, accounts: 0, message: "The read failed." });
-    await expectError(refreshConnectionAction(form({ connectionId: "conn_my_eth" })), "/dashboard/settings", "The read failed.");
+    vi.mocked(runConnectionSync).mockResolvedValue({ connectionId: "conn_blackrock_eth", status, balances: 0, movements: 0, accounts: 0, message: "The read failed." });
+    await expectError(refreshConnectionAction(form({ connectionId: "conn_blackrock_eth" })), "/dashboard/settings", "The read failed.");
   });
 
   it("refuses a connection from another organization", async () => {
@@ -719,22 +719,22 @@ describe("refreshConnectionAction", () => {
     signInLive("admin");
     vi.mocked(loadBooks).mockResolvedValue({
       ...exampleBooks,
-      connections: exampleBooks.connections.map((item) => (item.id === "conn_my_eth" ? { ...item, status: "revoked" as const } : item)),
+      connections: exampleBooks.connections.map((item) => (item.id === "conn_blackrock_eth" ? { ...item, status: "revoked" as const } : item)),
     });
-    await expectError(refreshConnectionAction(form({ connectionId: "conn_my_eth" })), "/dashboard/settings", "This connection is disconnected.");
+    await expectError(refreshConnectionAction(form({ connectionId: "conn_blackrock_eth" })), "/dashboard/settings", "This connection is disconnected.");
   });
 
   it("refuses a connection with no linked account", async () => {
     signInLive("admin");
-    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, sources: exampleBooks.sources.filter((source) => source.connectionId !== "conn_my_eth") });
-    await expectError(refreshConnectionAction(form({ connectionId: "conn_my_eth" })), "/dashboard/settings", "This connection has no account to read.");
+    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, sources: exampleBooks.sources.filter((source) => source.connectionId !== "conn_blackrock_eth") });
+    await expectError(refreshConnectionAction(form({ connectionId: "conn_blackrock_eth" })), "/dashboard/settings", "This connection has no account to read.");
   });
 
   it("hides a thrown sync error", async () => {
     signInLive("admin");
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(runConnectionSync).mockRejectedValue(new Error("socket hang up"));
-    await expectError(refreshConnectionAction(form({ connectionId: "conn_my_eth" })), "/dashboard/settings", "Could not save the record.");
+    await expectError(refreshConnectionAction(form({ connectionId: "conn_blackrock_eth" })), "/dashboard/settings", "Could not save the record.");
   });
 });
 
@@ -742,11 +742,11 @@ describe("revokeConnectionAction", () => {
   it("revokes as the signed-in user", async () => {
     const user = signInLive("admin");
     await expectSaved(
-      revokeConnectionAction(form({ connectionId: "conn_sg_custody", next: "/dashboard/sources" })),
+      revokeConnectionAction(form({ connectionId: "conn_dbs_custody", next: "/dashboard/sources" })),
       "/dashboard/sources",
       "Connection disconnected. Past observations stay. Nothing further will be read.",
     );
-    expect(revokeConnection).toHaveBeenCalledWith(exampleBooks, "conn_sg_custody", actorOf(user));
+    expect(revokeConnection).toHaveBeenCalledWith(exampleBooks, "conn_dbs_custody", actorOf(user));
   });
 
   it("refuses a connection from another organization", async () => {
@@ -757,7 +757,7 @@ describe("revokeConnectionAction", () => {
   it("does not narrow an admin by entity scope", async () => {
     signInLive("admin", { entityScope: [SG] });
     await expectSaved(
-      revokeConnectionAction(form({ connectionId: "conn_my_eth" })),
+      revokeConnectionAction(form({ connectionId: "conn_blackrock_eth" })),
       "/dashboard/settings",
       "Connection disconnected. Past observations stay. Nothing further will be read.",
     );
@@ -767,11 +767,11 @@ describe("revokeConnectionAction", () => {
 describe("importCsvAction", () => {
   it("imports parsed rows from the text field", async () => {
     const user = signInLive("accountant");
-    await expectSaved(importCsvAction(form({ sourceId: "src_my_hot", csv: CSV })), "/dashboard/sources", "Activity imported. Matching on the next load uses these rows.");
+    await expectSaved(importCsvAction(form({ sourceId: "src_buidl_eth", csv: CSV })), "/dashboard/sources", "Activity imported. Matching on the next load uses these rows.");
     expect(insertSourceTransactions).toHaveBeenCalledWith(
       exampleBooks,
-      "src_my_hot",
-      [{ externalId: "x-1", occurredOn: "2026-06-20", assetCode: "ETH", direction: "in", quantityMinor: 500000000000000000n, description: "Test receipt" }],
+      "src_buidl_eth",
+      [{ externalId: "x-1", occurredOn: "2026-06-20", assetCode: "BUIDL", direction: "in", quantityMinor: 500000n, description: "Test receipt" }],
       actorOf(user),
     );
   });
@@ -780,7 +780,7 @@ describe("importCsvAction", () => {
     signInLive("accountant");
     const file = new File([CSV.replace("x-1", "file-1")], "activity.csv", { type: "text/csv" });
     await expectSaved(
-      importCsvAction(form({ sourceId: "src_my_hot", csv: "ignored", file })),
+      importCsvAction(form({ sourceId: "src_buidl_eth", csv: "ignored", file })),
       "/dashboard/sources",
       "Activity imported. Matching on the next load uses these rows.",
     );
@@ -790,7 +790,7 @@ describe("importCsvAction", () => {
   it("returns the first CSV error", async () => {
     signInLive("accountant");
     await expectError(
-      importCsvAction(form({ sourceId: "src_my_hot", csv: "a,b\n1,2" })),
+      importCsvAction(form({ sourceId: "src_buidl_eth", csv: "a,b\n1,2" })),
       "/dashboard/sources",
       "Header must be external_id,occurred_on,asset_code,direction,quantity,description.",
     );
@@ -804,7 +804,7 @@ describe("importCsvAction", () => {
 
   it("refuses a source outside the user's scope", async () => {
     signInLive("accountant", { entityScope: [SG] });
-    await expectError(importCsvAction(form({ sourceId: "src_my_hot", csv: CSV })), "/dashboard/sources", OUTSIDE_ACCESS);
+    await expectError(importCsvAction(form({ sourceId: "src_buidl_eth", csv: CSV })), "/dashboard/sources", OUTSIDE_ACCESS);
     expect(insertSourceTransactions).not.toHaveBeenCalled();
   });
 });
@@ -816,7 +816,7 @@ describe("postJournalAction", () => {
     const [books, entry, actor] = vi.mocked(insertJournal).mock.calls[0]!;
     expect(books).toBe(exampleBooks);
     expect(actor).toBe(actorOf(user));
-    expect(entry).toMatchObject({ entityId: MY, reference: "JE-TEST-1", entryDate: "2026-06-20", currency: "MYR" });
+    expect(entry).toMatchObject({ entityId: MY, reference: "JE-TEST-1", entryDate: "2026-06-20", currency: "USD" });
     expect(entry.lines.map((line) => [line.accountCode, line.side, line.amountMinor])).toEqual([
       ["1000", "debit", 10000n],
       ["3100", "credit", 10000n],
@@ -836,7 +836,7 @@ describe("postJournalAction", () => {
     await expectError(
       postJournalAction(form({ ...JOURNAL, line1_account: "9999" })),
       "/dashboard/ledger",
-      "Account 9999 is not on the accounts for Harbourline Digital Sdn. Bhd..",
+      "Account 9999 is not on the accounts for Asset Manager A Pte. Ltd..",
     );
   });
 
@@ -895,16 +895,16 @@ describe("matchReconciliationAction and unmatchReconciliationAction", () => {
   it("matches a source row to a journal line", async () => {
     const user = signInLive("accountant");
     await expectSaved(
-      matchReconciliationAction(form({ sourceTransactionId: "stx_my_unbooked", journalLine: "je_my_capital:2", note: "Same receipt" })),
+      matchReconciliationAction(form({ sourceTransactionId: "stx_a_unbooked", journalLine: "je_a_capital:2", note: "Same receipt" })),
       "/dashboard/reconciliation",
       "Matched. The decision is saved and survives a reload.",
     );
-    expect(assertPeriodOpen).toHaveBeenCalledWith(ORG, MY, "2026-06-18");
+    expect(assertPeriodOpen).toHaveBeenCalledWith(ORG, MY, "2026-06-25");
     expect(matchReconciliation).toHaveBeenCalledWith({
       organizationId: ORG,
       entityId: MY,
-      sourceTransactionId: "stx_my_unbooked",
-      journalEntryId: "je_my_capital",
+      sourceTransactionId: "stx_a_unbooked",
+      journalEntryId: "je_a_capital",
       journalLineNumber: 2,
       note: "Same receipt",
       actor: actorOf(user),
@@ -913,12 +913,12 @@ describe("matchReconciliationAction and unmatchReconciliationAction", () => {
 
   it.each([
     ["an unknown entry", "je_other:1"],
-    ["a line that is not a number", "je_my_capital:x"],
+    ["a line that is not a number", "je_a_capital:x"],
     ["no line", ""],
   ])("refuses %s", async (_label, journalLine) => {
     signInLive("accountant");
     await expectError(
-      matchReconciliationAction(form({ sourceTransactionId: "stx_my_unbooked", journalLine, note: "n" })),
+      matchReconciliationAction(form({ sourceTransactionId: "stx_a_unbooked", journalLine, note: "n" })),
       "/dashboard/reconciliation",
       "Choose a journal line to match.",
     );
@@ -928,7 +928,7 @@ describe("matchReconciliationAction and unmatchReconciliationAction", () => {
   it("refuses activity from another organization", async () => {
     signInLive("accountant");
     await expectError(
-      matchReconciliationAction(form({ sourceTransactionId: "stx_other", journalLine: "je_my_capital:1", note: "n" })),
+      matchReconciliationAction(form({ sourceTransactionId: "stx_other", journalLine: "je_a_capital:1", note: "n" })),
       "/dashboard/reconciliation",
       "That activity is not in this organization.",
     );
@@ -937,12 +937,12 @@ describe("matchReconciliationAction and unmatchReconciliationAction", () => {
   it("refuses activity outside the user's scope", async () => {
     signInLive("accountant", { entityScope: [SG] });
     await expectError(
-      matchReconciliationAction(form({ sourceTransactionId: "stx_my_unbooked", journalLine: "je_my_capital:1", note: "n" })),
+      matchReconciliationAction(form({ sourceTransactionId: "stx_a_unbooked", journalLine: "je_a_capital:1", note: "n" })),
       "/dashboard/reconciliation",
       OUTSIDE_ACCESS,
     );
     await expectError(
-      unmatchReconciliationAction(form({ sourceTransactionId: "stx_my_buy", note: "n" })),
+      unmatchReconciliationAction(form({ sourceTransactionId: "stx_a_buidl_eth", note: "n" })),
       "/dashboard/reconciliation",
       OUTSIDE_ACCESS,
     );
@@ -953,7 +953,7 @@ describe("matchReconciliationAction and unmatchReconciliationAction", () => {
     signInLive("accountant");
     vi.mocked(assertPeriodOpen).mockRejectedValue(new BooksWriteError("That date is in a closed period."));
     await expectError(
-      matchReconciliationAction(form({ sourceTransactionId: "stx_my_unbooked", journalLine: "je_my_capital:1", note: "n" })),
+      matchReconciliationAction(form({ sourceTransactionId: "stx_a_unbooked", journalLine: "je_a_capital:1", note: "n" })),
       "/dashboard/reconciliation",
       "That date is in a closed period.",
     );
@@ -963,14 +963,14 @@ describe("matchReconciliationAction and unmatchReconciliationAction", () => {
   it("unmatches a source row", async () => {
     const user = signInLive("accountant");
     await expectSaved(
-      unmatchReconciliationAction(form({ sourceTransactionId: "stx_my_buy", note: "Wrong pair" })),
+      unmatchReconciliationAction(form({ sourceTransactionId: "stx_a_buidl_eth", note: "Wrong pair" })),
       "/dashboard/reconciliation",
       "Match rejected. The row is an exception again.",
     );
     expect(unmatchReconciliation).toHaveBeenCalledWith({
       organizationId: ORG,
       entityId: MY,
-      sourceTransactionId: "stx_my_buy",
+      sourceTransactionId: "stx_a_buidl_eth",
       note: "Wrong pair",
       actor: actorOf(user),
     });
@@ -995,7 +995,7 @@ describe("draft workflow", () => {
       reference: "JE-TEST-1",
       entryDate: "2026-06-20",
       memo: "Test entry",
-      currency: "MYR",
+      currency: "USD",
       lines: [
         expect.objectContaining({ accountCode: "1000", side: "debit", amountMinor: 10000n }),
         expect.objectContaining({ accountCode: "3100", side: "credit", amountMinor: 10000n }),
@@ -1051,13 +1051,13 @@ describe("reverseJournalAction", () => {
   it("posts a correction for an entry in the books", async () => {
     const user = signInLive("accountant");
     await expectSaved(
-      reverseJournalAction(form({ entryId: "je_my_capital", reference: "JE-TEST-REV", entryDate: "2026-06-20", memo: "Wrong amount" })),
+      reverseJournalAction(form({ entryId: "je_a_capital", reference: "JE-TEST-REV", entryDate: "2026-06-20", memo: "Wrong amount" })),
       "/dashboard/ledger",
       "Correction posted. The original entry is unchanged.",
     );
     expect(insertReversal).toHaveBeenCalledWith(
       exampleBooks,
-      "je_my_capital",
+      "je_a_capital",
       { reference: "JE-TEST-REV", entryDate: "2026-06-20", memo: "Wrong amount" },
       actorOf(user),
     );
@@ -1075,7 +1075,7 @@ describe("reverseJournalAction", () => {
   it("refuses an entry outside the user's scope", async () => {
     signInLive("accountant", { entityScope: [SG] });
     await expectError(
-      reverseJournalAction(form({ entryId: "je_my_capital", reference: "R", entryDate: "2026-06-20", memo: "m" })),
+      reverseJournalAction(form({ entryId: "je_a_capital", reference: "R", entryDate: "2026-06-20", memo: "m" })),
       "/dashboard/ledger",
       OUTSIDE_ACCESS,
     );
@@ -1084,7 +1084,7 @@ describe("reverseJournalAction", () => {
 
   it("returns the first validation issue", async () => {
     signInLive("accountant");
-    await expectError(reverseJournalAction(form({ entryId: "je_my_capital", reference: "", entryDate: "2026-06-20", memo: "m" })), "/dashboard/ledger", "Too small: expected string to have >=1 characters");
+    await expectError(reverseJournalAction(form({ entryId: "je_a_capital", reference: "", entryDate: "2026-06-20", memo: "m" })), "/dashboard/ledger", "Too small: expected string to have >=1 characters");
   });
 });
 

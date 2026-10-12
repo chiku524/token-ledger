@@ -104,7 +104,7 @@ export function DashboardPreview() {
           </aside>
           <div className="min-w-0 flex-1 p-4 sm:p-5">
             <div className="mb-5 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold tracking-tight sm:text-base">Harbourline Digital</h2>
+              <h2 className="text-sm font-semibold tracking-tight sm:text-base">Asset Manager A</h2>
             </div>
             <div className="preview-tiles mb-4 grid grid-cols-[1.7fr_1fr_1fr] gap-2">
               <div className="rounded-lg border bg-card p-3">

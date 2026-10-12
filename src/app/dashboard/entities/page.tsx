@@ -24,7 +24,7 @@ export default async function EntitiesPage({
   await requireSectionAccess("/dashboard/entities");
   const { session, books } = await loadAuthorizedBooks();
   const allowed = can(session.role, "entity.write");
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
 
   return (
     <>

@@ -28,7 +28,7 @@ export default async function ApprovalsPage({
   const { session, books } = await loadAuthorizedBooks();
   const canApprove = can(session.role, "journal.approve");
   const canPrepare = can(session.role, "journal.prepare");
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const csrf = await ensureCsrf();
 
   let drafts: DraftRow[] = [];

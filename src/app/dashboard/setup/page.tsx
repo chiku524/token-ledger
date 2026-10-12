@@ -28,7 +28,7 @@ export default async function SetupPage({
   if (!can(session.role, "source.write")) redirect("/dashboard");
 
   const current = setupStep(one(params.step));
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const csrf = writable ? await ensureCsrf() : "";
   const step = current.id === "done" ? null : SETUP_FLOW[current.index];
 

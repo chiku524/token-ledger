@@ -7,13 +7,13 @@ import { exampleAccounts } from "@/data/example-books";
 
 describe("reverseJournalEntry", () => {
   it("flips sides and quantity direction and leaves the original entry untouched", () => {
-    const original = exampleJournalEntries.find((entry) => entry.id === "je_my_buy_eth");
+    const original = exampleJournalEntries.find((entry) => entry.id === "je_a_buidl");
     if (!original) throw new Error("missing example entry");
     const reversal = reverseJournalEntry(original, {
       id: "je_reverse",
-      reference: "JE-2026-009",
+      reference: "JE-2026-008",
       entryDate: "2026-06-30",
-      memo: "Reverse the example ETH purchase.",
+      memo: "Reverse the example BUIDL acquisition.",
     });
 
     expect(original.lines[0]?.side).toBe("debit");
@@ -22,11 +22,11 @@ describe("reverseJournalEntry", () => {
     expect(reversal.lines[1]?.side).toBe("debit");
     expect(reversal.debitMinor).toBe(original.debitMinor);
     expect(reversal.entityId).toBe(original.entityId);
-    expect(original.memo).toContain("purchase");
+    expect(original.memo).toContain("acquire");
 
     const report = trialBalance([...exampleJournalEntries, reversal], exampleAccounts, original.entityId);
     expect(report.debitTotal).toBe(report.creditTotal);
-    const intangible = report.rows.find((row) => row.code === "1310");
-    expect(intangible && intangible.debitMinor - intangible.creditMinor).toBe(toMinor("624.00", 2));
+    const tokens = report.rows.find((row) => row.code === "1330");
+    expect(tokens && tokens.debitMinor - tokens.creditMinor).toBe(toMinor("1512050.00", 2));
   });
 });

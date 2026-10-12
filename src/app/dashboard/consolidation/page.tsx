@@ -153,7 +153,7 @@ export default async function ConsolidationPage({
         )}
         {canFx ? (
           <>
-            {booksAreWritable() && !session.demo ? null : <ReadOnlyNote demo={session.demo} />}
+            {booksAreWritable() && !session.demo && !session.demoBooks ? null : <ReadOnlyNote demo={session.demo} />}
             <FxRateForm csrf={await ensureCsrf()} defaultDate={range.to} />
           </>
         ) : null}

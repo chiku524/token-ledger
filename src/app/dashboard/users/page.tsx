@@ -48,7 +48,7 @@ export default async function UsersPage({
   }
 
   const csrf = await ensureCsrf();
-  const database = hasDatabase() && !session.demo;
+  const database = hasDatabase() && !session.demo && !session.demoBooks;
   const people = database
     ? await listOrganizationUsers(session.organizationId)
     : EXAMPLE_USERS.map(({ email, name, role, entityScope }) => ({
@@ -91,7 +91,7 @@ export default async function UsersPage({
       ) : null}
       {session.demo ? (
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          This demo lists the sample Harbourline staff and shows the invite form. Adding a person needs a database.
+          This demo lists the sample Asset Manager A staff and shows the invite form. Adding a person needs a database.
         </p>
       ) : null}
       <FormCard action={inviteUserAction} title="Invite someone" className="mb-10 md:grid-cols-2">

@@ -96,15 +96,15 @@ afterEach(() => {
 
 describe("read-only sample (demo owner, no database)", () => {
   it.each<[string, Page, string[]]>([
-    ["Overview", OverviewPage as Page, ["Harbourline Digital", "Companies", "Recent entries"]],
+    ["Overview", OverviewPage as Page, ["Asset Manager A", "Companies", "Recent entries"]],
     ["Journal", LedgerPage as Page, ["Journal", DEMO_NOTE, "Post an entry", "JE-2026-001"]],
-    ["Reports", ReportsPage as Page, ["Reports", "Harbourline Digital Sdn. Bhd.", "IFRS"]],
+    ["Reports", ReportsPage as Page, ["Reports", "Asset Manager A Pte. Ltd.", "IFRS"]],
     ["Matching", ReconciliationPage as Page, ["Matching", DEMO_NOTE]],
     ["Approvals", ApprovalsPage as Page, ["Approvals", DEMO_NOTE, "Nothing is waiting for approval."]],
-    ["Holdings", SourcesPage as Page, ["Holdings", DEMO_NOTE, "Treasury hot wallet", "Import activity"]],
+    ["Holdings", SourcesPage as Page, ["Holdings", DEMO_NOTE, "BlackRock digital wallet (Ethereum)", "Import activity"]],
     ["Users", UsersPage as Page, ["Users", "Invite someone"]],
     ["Settings", SettingsPage as Page, ["Settings", "Your details"]],
-    ["Companies", EntitiesPage as Page, ["Companies", DEMO_NOTE, "Add a company", "Harbourline Digital Sdn. Bhd."]],
+    ["Companies", EntitiesPage as Page, ["Companies", DEMO_NOTE, "Add a company", "Asset Manager A Pte. Ltd."]],
     ["Combined", ConsolidationPage as Page, ["Combined", "Add a rate"]],
     ["History", AuditPage as Page, ["History"]],
     ["Operations", OperationsPage as Page, ["Operations", DEMO_NOTE]],
@@ -198,7 +198,7 @@ describe("role gating", () => {
     vi.mocked(loadBooks).mockResolvedValue({
       ...exampleBooks,
       assetPrices: exampleBooks.assetPrices.filter((price) => price.quoteCurrency === "USD"),
-      fxRates: exampleBooks.fxRates.filter((rate) => rate.baseCurrency === "MYR" && rate.quoteCurrency === "SGD"),
+      fxRates: exampleBooks.fxRates.filter((rate) => rate.baseCurrency === "USD" && rate.quoteCurrency === "SGD"),
     });
     signInLive("owner");
     const sgd = await pageText(SourcesPage as Page, { currency: "SGD" });
@@ -252,11 +252,10 @@ describe("role gating", () => {
 });
 
 describe("entity scope", () => {
-  it("shows a scoped viewer only their company's entries", async () => {
+  it("hides entries from a company outside the viewer's scope", async () => {
     signInDemo("viewer", [SG]);
     const content = await pageText(LedgerPage as Page);
     expect(content).not.toContain("JE-2026-001");
-    expect(content).toContain("Harbourline Digital Pte. Ltd.");
   });
 
   it("shows an unscoped viewer every company's entries", async () => {

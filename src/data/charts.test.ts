@@ -12,52 +12,52 @@ import {
   sourceKindPanels,
 } from "./charts";
 
+const ENT = "ent_asset_manager_a";
+
 describe("dashboard chart rows", () => {
-  it("formats example carrying amounts and keeps currencies apart", () => {
+  it("formats example carrying amounts in the functional currency", () => {
     const assets = assetAllocationPanels();
-    expect(assets.map((panel) => panel.currency)).toEqual(["MYR", "SGD"]);
+    expect(assets.map((panel) => panel.currency)).toEqual(["USD"]);
     expect(assets[0]?.rows.map((row) => [row.label, row.value, row.formatted])).toEqual([
-      ["USDC", 42000, "MYR 42,000.00 · 57.0%"],
-      ["ETH", 31624, "MYR 31,624.00 · 43.0%"],
+      ["BUIDL", 2012500, "USD 2,012,500.00 · 47.2%"],
+      ["USDC", 1499550, "USD 1,499,550.00 · 35.2%"],
+      ["XAU", 750000, "USD 750,000.00 · 17.6%"],
     ]);
-    expect(assets[1]?.rows).toEqual([
-      expect.objectContaining({ label: "SOL", value: 18000, formatted: "SGD 18,000.00 · 100.0%" }),
-    ]);
-    expect(reportAssetBars("ent_harbourline_sg")).toEqual(assets[1]?.rows);
+    expect(reportAssetBars(ENT)).toEqual(assets[0]?.rows);
   });
 
   it("plots source, kind, and chain totals from the same books", () => {
     expect(sourceCarryingPanels()[0]?.rows.map((row) => [row.label, row.value])).toEqual([
-      ["Northwharf Custody", 42000],
-      ["Treasury cold wallet", 24774],
-      ["Example Exchange — KL desk", 6200],
-      ["ETH staking position", 650],
+      ["BlackRock digital wallet (Ethereum)", 1512500],
+      ["Circle wallet", 1499550],
+      ["DBS digital wallet (private EVM)", 750000],
+      ["BlackRock digital wallet (Solana)", 500000],
     ]);
-    expect(sourceKindPanels()[0]?.rows.map((row) => row.label)).toEqual(["Custodian", "Wallet", "Exchange"]);
+    expect(sourceKindPanels()[0]?.rows.map((row) => row.label)).toEqual(["Wallet"]);
     expect(chainPanels().map((panel) => [panel.currency, panel.rows[0]?.label, panel.rows[0]?.value])).toEqual([
-      ["MYR", "Ethereum", 73624],
-      ["SGD", "Solana", 18000],
+      ["USD", "Ethereum", 3512050],
     ]);
   });
 
   it("draws the carrying-value path and the asset mix", () => {
-    const [malaysia, singapore] = carryingSeries();
-    expect(malaysia?.points.map((point) => point.value)).toEqual([0, 0, 31000, 31000, 31000, 31650, 31624, 73624]);
-    expect(malaysia?.points.at(-1)?.formatted).toBe("MYR 73,624.00");
-    expect(singapore?.points.at(-1)).toMatchObject({ value: 18000, formatted: "SGD 18,000.00" });
+    const [assetManagerA] = carryingSeries();
+    expect(assetManagerA?.points.map((point) => point.value)).toEqual([
+      0, 2000000, 3500000, 4250000, 4250000, 4262500, 4262050,
+    ]);
+    expect(assetManagerA?.points.at(-1)?.formatted).toBe("USD 4,262,050.00");
     expect(compositionPanels()[0]?.rows.map((row) => [row.label, row.value])).toEqual([
-      ["Cash", 427000],
-      ["Crypto", 31624],
-      ["Stablecoins", 42000],
+      ["Cash", 750000],
+      ["Crypto", 750000],
+      ["Stablecoins", 3512050],
     ]);
   });
 
   it("counts journals and reconciliation status", () => {
     const activity = journalActivityChart();
-    expect(activity.rows.map((row) => [row.label, row.ent_harbourline_my, row.ent_harbourline_sg])).toEqual([
-      ["Apr", 3, 2],
-      ["May", 2, 0],
-      ["Jun", 1, 0],
+    expect(activity.rows.map((row) => [row.label, row[ENT]])).toEqual([
+      ["Apr", 2],
+      ["May", 2],
+      ["Jun", 3],
     ]);
     expect(reconciliationStatus()).toMatchObject({
       total: 8,
@@ -66,6 +66,6 @@ describe("dashboard chart rows", () => {
         { id: "exception", value: 1 },
       ],
     });
-    expect(reconciliationBySource()[0]).toMatchObject({ label: "Treasury hot wallet", matched: 0, exception: 1 });
+    expect(reconciliationBySource()[0]).toMatchObject({ label: "DBS digital wallet (Hyperledger)", matched: 0, exception: 1 });
   });
 });

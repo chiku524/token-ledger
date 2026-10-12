@@ -8,7 +8,7 @@ describe("draftFromForm", () => {
   it("splits a balanced form into draft lines with no id", () => {
     const draft = draftFromForm(
       {
-        entityId: "ent_harbourline_my",
+        entityId: "ent_asset_manager_a",
         reference: "DRAFT-1",
         entryDate: "2026-06-30",
         memo: "A draft.",
@@ -19,7 +19,7 @@ describe("draftFromForm", () => {
       },
       exampleBooks,
     );
-    expect(draft.currency).toBe("MYR");
+    expect(draft.currency).toBe("USD");
     expect(draft.lines).toHaveLength(2);
     expect(draft.lines[0]).toMatchObject({ accountCode: "1000", side: "debit" });
   });
@@ -28,7 +28,7 @@ describe("draftFromForm", () => {
     expect(() =>
       draftFromForm(
         {
-          entityId: "ent_harbourline_my",
+          entityId: "ent_asset_manager_a",
           reference: "DRAFT-BAD",
           entryDate: "2026-06-30",
           memo: "Unbalanced.",
@@ -56,7 +56,7 @@ describe("postFormJournal", () => {
   it("posts in the entity functional currency and rejects an unbalanced entry", () => {
     const posted = postFormJournal(
       {
-        entityId: "ent_harbourline_my",
+        entityId: "ent_asset_manager_a",
         reference: "JE-TEST",
         entryDate: "2026-06-30",
         memo: "Example form posting.",
@@ -67,13 +67,13 @@ describe("postFormJournal", () => {
       },
       exampleBooks,
     );
-    expect(posted.currency).toBe("MYR");
+    expect(posted.currency).toBe("USD");
     expect(posted.debitMinor).toBe(toMinor("15.50", 2));
 
     expect(() =>
       postFormJournal(
         {
-          entityId: "ent_harbourline_my",
+          entityId: "ent_asset_manager_a",
           reference: "JE-BAD",
           entryDate: "2026-06-30",
           memo: "Unbalanced.",

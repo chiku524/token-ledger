@@ -15,8 +15,7 @@ import {
 import { toMinor } from "./money";
 import { trialBalance } from "./reports";
 
-const MY = "ent_harbourline_my";
-const SG = "ent_harbourline_sg";
+const ENT = "ent_asset_manager_a";
 const sen = (amount: string) => toMinor(amount, 2);
 
 describe("percentOf", () => {
@@ -31,100 +30,90 @@ describe("example book charts", () => {
   const { journalEntries: entries, accounts, sources, assets, reconciliations } = exampleBooks;
   const sourceMeta = sources.map((source) => ({ id: source.id, kind: source.kind }));
 
-  it("allocates carrying value by asset without mixing MYR and SGD", () => {
+  it("allocates carrying value by asset in one functional currency", () => {
     const rows = carryingByAsset(entries, accounts);
-    expect(rows.filter((row) => row.entityId === MY).map((row) => [row.assetCode, row.carryingMinor])).toEqual([
-      ["USDC", sen("42000.00")],
-      ["ETH", sen("31624.00")],
+    expect(rows.filter((row) => row.entityId === ENT).map((row) => [row.assetCode, row.carryingMinor])).toEqual([
+      ["BUIDL", sen("2012500.00")],
+      ["USDC", sen("1499550.00")],
+      ["XAU", sen("750000.00")],
     ]);
-    expect(rows.filter((row) => row.entityId === SG)).toEqual([
-      expect.objectContaining({ assetCode: "SOL", currency: "SGD", carryingMinor: sen("18000.00") }),
-    ]);
-    expect(new Set(rows.map((row) => row.currency))).toEqual(new Set(["MYR", "SGD"]));
+    expect(new Set(rows.map((row) => row.currency))).toEqual(new Set(["USD"]));
   });
 
   it("attributes carrying value to the source that holds it", () => {
     const rows = carryingBySource(entries, accounts, sourceMeta);
     const amount = (sourceId: string) => rows.find((row) => row.sourceId === sourceId)?.carryingMinor;
-    expect(amount("src_my_exchange")).toBe(sen("6200.00"));
-    expect(amount("src_my_cold")).toBe(sen("24774.00"));
-    expect(amount("src_my_stake")).toBe(sen("650.00"));
-    expect(amount("src_my_custody")).toBe(sen("42000.00"));
-    expect(amount("src_my_hot")).toBeUndefined();
-    expect(amount("src_sg_custody")).toBe(sen("18000.00"));
+    expect(amount("src_buidl_eth")).toBe(sen("1512500.00"));
+    expect(amount("src_buidl_sol")).toBe(sen("500000.00"));
+    expect(amount("src_usdc_circle")).toBe(sen("1499550.00"));
+    expect(amount("src_gold_evm")).toBe(sen("750000.00"));
+    expect(amount("src_gold_hl")).toBeUndefined();
+    expect(amount("src_bny_custody")).toBeUndefined();
 
-    const mySources = sum(rows.filter((row) => row.entityId === MY));
-    const myAssets = sum(carryingByAsset(entries, accounts).filter((row) => row.entityId === MY));
-    expect(mySources).toBe(myAssets);
+    const sourceTotal = sum(rows.filter((row) => row.entityId === ENT));
+    const assetTotal = sum(carryingByAsset(entries, accounts).filter((row) => row.entityId === ENT));
+    expect(sourceTotal).toBe(assetTotal);
   });
 
   it("groups sources by kind and assets by chain inside one currency", () => {
-    const kinds = carryingBySourceKind(entries, accounts, sourceMeta).filter((row) => row.currency === "MYR");
-    expect(kinds.map((row) => [row.kind, row.carryingMinor])).toEqual([
-      ["custodian", sen("42000.00")],
-      ["wallet", sen("25424.00")],
-      ["exchange", sen("6200.00")],
-    ]);
+    const kinds = carryingBySourceKind(entries, accounts, sourceMeta).filter((row) => row.currency === "USD");
+    expect(kinds.map((row) => [row.kind, row.carryingMinor])).toEqual([["wallet", sen("4262050.00")]]);
 
     expect(carryingByChain(entries, accounts, assets).map((row) => [row.chain, row.currency, row.carryingMinor])).toEqual([
-      ["ethereum", "MYR", sen("73624.00")],
-      ["solana", "SGD", sen("18000.00")],
+      ["ethereum", "USD", sen("3512050.00")],
+      ["dbs-private-evm", "USD", sen("750000.00")],
     ]);
   });
 
   it("groups carrying value by asset class and keeps unknown assets visible", () => {
-    const classRows = carryingByAssetClass(entries, accounts, assets).filter((row) => row.entityId === MY);
+    const classRows = carryingByAssetClass(entries, accounts, assets).filter((row) => row.entityId === ENT);
     expect(classRows.map((row) => [row.assetClass, row.currency, row.carryingMinor])).toEqual([
-      ["stablecoin", "MYR", sen("42000.00")],
-      ["crypto", "MYR", sen("31624.00")],
+      ["stablecoin", "USD", sen("3512050.00")],
+      ["crypto", "USD", sen("750000.00")],
     ]);
 
-    const unknown = carryingByAssetClass(entries, accounts, [{ code: "ETH", assetClass: "crypto" }]).filter(
-      (row) => row.entityId === MY,
+    const unknown = carryingByAssetClass(entries, accounts, [{ code: "XAU", assetClass: "crypto" }]).filter(
+      (row) => row.entityId === ENT,
     );
     expect(unknown.map((row) => [row.assetClass, row.carryingMinor])).toEqual([
-      ["unspecified", sen("42000.00")],
-      ["crypto", sen("31624.00")],
+      ["unspecified", sen("3512050.00")],
+      ["crypto", sen("750000.00")],
     ]);
   });
 
   it("tracks carrying value after each example journal date", () => {
     const series = carryingValueSeries(entries, accounts);
-    const my = series.filter((point) => point.entityId === MY).map((point) => [point.date, point.carryingMinor]);
-    expect(my).toEqual([
+    const rows = series.filter((point) => point.entityId === ENT).map((point) => [point.date, point.carryingMinor]);
+    expect(rows).toEqual([
       ["2026-04-02", 0n],
-      ["2026-04-06", 0n],
-      ["2026-04-08", sen("31000.00")],
-      ["2026-04-09", sen("31000.00")],
-      ["2026-04-15", sen("31000.00")],
-      ["2026-05-01", sen("31650.00")],
-      ["2026-05-12", sen("31624.00")],
-      ["2026-06-03", sen("73624.00")],
+      ["2026-04-08", sen("2000000.00")],
+      ["2026-05-05", sen("3500000.00")],
+      ["2026-05-20", sen("4250000.00")],
+      ["2026-06-01", sen("4250000.00")],
+      ["2026-06-15", sen("4262500.00")],
+      ["2026-06-20", sen("4262050.00")],
     ]);
-    const sg = series.filter((point) => point.entityId === SG);
-    expect(sg[0]).toMatchObject({ date: "2026-04-02", carryingMinor: 0n, currency: "SGD" });
-    expect(sg.at(-1)?.carryingMinor).toBe(sen("18000.00"));
+    expect(rows.at(-1)?.[1]).toBe(sen("4262050.00"));
   });
 
   it("nets asset accounts and counts journals and reconciliation results", () => {
-    const myAssets = assetAccountNets(trialBalance(entries, accounts, MY));
-    expect(myAssets.map((row) => [row.code, row.netMinor])).toEqual([
-      ["1000", sen("427000.00")],
-      ["1310", sen("31624.00")],
-      ["1330", sen("42000.00")],
+    const accountNets = assetAccountNets(trialBalance(entries, accounts, ENT));
+    expect(accountNets.map((row) => [row.code, row.netMinor])).toEqual([
+      ["1000", sen("750000.00")],
+      ["1310", sen("750000.00")],
+      ["1330", sen("3512050.00")],
     ]);
 
     expect(journalActivityByMonth(entries).map((row) => [row.month, row.entityId, row.count, row.debitMinor])).toEqual([
-      ["2026-04", MY, 3, sen("555800.00")],
-      ["2026-04", SG, 2, sen("98000.00")],
-      ["2026-05", MY, 2, sen("676.00")],
-      ["2026-06", MY, 1, sen("42000.00")],
+      ["2026-04", ENT, 2, sen("7000000.00")],
+      ["2026-05", ENT, 2, sen("2250000.00")],
+      ["2026-06", ENT, 3, sen("512950.00")],
     ]);
 
     const counts = reconciliationCounts(reconciliations);
     expect(counts.matched).toBe(7);
     expect(counts.exception).toBe(1);
-    expect(counts.bySource[0]).toEqual({ sourceId: "src_my_hot", matched: 0, exception: 1 });
+    expect(counts.bySource[0]).toEqual({ sourceId: "src_gold_hl", matched: 0, exception: 1 });
   });
 });
 

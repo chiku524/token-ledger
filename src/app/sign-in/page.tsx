@@ -49,7 +49,7 @@ export default async function SignInPage({
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {demo
-                ? "No database is connected, so you can look around as a sample Harbourline colleague. Nothing is saved. This preview is off in production and when a database is connected."
+                ? "No database is connected, so you can look around as a sample Asset Manager A colleague. Nothing is saved. This preview is off in production and when a database is connected."
                 : "The sample preview is off because a database is connected, or this is production. Use the password form."}
             </p>
             {demo ? (

@@ -8,9 +8,13 @@ import type { AccountUser } from "@/db/auth-store";
 export const HOST = "ledger.test";
 export const ORIGIN = `https://${HOST}`;
 export const CSRF = "csrf-token-for-tests";
-export const ORG = "org_harbourline";
-export const MY = "ent_harbourline_my";
-export const SG = "ent_harbourline_sg";
+export const ORG = "org_asset_manager_a";
+/** The company in the example books. */
+export const ENT = "ent_asset_manager_a";
+/** Alias for an in-scope company id used across action tests. */
+export const MY = ENT;
+/** A company id that is never in the example books, for out-of-scope assertions. */
+export const SG = "ent_out_of_scope";
 
 export class RedirectSignal extends Error {
   constructor(readonly url: string) {
@@ -145,7 +149,7 @@ export function accountUser(role: Role, overrides: Partial<AccountUser> = {}): A
   return {
     id: `user_${role}`,
     organizationId: ORG,
-    email: `${role}@harbourline.example`,
+    email: `${role}@assetmanager-a.example`,
     name: `Test ${role}`,
     role,
     status: "active",
@@ -169,7 +173,7 @@ export function signInLive(role: Role, overrides: Partial<AccountUser> = {}): Ac
 
 export function signInDemo(role: Role, entityScope: string[] = []): { name: string; email: string } {
   vi.stubEnv("DATABASE_URL", "");
-  const claims = { role, name: `Demo ${role}`, email: `demo-${role}@harbourline.example`, entityScope, exp: Date.now() + 60_000 };
+  const claims = { role, name: `Demo ${role}`, email: `demo-${role}@assetmanager-a.example`, entityScope, exp: Date.now() + 60_000 };
   cookieValues.set(DEMO_COOKIE, signDemoToken(claims));
   return claims;
 }

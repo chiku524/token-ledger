@@ -58,7 +58,7 @@ export const loadBilling = cache(async (): Promise<BillingData> => {
     configured = false;
   }
 
-  const writable = hasDatabase() && !session.demo;
+  const writable = hasDatabase() && !session.demo && !session.demoBooks;
   const actionable = configured && writable && can(session.role, "source.connect");
 
   if (!writable) {

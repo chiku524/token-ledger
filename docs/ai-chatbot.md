@@ -31,7 +31,7 @@ The chatbot is the same product, spoken:
 | --- | --- |
 | Click **Settings → Check** | “Check my Coinbase connection” |
 | Open **Reports**, pick period, export | “Generate last month’s trial balance as CSV” |
-| Hunt exceptions on **Matching** | “Match the unmatched USDC deposits for Harbourline” |
+| Hunt exceptions on **Matching** | “Match the unmatched USDC deposits for Asset Manager A” |
 | Guess what “Waiting” means | “Why is this connection still Waiting?” |
 
 It does **not** invent a second accounting system. It drives the existing dashboard actions under the user’s session.
@@ -98,7 +98,7 @@ Anything the user can do in the UI is a valid chatbot skill — gated by permiss
 
 | Capability | Dashboard | Example prompt |
 | --- | --- | --- |
-| Org overview | Overview | “Summarize Harbourline’s books this month” |
+| Org overview | Overview | “Summarize Asset Manager A’s books this month” |
 | Companies | Companies | “Add a Singapore subsidiary” |
 | Chart / accounts | Holdings · Journal | “List asset accounts with booked crypto” |
 
@@ -126,7 +126,7 @@ Anything the user can do in the UI is a valid chatbot skill — gated by permiss
 | --- | --- | --- |
 | Auto / manual match | Matching | “Match unmatched Solana USDC movements” |
 | Unmatch | Matching | “Unmatch this pair — wrong invoice” |
-| Close / reopen period | Matching | “Close March 2026 for Harbourline” |
+| Close / reopen period | Matching | “Close March 2026 for Asset Manager A” |
 
 ### 4.5 📊 Reports & consolidation
 
@@ -201,7 +201,7 @@ sequenceDiagram
 
 ### 📈 Reporting
 
-- “Generate last month’s trial balance for Harbourline.”
+- “Generate last month’s trial balance for Asset Manager A.”
 - “Export the balance sheet and P&L as PDF.”
 - “What’s our booked crypto value vs observed?”
 

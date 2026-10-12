@@ -32,7 +32,7 @@ export default async function SettingsPage({
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const canSource = can(session.role, "source.write");
   const canConnect = can(session.role, "source.connect");
   const csrf = await ensureCsrf();

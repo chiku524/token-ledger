@@ -19,6 +19,8 @@ export function DashboardShell({
   subtitle,
   session,
   csrf,
+  demoOn,
+  demoInteractive,
   showUsers,
   showOnboarding,
   showPlatform,
@@ -38,6 +40,10 @@ export function DashboardShell({
   subtitle: string;
   session: SessionUser;
   csrf: string;
+  /** Whether the pages currently show the example books. */
+  demoOn: boolean;
+  /** Whether a database is connected, so the switch can reveal real books. */
+  demoInteractive: boolean;
   showUsers: boolean;
   showOnboarding: boolean;
   /** Whether this session is a platform admin (cross-organization panel). */
@@ -78,7 +84,16 @@ export function DashboardShell({
           hiddenTabs={hiddenTabs}
         />
         <SidebarInset className="min-w-0">
-          <DashboardHeader showUsers={showUsers} showOnboarding={showOnboarding} showPlatform={showPlatform} role={session.role} hiddenTabs={hiddenTabs} />
+          <DashboardHeader
+            demoOn={demoOn}
+            demoInteractive={demoInteractive}
+            csrf={csrf}
+            showUsers={showUsers}
+            showOnboarding={showOnboarding}
+            showPlatform={showPlatform}
+            role={session.role}
+            hiddenTabs={hiddenTabs}
+          />
           <ExampleBanner origin={origin} notice={notice} />
           {!session.emailVerified && !session.demo ? (
             <div className="dashboard-width px-4 pt-4 md:px-8">

@@ -41,7 +41,7 @@ export default async function DashboardPage() {
   const composition = compositionPanels(books);
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
-  const currencyNote = booksAreWritable() && !session.demo
+  const currencyNote = booksAreWritable() && !session.demo && !session.demoBooks
     ? "Each chart stays in that company's currency. The Combined page converts them into one currency."
     : "Sample figures. Each chart stays in that company's currency. The Combined page converts them with sample rates, not a market price.";
 

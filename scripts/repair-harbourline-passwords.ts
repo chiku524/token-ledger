@@ -1,7 +1,7 @@
 /**
- * Reset Harbourline example user passwords (and ensure users exist) without a
- * full org wipe. Targets the org that already owns Harbourline demo users when
- * `org_harbourline` is missing (common on the Cloudflare Hyperdrive DB).
+ * Reset Asset Manager A example user passwords (and ensure users exist) without
+ * a full org wipe. Targets the org that already owns the demo users when
+ * `org_asset_manager_a` is missing (common on the Cloudflare Hyperdrive DB).
  */
 import { eq, like, or } from "drizzle-orm";
 import { EXAMPLE_USERS } from "../src/auth/example-users";
@@ -9,7 +9,7 @@ import { hashPassword } from "../src/auth/password";
 import { closeDb, getDb } from "../src/db/client";
 import { organizations, users } from "../src/db/schema";
 
-const PREFERRED_ORG_ID = "org_harbourline";
+const PREFERRED_ORG_ID = "org_asset_manager_a";
 
 async function resolveOrganizationId(): Promise<string> {
   const db = getDb();
@@ -23,20 +23,20 @@ async function resolveOrganizationId(): Promise<string> {
   const [byName] = await db
     .select({ id: organizations.id })
     .from(organizations)
-    .where(eq(organizations.name, "Harbourline Digital"))
+    .where(eq(organizations.name, "Asset Manager A"))
     .limit(1);
   if (byName) return byName.id;
 
   const [fromUser] = await db
     .select({ organizationId: users.organizationId })
     .from(users)
-    .where(like(users.email, "%@harbourline.example"))
+    .where(like(users.email, "%@assetmanager-a.example"))
     .limit(1);
   if (fromUser) return fromUser.organizationId;
 
   await db.insert(organizations).values({
     id: PREFERRED_ORG_ID,
-    name: "Harbourline Digital",
+    name: "Asset Manager A",
     origin: "example",
   });
   return PREFERRED_ORG_ID;
@@ -49,7 +49,7 @@ async function main() {
 
   for (const user of EXAMPLE_USERS) {
     const passwordHash = await hashPassword(user.password);
-    const scopeSuffix = user.entityScope.length ? "_sg" : "";
+    const scopeSuffix = user.entityScope.length ? "_scoped" : "";
     const preferredId = `user_example_${user.role}${scopeSuffix}`;
 
     const existing = await db

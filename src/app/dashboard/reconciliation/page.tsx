@@ -39,7 +39,7 @@ export default async function ReconciliationPage({
   await requireSectionAccess("/dashboard/reconciliation");
   const { session, books } = await loadAuthorizedBooks();
   const canMatch = can(session.role, "reconciliation.match");
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const csrf = canMatch && writable ? await ensureCsrf() : "";
   const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, { from: books.period.start, to: books.period.end });
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };

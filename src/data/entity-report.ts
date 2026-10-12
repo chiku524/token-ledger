@@ -9,7 +9,7 @@ import { sliceBooks } from "./slice-books";
 import { revaluationForEntity } from "./valuation";
 
 export function canRevalue(session: SessionUser): boolean {
-  return can(session.role, "journal.post") && booksAreWritable() && !session.demo;
+  return can(session.role, "journal.post") && booksAreWritable() && !session.demo && !session.demoBooks;
 }
 
 export function entityReport(input: { books: Books; entityId: string; range: DateRange; includeRevaluation: boolean }) {

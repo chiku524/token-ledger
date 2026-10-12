@@ -25,7 +25,7 @@ import {
   ORG,
   redirectOf,
   resetRequest,
-  SG,
+  ENT,
   setCookie,
 } from "@/test/server-harness";
 import {
@@ -157,10 +157,10 @@ describe("signInAction", () => {
 describe("demoSignInAction", () => {
   it("signs a demo cookie for the chosen preview and drops any live session", async () => {
     setCookie(SESSION_COOKIE, "live");
-    const result = await redirectOf(demoSignInAction(form({ preview: "viewer-sg", next: "/dashboard/reports" })));
+    const result = await redirectOf(demoSignInAction(form({ preview: "viewer-scoped", next: "/dashboard/reports" })));
     expect(result.url).toBe("/dashboard/reports");
     const token = vi.mocked(cookieJar.set).mock.calls.find(([name]) => name === DEMO_COOKIE)![1];
-    expect(readDemoToken(token)).toMatchObject({ role: "viewer", email: "viewer.sg@harbourline.example", entityScope: [SG] });
+    expect(readDemoToken(token)).toMatchObject({ role: "viewer", email: "viewer.scoped@assetmanager-a.example", entityScope: [ENT] });
     expect(cookieJar.delete).toHaveBeenCalledWith(SESSION_COOKIE);
   });
 

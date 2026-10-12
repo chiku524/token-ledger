@@ -5,7 +5,7 @@ import { hasDatabase } from "@/db/availability";
 import { userForSessionToken, type AccountUser } from "@/db/auth-store";
 import { isPlatformAdminEmail } from "@/env";
 import { CSRF_COOKIE, csrfMatches, newCsrfToken, originAllowed } from "./csrf";
-import { DEMO_COOKIE, SESSION_COOKIE } from "./cookies";
+import { DEMO_COOKIE, DEMO_DATA_COOKIE, SESSION_COOKIE } from "./cookies";
 import { demoSessionFromCookie, demoSignInAllowed } from "./demo";
 import type { Permission, Role } from "./roles";
 import { can } from "./roles";
@@ -20,6 +20,11 @@ export interface SessionUser {
   platformAdmin: boolean;
   entityScope: string[];
   demo: boolean;
+  /**
+   * When true, the dashboard shows the example books even on a real database,
+   * and every page is read-only. Set from the "Demo data" switch.
+   */
+  demoBooks?: boolean;
   /** Null until this owner or admin finishes or skips the getting started guide. */
   connectionTourCompletedAt: string | null;
   /** True once the email is confirmed. Always true in demo mode. */
@@ -40,13 +45,14 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
     if (demo) {
       return {
         id: `demo_${demo.email}`,
-        organizationId: "org_harbourline",
+        organizationId: "org_asset_manager_a",
         email: demo.email,
         name: demo.name,
         role: demo.role,
         platformAdmin: false,
         entityScope: demo.entityScope,
         demo: true,
+        demoBooks: true,
         connectionTourCompletedAt: null,
         emailVerified: true,
       };
@@ -56,7 +62,12 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const user = await userForSessionToken(token);
-  return user ? toSession(user) : null;
+  if (!user) return null;
+  const session = toSession(user);
+  if (jar.get(DEMO_DATA_COOKIE)?.value !== "1") return session;
+  // Demo data ignores the organization's entities and scope: it is the fixed
+  // example books, shown read-only.
+  return { ...session, demoBooks: true, entityScope: [] };
 });
 
 export async function requireSession(): Promise<SessionUser> {
@@ -130,6 +141,7 @@ function toSession(user: AccountUser): SessionUser {
     platformAdmin: user.platformAdmin,
     entityScope: user.entityScope,
     demo: false,
+    demoBooks: false,
     connectionTourCompletedAt: user.connectionTourCompletedAt ? user.connectionTourCompletedAt.toISOString() : null,
     emailVerified: user.emailVerifiedAt !== null,
   };

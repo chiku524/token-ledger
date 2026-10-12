@@ -7,7 +7,7 @@ import { getSession } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { auditCsv } from "@/ledger";
 import { filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
-import { loadBooks } from "@/data/load-books";
+import { booksForSession } from "@/data/authorized-books";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     from: url.searchParams.get("from") ?? undefined,
     to: url.searchParams.get("to") ?? undefined,
   });
-  const books = await loadBooks(session.organizationId);
+  const books = await booksForSession(session);
   const rows = filterAuditEvents(books.auditEvents, filter);
   return new Response(auditCsv(rows), {
     headers: {

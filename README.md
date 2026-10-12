@@ -9,7 +9,7 @@ Planned tiers:
 - **Startup** — Web3 startups and funds, quarterly reporting.
 - **Institutional** — TradFi and scaling Web3 firms, monthly reporting, multi-entity consolidation, and asset valuation reporting.
 
-Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the chain readers for Ethereum, Solana, Polygon, Bitcoin, and Sui are live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Harbourline Digital. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates MYR and SGD with stored rates. The Harbourline rates are example data, not a market price.
+Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the chain readers for Ethereum, Solana, Polygon, Bitcoin, and Sui are live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Asset Manager A. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates into a presentation currency with stored rates. The example rates are example data, not a market price.
 
 ## Stack
 
@@ -48,7 +48,7 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-`DATABASE_URL` is optional. If it is set, it must be a Postgres URL. `AUTH_SECRET` is required for password sessions and must be at least 32 characters. `db:generate` writes a new SQL migration from `src/db/schema.ts` and does not need a running database. `db:seed` reloads the Harbourline example organization, including its example FX rate, audit events, and fictional users, and replaces that organization's previous rows. It does not delete other organizations. Reloading the example is the one path that deletes posted journals, and it sets a transaction-local flag the immutability trigger recognizes.
+`DATABASE_URL` is optional. If it is set, it must be a Postgres URL. `AUTH_SECRET` is required for password sessions and must be at least 32 characters. `db:generate` writes a new SQL migration from `src/db/schema.ts` and does not need a running database. `db:seed` reloads the Asset Manager A example organization, including its example FX rates, audit events, and fictional users, and replaces that organization's previous rows. It does not delete other organizations. Reloading the example is the one path that deletes posted journals, and it sets a transaction-local flag the immutability trigger recognizes.
 
 CI applies the migrations and the seed to a real Postgres on every push, and fails when `pnpm db:generate` would produce a migration that is not committed.
 
@@ -82,18 +82,20 @@ An empty entity scope means every entity. A comma-separated scope limits account
 
 Demo sign-in is only for the example books: it is allowed when `DATABASE_URL` is unset, `NODE_ENV` is not `production`, and `VERCEL_ENV` is not `production`. A configured database never accepts a demo cookie. Pick a role on the sign-in page to preview permissions. Nothing is saved.
 
+Separately, a signed-in user can flip the **Demo data** switch in the dashboard top bar. On, every page shows the fictional example books and is read-only, so demo rows are never written to a real database; off, the pages return to the organization's own books. With no database connected the switch is on and disabled, since the example books are the only source.
+
 `pnpm db:seed` also creates these fictional local-dev users. The passwords are not for production.
 
 | Email | Role | Password | Scope |
 | --- | --- | --- | --- |
-| owner@harbourline.example | Owner | Harbourline-owner-1 | All entities |
-| admin@harbourline.example | Admin | Harbourline-admin-1 | All entities |
-| accountant@harbourline.example | Accountant | Harbourline-accountant-1 | All entities |
-| approver@harbourline.example | Approver | Harbourline-approver-1 | All entities |
-| viewer@harbourline.example | Viewer | Harbourline-viewer-1 | All entities |
-| viewer.sg@harbourline.example | Viewer | Harbourline-viewer-sg-1 | Singapore entity only |
+| owner@assetmanager-a.example | Owner | AssetManagerA-owner-1 | All entities |
+| admin@assetmanager-a.example | Admin | AssetManagerA-admin-1 | All entities |
+| accountant@assetmanager-a.example | Accountant | AssetManagerA-accountant-1 | All entities |
+| approver@assetmanager-a.example | Approver | AssetManagerA-approver-1 | All entities |
+| viewer@assetmanager-a.example | Viewer | AssetManagerA-viewer-1 | All entities |
+| viewer.scoped@assetmanager-a.example | Viewer | AssetManagerA-viewer-scoped-1 | One company |
 
-Harbourline stores one example rate, 1 MYR = 0.3000 SGD. SGD amounts use the exact inverse (10/3), which is not a second stored rate.
+The example stores two illustrative rates, 1 USD = 1.35 SGD and 1 USD = 4.70 MYR. They are example data, not a market price, and let Holdings show market value in a chosen display currency.
 
 FX and prices are live (see below). Email is optional (see "Email and account self-service").
 

@@ -1,9 +1,8 @@
 import { getSession } from "@/auth/current";
 import { can, canAccessEntity } from "@/auth/roles";
 import { formatMinor, journalCsv, netBalanceMinor, reconciliationCsv, trialBalance, trialBalanceCsv } from "@/ledger";
-import { loadBooks } from "@/data/load-books";
+import { booksForSession } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
-import { scopeBooks } from "@/data/scope-books";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, sourceName } from "@/data/present";
 import { canRevalue, entityReport } from "@/data/entity-report";
@@ -18,7 +17,7 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
-  const books = scopeBooks(await loadBooks(session.organizationId), session);
+  const books = await booksForSession(session);
   const requestedEntity = url.searchParams.get("entity");
   if (requestedEntity && !canAccessEntity(session, requestedEntity)) {
     return new Response("That company is outside your access.", { status: 403 });

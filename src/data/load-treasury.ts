@@ -42,7 +42,7 @@ export const loadTreasury = cache(async (): Promise<TreasuryData> => {
   } catch {
     configured = false;
   }
-  const writable = hasDatabase() && !session.demo;
+  const writable = hasDatabase() && !session.demo && !session.demoBooks;
   const actionable = configured && writable && can(session.role, "source.connect");
   if (!writable) {
     return { session, configured, deployment, actionable, entities: books.entities, bindings: [], treasuries: [], suppliers: [], invoices: [], proposals: [] };

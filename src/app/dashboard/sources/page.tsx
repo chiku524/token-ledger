@@ -136,7 +136,7 @@ export default async function SourcesPage({
   const params = await searchParams;
   await requireSectionAccess("/dashboard/sources");
   const { session, books } = await loadAuthorizedBooks();
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";

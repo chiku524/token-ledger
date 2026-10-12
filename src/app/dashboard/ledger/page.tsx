@@ -31,7 +31,7 @@ export default async function LedgerPage({
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
   const visible = sliceBooks(books, range).journalEntries;
   const entries = paginate(visible, parsePage(one(params.page)));
-  const writable = booksAreWritable() && !session.demo;
+  const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const canPost = can(session.role, "journal.post");
   const canReverse = can(session.role, "journal.reverse");
   const csrf = canPost || canReverse ? await ensureCsrf() : "";

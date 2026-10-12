@@ -10,7 +10,7 @@ describe("mapSnapshotToBooks", () => {
     expect(books.journalEntries).toHaveLength(exampleBooks.journalEntries.length);
     expect(books.journalEntries[0]?.postedBy).toBe("example books");
     expect(books.reconciliations.filter((row) => row.status === "exception")).toEqual([
-      expect.objectContaining({ sourceTransactionId: "stx_my_unbooked", journalEntryId: null }),
+      expect.objectContaining({ sourceTransactionId: "stx_a_unbooked", journalEntryId: null }),
     ]);
     expect(books.fxRates[0]?.note.toLowerCase()).toContain("example");
   });

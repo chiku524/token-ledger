@@ -7,6 +7,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { isActiveLink, navGroups, type NavAccess } from "./nav-main";
+import { DemoDataToggle } from "./demo-data-toggle";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -23,7 +24,12 @@ function crumbs(access: NavAccess, pathname: string): string[] {
   return best.group ? [best.group, best.label] : [best.label];
 }
 
-export function DashboardHeader(access: NavAccess) {
+export function DashboardHeader({
+  demoOn,
+  demoInteractive,
+  csrf,
+  ...access
+}: NavAccess & { demoOn: boolean; demoInteractive: boolean; csrf: string }) {
   const pathname = usePathname();
   const trail = crumbs(access, pathname);
 
@@ -50,7 +56,8 @@ export function DashboardHeader(access: NavAccess) {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <DemoDataToggle demoOn={demoOn} interactive={demoInteractive} csrf={csrf} />
           <ThemeToggle />
         </div>
       </div>

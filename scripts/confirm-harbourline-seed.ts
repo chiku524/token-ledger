@@ -13,15 +13,15 @@ async function main() {
   try {
     const users = await sql`
       select email, role, status from users
-      where email like ${"%@harbourline.example"}
+      where email like ${"%@assetmanager-a.example"}
       order by email`;
-    const [owner] = await sql`select password_hash from users where email = ${"owner@harbourline.example"}`;
-    const ownerPasswordOk = owner ? await verifyPassword("Harbourline-owner-1", owner.password_hash) : false;
-    const [conns] = await sql`select count(*)::int as n from connections where organization_id = ${"org_harbourline"}`;
-    const [snaps] = await sql`select count(*)::int as n from balance_snapshots where organization_id = ${"org_harbourline"}`;
+    const [owner] = await sql`select password_hash from users where email = ${"owner@assetmanager-a.example"}`;
+    const ownerPasswordOk = owner ? await verifyPassword("AssetManagerA-owner-1", owner.password_hash) : false;
+    const [conns] = await sql`select count(*)::int as n from connections where organization_id = ${"org_asset_manager_a"}`;
+    const [snaps] = await sql`select count(*)::int as n from balance_snapshots where organization_id = ${"org_asset_manager_a"}`;
     const summary = {
       host,
-      harbourlineUsers: users.length,
+      demoUsers: users.length,
       ownerPasswordOk,
       connections: conns?.n ?? 0,
       balanceSnapshots: snaps?.n ?? 0,

@@ -100,14 +100,14 @@ describe("EmptyRow", () => {
 
 describe("FinancialStatementsCards", () => {
   it("renders the Balance Sheet by class and the P&L for a company", () => {
-    const MY = "ent_harbourline_my";
+    const ENT = "ent_asset_manager_a";
     const statements = financialStatements(
       exampleBooks.journalEntries,
       exampleBooks.accounts,
       exampleBooks.assets,
-      MY,
+      ENT,
     );
-    const html = renderToStaticMarkup(<FinancialStatementsCards statements={statements} company="Harbourline" />);
+    const html = renderToStaticMarkup(<FinancialStatementsCards statements={statements} company="Asset Manager A" />);
     expect(html).toContain("Balance Sheet");
     expect(html).toContain("Profit &amp; Loss");
     expect(html).toContain("Stablecoins");

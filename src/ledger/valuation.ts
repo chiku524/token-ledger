@@ -37,7 +37,7 @@ const USD = "USD";
 
 /**
  * Built-in USD→SGD / USD→MYR rates used when the books have no saved pair.
- * Harbourline DBs seeded before display-FX rows only had MYR→SGD, so SGD/MYR
+ * Asset Manager A DBs seeded before display-FX rows only had MYR→SGD, so SGD/MYR
  * Holdings values would otherwise stay "No price" despite USD asset prices.
  * Prefer any saved rate; these are last-resort display rates only.
  */

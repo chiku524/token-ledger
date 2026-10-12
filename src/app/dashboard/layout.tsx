@@ -19,13 +19,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const hiddenTabs = session.role === "onboarding" && !session.demo
     ? await loadOnboardingHiddenTabs(session.organizationId)
     : [];
-  const subtitle = session.demo
-    ? "Demo"
-    : books.organization.origin === "live"
-      ? "Saved"
-      : booksAreWritable()
-        ? "Sample, saved"
-        : "Sample";
+  const subtitle = session.demoBooks
+    ? "Demo data"
+    : session.demo
+      ? "Demo"
+      : books.organization.origin === "live"
+        ? "Saved"
+        : booksAreWritable()
+          ? "Sample, saved"
+          : "Sample";
   const scopeLabel =
     session.entityScope.length > 0
       ? `Limited to ${books.entities.map((entity) => entity.name).join(", ") || "no companies"}`
@@ -53,6 +55,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       subtitle={subtitle}
       session={session}
       csrf={csrf}
+      demoOn={books.organization.origin === "example"}
+      demoInteractive={booksAreWritable()}
       showUsers={can(session.role, "users.manage")}
       showOnboarding={can(session.role, "onboarding.manage")}
       showPlatform={isPlatformAdmin(session)}
