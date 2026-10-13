@@ -81,6 +81,8 @@ export function WalletVerifyForm({
           <Option value="ethereum">Ethereum</Option>
           <Option value="solana">Solana</Option>
           <Option value="polygon">Polygon</Option>
+          <Option value="monad">Monad</Option>
+          <Option value="monad-testnet">Monad Testnet</Option>
         </NativeSelect>
       </Field>
       <Field label="Wallet type">

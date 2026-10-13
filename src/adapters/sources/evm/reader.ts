@@ -14,7 +14,6 @@ import type { EvmRpcClient } from "./rpc";
 import { tokenContracts } from "./tokens";
 
 const TRANSFER_CATEGORIES = ["external", "internal", "erc20"] as const;
-
 export class EvmReader {
   constructor(
     private readonly chain: EvmChain,
@@ -26,13 +25,13 @@ export class EvmReader {
     const nativeHex = await this.client.call<string>("eth_getBalance", [normalized, "latest"]);
 
     // Always pass the registry contracts explicitly: the default address-only
-    // call caps at a top-N list that can omit the tokens we track.
+    // call caps at a top-N list that can omit the tokens we track. A chain with
+    // no registered tokens (e.g. Monad today) skips the call rather than sending
+    // an empty list, which the enhanced endpoint rejects.
+    const contracts = tokenContracts(this.chain);
     let tokens: TokenBalancesResult | null = null;
-    if (this.client.enhanced) {
-      tokens = await this.client.call<TokenBalancesResult>("alchemy_getTokenBalances", [
-        normalized,
-        tokenContracts(this.chain),
-      ]);
+    if (this.client.enhanced && contracts.length > 0) {
+      tokens = await this.client.call<TokenBalancesResult>("alchemy_getTokenBalances", [normalized, contracts]);
     }
 
     return mapEvmBalances(this.chain, nativeHex, tokens, now);
@@ -73,7 +72,7 @@ export class EvmReader {
         fromBlock: "0x0",
         toBlock: "latest",
         ...direction,
-        category: [...TRANSFER_CATEGORIES],
+        category: [...(this.chain.transferCategories ?? TRANSFER_CATEGORIES)],
         withMetadata: true,
         maxCount: "0x64",
         order: "desc",

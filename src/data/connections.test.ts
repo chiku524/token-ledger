@@ -36,7 +36,7 @@ describe("connectionFromForm", () => {
   });
 
   it("accepts every supported watch chain, including Bitcoin and Sui", () => {
-    for (const chain of ["ethereum", "solana", "polygon", "bitcoin", "sui"]) {
+    for (const chain of ["ethereum", "solana", "polygon", "monad", "monad-testnet", "bitcoin", "sui"]) {
       const draft = connectionFromForm({
         entityId: "ent_1",
         mode: "watch",

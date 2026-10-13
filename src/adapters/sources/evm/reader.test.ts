@@ -74,6 +74,29 @@ describe("EvmReader", () => {
     expect(directions).toHaveLength(2);
   });
 
+  it("skips the token-balance call on a chain with no registered tokens", async () => {
+    const monad = evmChain("monad")!;
+    const client = fakeClient(true);
+    const reader = new EvmReader(monad, client);
+    const balances = await reader.fetchBalances(WATCHED);
+    expect(balances.map((row) => row.assetCode)).toEqual(["MON"]);
+    const tokenCall = (client.call as unknown as { mock: { calls: unknown[][] } }).mock.calls.find(
+      (call) => call[0] === "alchemy_getTokenBalances",
+    );
+    expect(tokenCall).toBeUndefined();
+  });
+
+  it("uses the chain's transfer categories", async () => {
+    const monad = evmChain("monad")!;
+    const client = fakeClient(true);
+    const reader = new EvmReader(monad, client);
+    await reader.fetchTransactions(WATCHED, "2026-01-01");
+    const query = (client.call as unknown as { mock: { calls: unknown[][] } }).mock.calls.find(
+      (call) => call[0] === "alchemy_getAssetTransfers",
+    )?.[1] as [Record<string, unknown>];
+    expect(query[0].category).toEqual(["external", "erc20"]);
+  });
+
   it("reads only native when the endpoint is not enhanced", async () => {
     const client = fakeClient(false);
     const reader = new EvmReader(ethereum, client);

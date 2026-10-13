@@ -2,8 +2,8 @@ import { ed25519 } from "@noble/curves/ed25519.js";
 import { base58 } from "@scure/base";
 import { getAddress, isAddress, verifyMessage } from "viem";
 
-/** Networks a wallet connection can prove or watch. Polygon uses the same signature as Ethereum. */
-export const OWNERSHIP_CHAINS = ["ethereum", "solana", "polygon"] as const;
+/** Networks a wallet connection can prove or watch. Polygon and Monad use the same signature as Ethereum. */
+export const OWNERSHIP_CHAINS = ["ethereum", "solana", "polygon", "monad", "monad-testnet"] as const;
 export type OwnershipChain = (typeof OWNERSHIP_CHAINS)[number];
 
 export const CHALLENGE_TTL_MS = 10 * 60 * 1000;

@@ -35,7 +35,7 @@ export async function issueOwnershipChallenge(formData: FormData): Promise<Issue
     const entityId = String(formData.get("entityId") ?? "");
     const chainRaw = String(formData.get("chain") ?? "");
     const addressRaw = String(formData.get("address") ?? "");
-    if (!isOwnershipChain(chainRaw)) return { error: "Choose Ethereum, Solana, or Polygon." };
+    if (!isOwnershipChain(chainRaw)) return { error: "Choose Ethereum, Solana, Polygon, Monad, or Monad Testnet." };
     const address = normalizeAddress(chainRaw, addressRaw);
     if (!address) return { error: "That address does not match the network." };
     if (!canAccessEntity(session, entityId)) return { error: "That company is outside your access." };

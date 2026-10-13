@@ -86,7 +86,7 @@ entity scoping stay.
 flowchart TD
   A["User adds a wallet / exchange / custodian"] --> B["createConnectionAction"]
   B --> C{"mode"}
-  C -- "watch" --> D["chain key must be in WATCH_VENUES<br/>ethereum · solana · polygon · bitcoin · sui"]
+  C -- "watch" --> D["chain key must be in WATCH_VENUES<br/>ethereum · solana · polygon · monad · monad-testnet · bitcoin · sui"]
   C -- "exchange_read" --> E["credential checked by a real<br/>read-only call, then sealed (AES-256-GCM)"]
   C -- "custodian_read" --> F["viewer credential verified, then sealed"]
   D --> G["connectionFromForm → insertConnection"]

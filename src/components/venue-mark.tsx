@@ -22,6 +22,8 @@ const MARKS: Record<string, { label: string; className: string }> = {
   solana: { label: "S", className: "bg-gradient-to-br from-[#9945FF] to-[#14F195] text-white" },
   bitcoin: { label: "B", className: "bg-[#F7931A] text-white" },
   polygon: { label: "P", className: "bg-[#8247E5] text-white" },
+  monad: { label: "M", className: "bg-[#6E54FF] text-white" },
+  "monad-testnet": { label: "M", className: "bg-[#8E7BFF] text-white" },
   sui: { label: "S", className: "bg-[#4DA2FF] text-white" },
 };
 

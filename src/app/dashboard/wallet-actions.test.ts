@@ -87,7 +87,7 @@ describe("issueOwnershipChallenge", () => {
   });
 
   it.each([
-    [{ chain: "bitcoin" }, "Choose Ethereum, Solana, or Polygon."],
+    [{ chain: "bitcoin" }, "Choose Ethereum, Solana, Polygon, Monad, or Monad Testnet."],
     [{ address: "0x1234" }, "That address does not match the network."],
     [{ chain: "solana" }, "That address does not match the network."],
     [{ entityId: "ent_other" }, "Choose a company in this organization."],

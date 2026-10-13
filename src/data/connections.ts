@@ -12,6 +12,8 @@ export const WATCH_VENUES = [
   { key: "ethereum", label: "Ethereum" },
   { key: "solana", label: "Solana" },
   { key: "polygon", label: "Polygon" },
+  { key: "monad", label: "Monad" },
+  { key: "monad-testnet", label: "Monad Testnet" },
   { key: "bitcoin", label: "Bitcoin" },
   { key: "sui", label: "Sui" },
 ] as const;
@@ -124,7 +126,7 @@ export function connectionFromForm(input: {
 
 export function verifiedWalletDraft(input: {
   entityId: string;
-  chain: "ethereum" | "solana" | "polygon";
+  chain: "ethereum" | "solana" | "polygon" | "monad" | "monad-testnet";
   name: string;
   role: NonNullable<BooksSource["role"]>;
   address: string;

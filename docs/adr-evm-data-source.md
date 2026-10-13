@@ -12,7 +12,7 @@ Implement the EVM connector against the **standard Ethereum JSON-RPC interface p
 - Transfers: `alchemy_getAssetTransfers` (enhanced; returns normal, internal, and ERC-20 transfers with a block-time `metadata`, so it works for reconciliation).
 - Fallback: a keyless public RPC per chain for native balance only, so the connector still works with no account.
 
-Endpoints are configured with `ALCHEMY_API_KEY` and an optional per-chain RPC override (`EVM_RPC_URL_ETHEREUM`, `EVM_RPC_URL_POLYGON`). The connector is read-only and never requires a signing key.
+Endpoints are configured with `ALCHEMY_API_KEY` and an optional per-chain RPC override (`EVM_RPC_URL_ETHEREUM`, `EVM_RPC_URL_POLYGON`, `EVM_RPC_URL_MONAD`, `EVM_RPC_URL_MONAD_TESTNET`). The connector is read-only and never requires a signing key.
 
 ## Why
 
@@ -37,7 +37,7 @@ Rate-limit notes (retrieved for #43): Alchemy free is 25 requests/second and 30M
 
 - Two enhanced methods tie the connector to Alchemy. They are isolated behind the reader and a chain provider interface, so a different provider is a small change and the override URLs already allow a pure-RPC setup for native balances.
 - A key is required for token balances and transfers. It lives in the deployment environment (or gitignored `.env.local` for local runs) and must follow the secret rules in #13.
-- Ethereum and Polygon share one reader and one chain-config module; adding a third EVM chain is a config entry.
+- Ethereum, Polygon, and Monad share one reader and one chain-config module; adding another EVM chain is a config entry.
 
 ## References
 

@@ -1,6 +1,6 @@
 # Token Ledger
 
-Accounting and financial-data layer for digital assets. Token Ledger consolidates a company's crypto — hot wallets, cold wallets, staking positions, custodians, and exchanges, across chains such as Ethereum, Solana, Polygon, Bitcoin, and Sui — into one double-entry subledger.
+Accounting and financial-data layer for digital assets. Token Ledger consolidates a company's crypto — hot wallets, cold wallets, staking positions, custodians, and exchanges, across chains such as Ethereum, Solana, Polygon, Monad, Bitcoin, and Sui — into one double-entry subledger.
 
 The first markets are Malaysia and Singapore. The reporting frame is IFRS: an audit trail, reconciliation to every source, and journals that can sync to Xero, QuickBooks, and ERPs.
 
@@ -9,7 +9,7 @@ Planned tiers:
 - **Startup** — Web3 startups and funds, quarterly reporting.
 - **Institutional** — TradFi and scaling Web3 firms, monthly reporting, multi-entity consolidation, and asset valuation reporting.
 
-Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the chain readers for Ethereum, Solana, Polygon, Bitcoin, and Sui are live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Asset Manager A. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates into a presentation currency with stored rates. The example rates are example data, not a market price.
+Later: token treasury and lifecycle management for issuers, and an AI-assisted close. This repository is the foundation for that product, not the finished product. Connectors are read-only; the chain readers for Ethereum, Solana, Polygon, Monad, Monad Testnet, Bitcoin, and Sui are live and the rest are stubs. Without `DATABASE_URL`, the dashboard runs on fictional example books for Asset Manager A. With `DATABASE_URL`, pages read that Postgres database instead. A consolidation page translates into a presentation currency with stored rates. The example rates are example data, not a market price.
 
 ## Stack
 
@@ -134,12 +134,12 @@ Environment variables:
 - `KRAKEN_API_KEY`/`_SECRET`, `BYBIT_API_KEY`/`_SECRET`, `BINANCE_API_KEY`/`_SECRET`, `GATE_API_KEY`/`_SECRET`, `BACKPACK_API_KEY`/`_SECRET` — read-only keys used by `pnpm exchange:verify`. In the app a credential is entered by the user and stored sealed.
 - `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`, `BOOTSTRAP_OWNER_PASSWORD` — used only by `pnpm auth:bootstrap`.
 - `SOLANA_RPC_URL` — optional. A private Solana RPC endpoint. Unset uses the free, keyless public cluster (`https://api.mainnet-beta.solana.com`). Must be `https://` with no embedded credentials.
-- `ALCHEMY_API_KEY` — optional. Unlocks EVM ERC-20 balances and transfers for Ethereum and Polygon. Unset falls back to a keyless public RPC for native balances only.
-- `EVM_RPC_URL_ETHEREUM`, `EVM_RPC_URL_POLYGON` — optional per-chain EVM RPC overrides. `https://` only, no embedded credentials.
+- `ALCHEMY_API_KEY` — optional. Unlocks EVM ERC-20 balances and transfers for Ethereum, Polygon, Monad, and Monad Testnet. Unset falls back to a keyless public RPC for native balances only.
+- `EVM_RPC_URL_ETHEREUM`, `EVM_RPC_URL_POLYGON`, `EVM_RPC_URL_MONAD`, `EVM_RPC_URL_MONAD_TESTNET` — optional per-chain EVM RPC overrides. `https://` only, no embedded credentials.
 - `BITCOIN_ESPLORA_URL` — optional. A self-hosted Esplora instance or Blockstream. Unset uses the keyless mempool.space API. `https://` only, no embedded credentials.
 - `SUI_RPC_URL` — optional. A Sui GraphQL endpoint. Unset uses the keyless public endpoint (`https://graphql.mainnet.sui.io/graphql`). Uses GraphQL because Sui Foundation removed JSON-RPC from its public nodes (see `docs/adr-sui-data-source.md`).
 
-Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|bitcoin|sui] [ADDRESS]`, a live exchange read with `pnpm exchange:verify [kraken|bybit|binance|gate|backpack]`, and a live custodian read with `pnpm custodian:verify [bitgo|fireblocks]` (needs a read-only token).
+Verify a live chain read with `pnpm chain:verify [solana|ethereum|polygon|monad|monad-testnet|bitcoin|sui] [ADDRESS]`, a live exchange read with `pnpm exchange:verify [kraken|bybit|binance|gate|backpack]`, and a live custodian read with `pnpm custodian:verify [bitgo|fireblocks]` (needs a read-only token).
 
 CSV import expects a header of `external_id,occurred_on,asset_code,direction,quantity,description`. Quantity is in major units. Import records source facts for reconciliation and does not post a journal.
 

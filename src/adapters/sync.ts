@@ -7,6 +7,8 @@ import { BitGoCustodianAdapter, CustodianSourceAdapter, FireblocksCustodianAdapt
 import {
   BitcoinChainAdapter,
   EthereumChainAdapter,
+  MonadChainAdapter,
+  MonadTestnetChainAdapter,
   PolygonChainAdapter,
   SolanaChainAdapter,
   SuiChainAdapter,
@@ -56,6 +58,8 @@ export function adapterForConnection(
   if (connection.mode === "watch" && connection.venue === "ethereum") return new EthereumChainAdapter();
   if (connection.mode === "watch" && connection.venue === "solana") return new SolanaChainAdapter();
   if (connection.mode === "watch" && connection.venue === "polygon") return new PolygonChainAdapter();
+  if (connection.mode === "watch" && connection.venue === "monad") return new MonadChainAdapter();
+  if (connection.mode === "watch" && connection.venue === "monad-testnet") return new MonadTestnetChainAdapter();
   if (connection.mode === "watch" && connection.venue === "bitcoin") return new BitcoinChainAdapter();
   if (connection.mode === "watch" && connection.venue === "sui") return new SuiChainAdapter();
   if (connection.mode === "exchange_read" && options.exchangeCredential) {

@@ -3,7 +3,7 @@
 import { createAppKit, useAppKit, useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { SolanaAdapter } from "@reown/appkit-adapter-solana/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { mainnet, polygon, solana } from "@reown/appkit/networks";
+import { mainnet, monad, monadTestnet, polygon, solana } from "@reown/appkit/networks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WagmiProvider, type Config } from "wagmi";
@@ -19,14 +19,14 @@ let startedFor: string | undefined;
 function ensureReown(projectId: string): Config {
   if (wagmiConfig && startedFor === projectId) return wagmiConfig;
   const wagmi = new WagmiAdapter({
-    networks: [mainnet, polygon],
+    networks: [mainnet, polygon, monad, monadTestnet],
     projectId,
     ssr: true,
   });
   const solanaAdapter = new SolanaAdapter();
   createAppKit({
     adapters: [wagmi, solanaAdapter],
-    networks: [mainnet, polygon, solana],
+    networks: [mainnet, polygon, monad, monadTestnet, solana],
     defaultNetwork: mainnet,
     projectId,
     metadata: {

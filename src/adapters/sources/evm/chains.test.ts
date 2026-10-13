@@ -3,7 +3,7 @@ import { EVM_CHAINS, evmChain } from "./chains";
 import { resolveToken } from "./tokens";
 
 describe("EVM chain config", () => {
-  it("lists Ethereum and Polygon with the right ids and native currency", () => {
+  it("lists Ethereum, Polygon, and Monad with the right ids and native currency", () => {
     expect(evmChain("ethereum")).toMatchObject({
       chainId: 1,
       nativeCode: "ETH",
@@ -16,7 +16,19 @@ describe("EVM chain config", () => {
       nativeDecimals: 18,
       alchemyNetwork: "polygon-mainnet",
     });
-    expect(EVM_CHAINS.size).toBe(2);
+    expect(evmChain("monad")).toMatchObject({
+      chainId: 143,
+      nativeCode: "MON",
+      nativeDecimals: 18,
+      alchemyNetwork: "monad-mainnet",
+    });
+    expect(evmChain("monad-testnet")).toMatchObject({
+      chainId: 10143,
+      nativeCode: "MON",
+      nativeDecimals: 18,
+      alchemyNetwork: "monad-testnet",
+    });
+    expect(EVM_CHAINS.size).toBe(4);
   });
 
   it("returns null for an unknown chain", () => {

@@ -18,6 +18,11 @@ export interface EvmChain {
   publicRpcUrl: string;
   /** Alchemy subdomain, e.g. `eth-mainnet`. */
   alchemyNetwork: string;
+  /**
+   * Alchemy asset-transfer categories to query. Defaults to external, internal,
+   * and erc20. Some networks (e.g. Monad) reject `internal`.
+   */
+  transferCategories?: readonly string[];
 }
 
 export const EVM_CHAINS: ReadonlyMap<string, EvmChain> = new Map<string, EvmChain>([
@@ -43,6 +48,32 @@ export const EVM_CHAINS: ReadonlyMap<string, EvmChain> = new Map<string, EvmChai
       nativeDecimals: 18,
       publicRpcUrl: "https://polygon-bor-rpc.publicnode.com",
       alchemyNetwork: "polygon-mainnet",
+    },
+  ],
+  [
+    "monad",
+    {
+      key: "monad",
+      chainId: 143,
+      name: "Monad",
+      nativeCode: "MON",
+      nativeDecimals: 18,
+      publicRpcUrl: "https://rpc.monad.xyz",
+      alchemyNetwork: "monad-mainnet",
+      transferCategories: ["external", "erc20"],
+    },
+  ],
+  [
+    "monad-testnet",
+    {
+      key: "monad-testnet",
+      chainId: 10143,
+      name: "Monad Testnet",
+      nativeCode: "MON",
+      nativeDecimals: 18,
+      publicRpcUrl: "https://testnet-rpc.monad.xyz",
+      alchemyNetwork: "monad-testnet",
+      transferCategories: ["external", "erc20"],
     },
   ],
 ]);

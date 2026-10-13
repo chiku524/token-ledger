@@ -22,6 +22,7 @@ export const COINGECKO_IDS: Record<string, string> = {
   ETH: "ethereum",
   SOL: "solana",
   POL: "matic-network",
+  MON: "monad",
   BTC: "bitcoin",
   SUI: "sui",
   USDC: "usd-coin",

@@ -84,6 +84,18 @@ export class PolygonChainAdapter extends EvmChainAdapter {
   }
 }
 
+export class MonadChainAdapter extends EvmChainAdapter {
+  constructor(options: EvmChainAdapterOptions = {}) {
+    super(evmChain("monad")!, "Monad wallets", options);
+  }
+}
+
+export class MonadTestnetChainAdapter extends EvmChainAdapter {
+  constructor(options: EvmChainAdapterOptions = {}) {
+    super(evmChain("monad-testnet")!, "Monad Testnet wallets", options);
+  }
+}
+
 export interface SolanaChainAdapterOptions {
   reader?: SolanaReader;
   client?: SolanaRpcClient;
