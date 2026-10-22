@@ -189,6 +189,11 @@ export default async function SourcesPage({
             ) : undefined
           }
         />
+        {canSource && writable ? (
+          <div className="mt-4">
+            <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} />
+          </div>
+        ) : null}
         {books.balanceSnapshots.length === 0 ? (
           <EmptyState
             className="mt-4"
