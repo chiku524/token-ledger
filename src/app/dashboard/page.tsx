@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
+import { GainLossPanel } from "@/components/app/gain-loss-panel";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
 import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
@@ -18,8 +19,11 @@ import {
   journalActivityChart,
   reconciliationStatus,
 } from "@/data/charts";
+import { one } from "@/data/query";
 import { journalName, journalNameLower } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { isHoldingsDisplayCurrency, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
+import { holdingsGainLoss } from "@/data/gain-loss";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { financialStatements, trialBalance } from "@/ledger";
@@ -28,11 +32,16 @@ import { IndividualOverview } from "./individual-overview";
 
 export const metadata = { title: "Overview" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ currency?: string | string[] }>;
+} = {}) {
+  const params = (await searchParams) ?? {};
   const { session, books } = await loadAuthorizedBooks();
   // An individual has no Matching, Companies or Combined, so the overview leaves them out.
   const individual = session.accountType === "individual";
-  if (individual) return <IndividualOverview books={books} />;
+  if (individual) return <IndividualOverview books={books} gainLossCurrency={one(params.currency)} />;
   // An individual's Journal is called Activity.
   const book = journalName(session.accountType);
   const bookLower = journalNameLower(session.accountType);
@@ -49,6 +58,9 @@ export default async function DashboardPage() {
   const composition = compositionPanels(books);
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
+  const functionalCurrency = books.entities[0]?.functionalCurrency ?? "";
+  const gainLossCurrency = resolveHoldingsDisplayCurrency(one(params.currency), isHoldingsDisplayCurrency(functionalCurrency) ? functionalCurrency : undefined);
+  const gainLoss = holdingsGainLoss(books, { individual: false, currency: gainLossCurrency });
   const currencyNote = individual
     ? "Each chart stays in your reporting currency."
     : booksAreWritable() && !session.demo && !session.demoBooks
@@ -108,6 +120,18 @@ export default async function DashboardPage() {
           </AlertDescription>
         </Alert>
       ) : null}
+
+      <GainLossPanel
+        gainLoss={gainLoss}
+        id="gain-loss"
+        className="mt-10 scroll-mt-6"
+        currencyHref={(code) => `/dashboard?currency=${code}#gain-loss`}
+        action={
+          <Link href={`/dashboard/sources?currency=${gainLossCurrency}#gain-loss`} className="text-sm text-link underline">
+            Open holdings
+          </Link>
+        }
+      />
 
       <section className="mt-10">
         <SectionHeader

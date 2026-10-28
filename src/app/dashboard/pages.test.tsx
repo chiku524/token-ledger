@@ -193,6 +193,63 @@ describe("role gating", () => {
     expect(sgd).not.toContain("No price");
   });
 
+  it("shows Holdings gain / loss on Holdings and Overview, in the chosen currency, with what is left out", async () => {
+    signInDemo("owner");
+    for (const page of [SourcesPage as Page, OverviewPage as Page]) {
+      const content = await pageText(page, { currency: "MYR" });
+      expect(content).toContain("Holdings gain / loss");
+      expect(content).toContain("Unrealized gain / loss");
+      expect(content).toContain("not included: no cost data");
+    }
+    const holdings = await pageText(SourcesPage as Page, { currency: "SGD" });
+    expect(holdings).toContain("Holdings gain / loss \u00b7 SGD");
+    expect(holdings).toMatch(/Gain|Loss|No change/);
+  });
+
+  it("lets the Overview gain / loss switch between MYR, SGD and USD", async () => {
+    signInDemo("owner");
+    const fallback = await renderPage(OverviewPage as Page);
+    expect(text(fallback)).toContain("Holdings gain / loss \u00b7 USD");
+    expect(fallback).toMatch(/<a[^>]*aria-current="page"[^>]*>USD<\/a>/);
+    expect(fallback).toMatch(/<a[^>]*href="\/dashboard\?currency=SGD#gain-loss"/);
+    for (const code of ["USD", "SGD", "MYR"]) {
+      const html = await renderPage(OverviewPage as Page, { currency: code });
+      expect(text(html)).toContain(`Holdings gain / loss \u00b7 ${code}`);
+      expect(html).toMatch(new RegExp(`<a[^>]*aria-current="page"[^>]*>${code}</a>`));
+      expect(html).toContain(`/dashboard/sources?currency=${code}#gain-loss`);
+    }
+    expect(text(await renderPage(OverviewPage as Page, { currency: "EUR" }))).toContain("Holdings gain / loss \u00b7 USD");
+  });
+
+  it("defaults the Overview gain / loss to the first company's currency when it is MYR, and a choice overrides it", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      entities: exampleBooks.entities.map((entity, index) => (index === 0 ? { ...entity, functionalCurrency: "MYR" } : entity)),
+    });
+    signInLive("owner");
+    expect(await pageText(OverviewPage as Page)).toContain("Holdings gain / loss \u00b7 MYR");
+    expect(await pageText(OverviewPage as Page, { currency: "SGD" })).toContain("Holdings gain / loss \u00b7 SGD");
+  });
+
+  it("falls back to USD on the Overview gain / loss when the company currency is not MYR, SGD or USD", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      entities: exampleBooks.entities.map((entity) => ({ ...entity, functionalCurrency: "EUR" })),
+    });
+    signInLive("owner");
+    expect(await pageText(OverviewPage as Page)).toContain("Holdings gain / loss \u00b7 USD");
+  });
+
+  it("explains an empty gain / loss instead of drawing nothing", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, journalEntries: [], assetPrices: [] });
+    signInLive("owner");
+    const content = await pageText(SourcesPage as Page, { currency: "USD" });
+    expect(content).toContain("No gain or loss to show yet");
+  });
+
   it("values SGD on Observed balances for USD-only Harbourline books (preview DB shape)", async () => {
     const { exampleBooks } = await import("@/data/example-books");
     vi.mocked(loadBooks).mockResolvedValue({

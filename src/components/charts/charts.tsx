@@ -11,6 +11,7 @@ import {
   Pie,
   PieChart,
   Rectangle,
+  ReferenceLine,
   ResponsiveContainer,
   Sector,
   Tooltip,
@@ -20,6 +21,7 @@ import {
   type PieSectorDataItem,
 } from "recharts";
 import type { LinePanel, MoneyRow, SourceStatusRow, StatusRow } from "@/data/charts";
+import type { GainLossBarRow, GainLossLinePoint } from "@/data/gain-loss";
 import { cn } from "@/lib/utils";
 import { useChartReveal } from "./use-chart-reveal";
 
@@ -333,6 +335,155 @@ export function ActivityBars({
         active={activeSeries}
         onActive={setActiveSeries}
       />
+    </div>
+  );
+}
+
+/** Value now against what went in, over time. The gap between the lines is the gain or loss. */
+export function GainLossLine({
+  points,
+  valueLabel,
+  investedLabel,
+  title,
+}: {
+  points: GainLossLinePoint[];
+  valueLabel: string;
+  investedLabel: string;
+  title: string;
+}) {
+  const { ref, show, animate } = useChartReveal();
+  const last = points.length - 1;
+  return (
+    <div>
+      <div ref={ref} className="h-56 w-full" role="img" aria-label={title}>
+        {show ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={points} margin={{ top: 10, right: 14, bottom: 0, left: 0 }}>
+              <CartesianGrid stroke={LINE} vertical={false} />
+              <XAxis dataKey="axisLabel" tick={tick} axisLine={{ stroke: LINE }} tickLine={false} minTickGap={28} />
+              <YAxis tick={tick} axisLine={false} tickLine={false} width={48} tickFormatter={axisAmount} domain={["auto", "auto"]} />
+              <Tooltip
+                cursor={{ stroke: INK_SOFT, strokeWidth: 1, strokeOpacity: 0.5 }}
+                animationDuration={180}
+                content={({ active, payload }) => {
+                  const point = payload?.[0]?.payload as GainLossLinePoint | undefined;
+                  if (!active || !point) return null;
+                  return (
+                    <ChartTooltip
+                      title={point.label}
+                      rows={[
+                        { key: "value", label: valueLabel, value: point.valueText, color: ACCENT },
+                        { key: "invested", label: investedLabel, value: point.investedText, color: INK_SOFT },
+                        { key: "gain", label: "Difference", value: point.gainText, color: point.gain >= 0 ? PINE : SEAL },
+                      ]}
+                    />
+                  );
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="invested"
+                name={investedLabel}
+                stroke={INK_SOFT}
+                strokeWidth={2}
+                strokeDasharray="5 4"
+                fill="none"
+                dot={false}
+                activeDot={{ r: 4, fill: INK_SOFT, stroke: SURFACE, strokeWidth: 2 }}
+                isAnimationActive={animate}
+                animationDuration={900}
+                animationEasing={EASING}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                name={valueLabel}
+                stroke={ACCENT}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill={ACCENT}
+                fillOpacity={0.1}
+                dot={(props: { cx?: number; cy?: number; index?: number }) =>
+                  props.index === last && props.cx !== undefined && props.cy !== undefined ? (
+                    <circle key="end" cx={props.cx} cy={props.cy} r={4} fill={ACCENT} stroke={SURFACE} strokeWidth={2} />
+                  ) : (
+                    <g key={`dot-${props.index}`} />
+                  )
+                }
+                activeDot={{ r: 5, fill: ACCENT, stroke: SURFACE, strokeWidth: 2 }}
+                isAnimationActive={animate}
+                animationDuration={900}
+                animationEasing={EASING}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : null}
+      </div>
+      <Legend
+        items={[
+          { key: "value", label: valueLabel, color: ACCENT, shape: "bar" },
+          { key: "invested", label: investedLabel, color: INK_SOFT, shape: "bar" },
+        ]}
+        active={null}
+        onActive={() => {}}
+      />
+    </div>
+  );
+}
+
+/** One bar per asset. Green to the right is a gain, red to the left is a loss; the tooltip says which in words. */
+export function GainLossBars({ rows, currency }: { rows: GainLossBarRow[]; currency: string }) {
+  const { ref, show, animate } = useChartReveal();
+  const [active, setActive] = useState<number | null>(null);
+  const height = Math.max(168, rows.length * 42 + 28);
+  return (
+    <div ref={ref} className="w-full" style={{ height }} role="img" aria-label={`Gain or loss by asset, in ${currency}`}>
+      {show ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 12, bottom: 0, left: 4 }} onMouseLeave={() => setActive(null)}>
+            <CartesianGrid horizontal={false} stroke={LINE} />
+            <XAxis type="number" tick={tick} axisLine={false} tickLine={false} tickFormatter={axisAmount} />
+            <YAxis
+              type="category"
+              dataKey="label"
+              width={labelWidth(rows)}
+              tick={tick}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={shortLabel}
+            />
+            <ReferenceLine x={0} stroke={INK_SOFT} strokeOpacity={0.6} />
+            <Tooltip
+              cursor={{ fill: CURSOR, radius: 6 }}
+              animationDuration={180}
+              content={({ active: on, payload }) => {
+                const row = payload?.[0]?.payload as GainLossBarRow | undefined;
+                if (!on || !row) return null;
+                return (
+                  <ChartTooltip
+                    title={row.label}
+                    rows={[{ key: row.id, label: row.detail, value: row.formatted, color: row.value >= 0 ? PINE : SEAL }]}
+                  />
+                );
+              }}
+            />
+            <Bar
+              dataKey="value"
+              barSize={16}
+              radius={4}
+              isAnimationActive={animate}
+              animationDuration={DURATION}
+              animationEasing={EASING}
+              onMouseEnter={(_, index) => setActive(index)}
+            >
+              {rows.map((row, index) => (
+                <Cell key={row.id} fill={row.value >= 0 ? PINE : SEAL} fillOpacity={dimmed(active, index)} style={fade} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      ) : null}
     </div>
   );
 }

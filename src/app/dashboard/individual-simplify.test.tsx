@@ -54,6 +54,7 @@ afterEach(() => vi.resetAllMocks());
 describe("an individual's report and activity pages", () => {
   it.each<[string, Page, Record<string, string>]>([
     ["Overview", OverviewPage as Page, {}],
+    ["Holdings", SourcesPage as Page, {}],
     ["Activity", LedgerPage as Page, {}],
     ["Reports: Portfolio summary", ReportsPage as Page, {}],
     ["Reports: Portfolio summary tab", ReportsPage as Page, { tab: "portfolio" }],
@@ -66,6 +67,31 @@ describe("an individual's report and activity pages", () => {
     expect(bannedTermsIn(words)).toEqual([]);
     expect(words).not.toMatch(ENTRY_WORDING_PATTERN);
     expect(hiddenSectionsIn(words)).toEqual([]);
+  });
+
+  it("shows Gain / loss in plain words on Overview and Holdings", async () => {
+    individual();
+    for (const page of [OverviewPage as Page, SourcesPage as Page]) {
+      const words = visibleText(await renderHtml(page));
+      expect(words).toContain("Gain / loss");
+      expect(words).toContain("Value now");
+      expect(words).toContain("Put in");
+      expect(words).not.toMatch(/unrealized|cost basis|profit|P&L/i);
+    }
+  });
+
+  it("lets an individual switch the Overview gain / loss currency, with no accounting words", async () => {
+    individual();
+    for (const code of ["USD", "SGD", "MYR"]) {
+      const html = await renderHtml(OverviewPage as Page, { currency: code });
+      const words = visibleText(html);
+      expect(words).toContain(`Gain / loss \u00b7 ${code}`);
+      expect(html).toMatch(new RegExp(`<a[^>]*aria-current="page"[^>]*>${code}</a>`));
+      expect(bannedTermsIn(words)).toEqual([]);
+    }
+    const html = await renderHtml(OverviewPage as Page, { currency: "USD" });
+    expect(html).toContain('href="/me?currency=SGD#gain-loss"');
+    expect(html).toContain("/me/holdings?currency=USD#gain-loss");
   });
 
   it("names the three reports and the downloads in plain words", async () => {
