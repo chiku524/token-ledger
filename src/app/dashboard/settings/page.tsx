@@ -20,6 +20,7 @@ import { Flash } from "@/components/flash";
 import { ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { isIndividualAccount } from "@/data/account-sections";
+import { pathFor } from "@/data/me-paths";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { reownProjectId } from "@/env";
@@ -37,6 +38,8 @@ export default async function SettingsPage({
   const canSource = can(session.role, "source.write");
   const canConnect = can(session.role, "source.connect");
   const csrf = await ensureCsrf();
+  const individual = isIndividualAccount(session.accountType);
+  const to = (href: string) => pathFor(session.accountType, href);
 
   return (
     <>
@@ -54,7 +57,7 @@ export default async function SettingsPage({
           description="Add a wallet, an exchange, or a custodian, then press Check so Holdings can show balances."
           action={
             canSource ? (
-              <Link href="/dashboard/setup" className="text-sm text-link underline">
+              <Link href={to("/dashboard/setup")} className="text-sm text-link underline">
                 Open the connection steps
               </Link>
             ) : undefined
@@ -77,7 +80,7 @@ export default async function SettingsPage({
             action={
               canSource ? (
                 <Button asChild variant="secondary">
-                  <Link href="/dashboard/setup">Open the connection steps</Link>
+                  <Link href={to("/dashboard/setup")}>Open the connection steps</Link>
                 </Button>
               ) : undefined
             }
@@ -87,8 +90,8 @@ export default async function SettingsPage({
         ) : (
           <ConnectionsTable
             books={books}
-            controls={canSource && writable ? { csrf } : undefined}
-            showCompany={!isIndividualAccount(session.accountType)}
+            controls={canSource && writable ? { csrf, next: to("/dashboard/settings") } : undefined}
+            showCompany={!individual}
           />
         )}
       </section>
@@ -97,7 +100,7 @@ export default async function SettingsPage({
         <div className="mt-8">
           <ConnectModal
             csrf={csrf}
-            next="/dashboard/settings"
+            next={to("/dashboard/settings")}
             books={books}
             projectId={reownProjectId()}
             canWrite={canSource}
@@ -124,7 +127,7 @@ export default async function SettingsPage({
               <p className="mt-4 text-sm text-muted-foreground">Add a company before tracking a wallet.</p>
             ) : (
               <FormCard action={createConnectionAction} className="mt-4 md:grid-cols-2">
-                <WatchWalletFields books={books} csrf={csrf} next="/dashboard/settings" />
+                <WatchWalletFields books={books} csrf={csrf} next={to("/dashboard/settings")} />
               </FormCard>
             )}
           </section>
@@ -160,7 +163,7 @@ export default async function SettingsPage({
                 <dd className="mt-1">{roleLabel(session.role)}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Organization</dt>
+                <dt className="text-muted-foreground">{individual ? "Account" : "Organization"}</dt>
                 <dd className="mt-1">{books.organization.name}</dd>
               </div>
             </dl>

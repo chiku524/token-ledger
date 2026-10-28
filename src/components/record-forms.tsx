@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { isIndividualAccount, journalName } from "@/data/account-sections";
 import type { OrganizationAccountType } from "@/data/account-type";
 import type { Books } from "@/data/books";
+import { pathFor } from "@/data/me-paths";
 
 export function ReadOnlyNote({ demo = false, individual = false }: { demo?: boolean; individual?: boolean }) {
   return (
@@ -233,17 +234,18 @@ export function RevaluationForm({ entityId, asOf, csrf }: { entityId: string; as
 
 export function MarketDataControls({
   csrf,
-  next = "/dashboard/sources",
+  next,
   accountType,
 }: {
   csrf: string;
   next?: string;
   accountType?: OrganizationAccountType;
 }) {
+  const returnTo = next ?? pathFor(accountType, "/dashboard/sources");
   return (
     <form action={refreshMarketDataAction} className="flex flex-wrap items-center gap-3">
       <input type="hidden" name="csrf" value={csrf} />
-      <input type="hidden" name="next" value={next} />
+      <input type="hidden" name="next" value={returnTo} />
       <SubmitButton variant="secondary">Refresh prices and rates</SubmitButton>
       <span className="text-sm text-muted-foreground">
         Fetches live CoinGecko prices (USD, SGD, MYR) and FX rates, stored with their source and date.

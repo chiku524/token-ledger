@@ -13,7 +13,9 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
-import { auditSubjectTypes, filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
+import { auditSubjectTypes, filterAuditEvents, parseAuditFilter, withDefaultAuditRange } from "@/data/audit-filter";
+import { pathFor } from "@/data/me-paths";
+import { defaultActivityRange } from "@/data/period";
 import { paginate, parsePage } from "@/data/pagination";
 import { actionLabel, subjectLabel } from "@/data/present";
 import { isIndividualAccount } from "@/data/account-sections";
@@ -40,9 +42,13 @@ export default async function AuditPage({
   const params = await searchParams;
   await requireSectionAccess("/dashboard/audit");
   const { session, books } = await loadAuthorizedBooks();
-  const filter = parseAuditFilter(params);
   // An individual has no Companies section, so the page does not name it.
   const individual = isIndividualAccount(session.accountType);
+  // An individual opens on the latest 30 days of activity, as Reports and Activity do; a range in the
+  // address wins, and an organization sees everything until it filters.
+  const parsedFilter = parseAuditFilter(params);
+  const filter = individual ? withDefaultAuditRange(parsedFilter, params, defaultActivityRange(books)) : parsedFilter;
+  const to = (href: string) => pathFor(session.accountType, href);
   // An individual's History leaves out the events that only an organization's books produce.
   const logged = individual ? individualAuditEvents(books.auditEvents) : books.auditEvents;
   const events = filterAuditEvents(logged, filter);
@@ -96,12 +102,12 @@ export default async function AuditPage({
         </Field>
         <div className="flex flex-wrap items-center gap-3 md:col-span-5">
           <SubmitButton>Filter</SubmitButton>
-          <Link href="/dashboard/audit" className="text-sm text-link underline">
+          <Link href={to("/dashboard/audit")} className="text-sm text-link underline">
             Clear
           </Link>
           {canExport ? (
             <Button asChild variant="secondary">
-              <a href={`/dashboard/audit/export${exportQuery ? `?${exportQuery}` : ""}`}>Download CSV</a>
+              <a href={to(`/dashboard/audit/export${exportQuery ? `?${exportQuery}` : ""}`)}>Download CSV</a>
             </Button>
           ) : null}
         </div>
@@ -140,7 +146,7 @@ export default async function AuditPage({
         </TableCard>
       )}
       {events.length > 0 ? (
-        <Pagination page={page} base="/dashboard/audit" query={hrefQuery} label="History pages" />
+        <Pagination page={page} base={to("/dashboard/audit")} query={hrefQuery} label="History pages" />
       ) : null}
     </>
   );

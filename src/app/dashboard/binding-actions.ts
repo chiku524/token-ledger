@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { actorName, assertCsrf, AuthError, requirePermission } from "@/auth/current";
+import { connectionReturnPathForSession } from "@/data/connection-return-session";
 import { canAccessEntity } from "@/auth/roles";
 import { normalizeDomain, verifyOwnershipSignature } from "@/auth/wallet-ownership";
 import { canWriteBooks } from "@/data/authorized-books";
@@ -76,7 +77,7 @@ export async function issueBindingChallenge(formData: FormData): Promise<IssuedB
 
 /** Verify the signed message and write the binding, consuming the challenge. */
 export async function verifyWalletBindingAction(formData: FormData): Promise<void> {
-  const path = String(formData.get("next") ?? "/dashboard/settings");
+  const path = await connectionReturnPathForSession(formData.get("next"));
   try {
     await assertCsrf(formData);
     const session = await requirePermission("source.write");

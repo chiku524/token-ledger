@@ -10,6 +10,8 @@ import { absoluteLink, deliver } from "@/email/links";
 import { inviteEmail, verifyEmail } from "@/email/messages";
 import { canAssignRole, canDeactivate, isRole, removesLastOwner } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
+import { pathFor } from "@/data/me-paths";
+import { ownPath } from "@/data/own-path";
 import { loadBooks } from "@/data/load-books";
 import { firstIssue, profileFormSchema, userFormSchema } from "@/data/validate";
 import {
@@ -27,11 +29,12 @@ import {
 } from "@/db/auth-store";
 import { fail, finish, save, safeMessage } from "./form-state";
 
-const PATH = "/dashboard/users";
+const USERS_PATH = "/dashboard/users";
 const READ_ONLY = "Connect a database to add people. This demo does not save them.";
 
 export async function inviteUserAction(formData: FormData) {
   const session = await guard("users.manage", formData);
+  const PATH = pathFor(session.accountType, USERS_PATH);
   if (!canWriteBooks(session)) fail(PATH, READ_ONLY);
   const parsed = userFormSchema.safeParse({
     name: formData.get("name"),
@@ -104,6 +107,7 @@ export async function inviteUserAction(formData: FormData) {
 
 export async function changeAccessAction(formData: FormData) {
   const session = await guard("users.manage", formData);
+  const PATH = pathFor(session.accountType, USERS_PATH);
   if (!canWriteBooks(session)) fail(PATH, READ_ONLY);
   const userId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "");
@@ -141,6 +145,7 @@ export async function changeAccessAction(formData: FormData) {
 
 export async function deactivateUserAction(formData: FormData) {
   const session = await guard("users.manage", formData);
+  const PATH = pathFor(session.accountType, USERS_PATH);
   if (!canWriteBooks(session)) fail(PATH, READ_ONLY);
   const userId = String(formData.get("userId") ?? "");
   const users = await listOrganizationUsers(session.organizationId);
@@ -172,7 +177,7 @@ export async function deactivateUserAction(formData: FormData) {
  * a demo persona is re-signed into its cookie for the session only.
  */
 export async function changeNameAction(formData: FormData): Promise<void> {
-  const path = "/dashboard/settings";
+  const path = await ownPath("/dashboard/settings");
   try {
     await assertCsrf(formData);
   } catch (error) {
@@ -214,7 +219,7 @@ export async function changeNameAction(formData: FormData): Promise<void> {
  * session; it sends to the account's own address only.
  */
 export async function resendVerificationAction(formData: FormData): Promise<void> {
-  const path = "/dashboard/settings";
+  const path = await ownPath("/dashboard/settings");
   try {
     await assertCsrf(formData);
   } catch (error) {
@@ -248,7 +253,7 @@ async function guard(permission: "users.manage", formData: FormData): Promise<Se
     await assertCsrf(formData);
     return await requirePermission(permission);
   } catch (error) {
-    if (error instanceof AuthError) fail(PATH, error.message);
+    if (error instanceof AuthError) fail(await ownPath(USERS_PATH), error.message);
     throw error;
   }
 }

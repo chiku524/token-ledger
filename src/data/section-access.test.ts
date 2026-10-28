@@ -84,11 +84,11 @@ describe("requireSectionAccess", () => {
     "/dashboard/payables",
     "/dashboard/operations",
     "/dashboard/onboarding",
-  ])("sends an individual home from %s, whatever their role", async (href) => {
+  ])("sends an individual straight to their own home from %s, whatever their role", async (href) => {
     vi.mocked(getSession).mockResolvedValue(session({ role: "owner", accountType: "individual" }));
-    expect(await redirectOf(requireSectionAccess(href))).toBe("/dashboard");
+    expect(await redirectOf(requireSectionAccess(href))).toBe("/me");
     vi.mocked(getSession).mockResolvedValue(session({ role: "viewer", accountType: "individual" }));
-    expect(await redirectOf(requireSectionAccess(href))).toBe("/dashboard");
+    expect(await redirectOf(requireSectionAccess(href))).toBe("/me");
   });
 
   it.each(["/dashboard", "/dashboard/sources", "/dashboard/ledger", "/dashboard/reports", "/dashboard/guide", "/dashboard/audit", "/dashboard/settings"])(

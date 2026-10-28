@@ -25,6 +25,7 @@ import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/d
 import { latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
 import { booksAreWritable } from "@/data/load-books";
+import { pathFor } from "@/data/me-paths";
 import { one } from "@/data/query";
 import { requireSectionAccess } from "@/data/section-access";
 import {
@@ -143,6 +144,7 @@ export default async function SourcesPage({
   const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   // An individual sees plain holdings: no company, no booked value, no journal wording.
   const individual = isIndividualAccount(session.accountType);
+  const to = (href: string) => pathFor(session.accountType, href);
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
@@ -165,7 +167,7 @@ export default async function SourcesPage({
   const panels = individual ? [] : [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
   const currencyLinks = HOLDINGS_DISPLAY_CURRENCIES.map((currency) => ({
     key: currency,
-    href: `/dashboard/sources?currency=${currency}`,
+    href: to(`/dashboard/sources?currency=${currency}`),
     label: currency,
     current: currency === quoteCurrency,
   }));
@@ -193,7 +195,7 @@ export default async function SourcesPage({
           description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}.${individual ? "" : " Activity that has not been journaled still appears here."}`}
           action={
             canSource ? (
-              <Link href="/dashboard/settings#connections" className="text-sm text-link underline">
+              <Link href={to("/dashboard/settings#connections")} className="text-sm text-link underline">
                 Check in Settings
               </Link>
             ) : undefined
@@ -201,7 +203,7 @@ export default async function SourcesPage({
         />
         {canSource && writable ? (
           <div className="mt-4">
-            <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} accountType={session.accountType} />
+            <MarketDataControls csrf={csrf} next={to(`/dashboard/sources?currency=${quoteCurrency}`)} accountType={session.accountType} />
           </div>
         ) : null}
         {books.balanceSnapshots.length === 0 ? (
@@ -211,11 +213,11 @@ export default async function SourcesPage({
             action={
               canSource && books.connections.length > 0 ? (
                 <Button asChild variant="secondary">
-                  <Link href="/dashboard/settings#connections">Check a connection in Settings</Link>
+                  <Link href={to("/dashboard/settings#connections")}>Check a connection in Settings</Link>
                 </Button>
               ) : canSource ? (
                 <Button asChild variant="secondary">
-                  <Link href="/dashboard/setup">Connect a venue</Link>
+                  <Link href={to("/dashboard/setup")}>Connect a venue</Link>
                 </Button>
               ) : undefined
             }
@@ -260,7 +262,7 @@ export default async function SourcesPage({
           description={
             <>
               Status of each venue. Add, check, and disconnect in{" "}
-              <Link href="/dashboard/settings#connections" className="underline">
+              <Link href={to("/dashboard/settings#connections")} className="underline">
                 Settings
               </Link>
               .
@@ -274,7 +276,7 @@ export default async function SourcesPage({
             action={
               canSource ? (
                 <Button asChild variant="secondary">
-                  <Link href="/dashboard/setup">Open the connection steps</Link>
+                  <Link href={to("/dashboard/setup")}>Open the connection steps</Link>
                 </Button>
               ) : undefined
             }
@@ -298,7 +300,7 @@ export default async function SourcesPage({
             />
             {canSource && writable ? (
               <div className="mt-4">
-                <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} accountType={session.accountType} />
+                <MarketDataControls csrf={csrf} next={to(`/dashboard/sources?currency=${quoteCurrency}`)} accountType={session.accountType} />
               </div>
             ) : null}
             {valuation.stale ? (
@@ -414,7 +416,7 @@ export default async function SourcesPage({
                 action={
                   canSource ? (
                     <Button asChild variant="secondary">
-                      <Link href="/dashboard/setup">Open the connection steps</Link>
+                      <Link href={to("/dashboard/setup")}>Open the connection steps</Link>
                     </Button>
                   ) : undefined
                 }

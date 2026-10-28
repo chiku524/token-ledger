@@ -8,16 +8,18 @@ describe("connectionReturnPath", () => {
     expect(connectionReturnPath("/dashboard/setup?step=done&next=/")).toBe("/dashboard/settings");
   });
 
-  it("keeps Operations for an organization but sends an individual to Settings instead", () => {
+  it("keeps Operations for an organization but sends an individual to their own Settings instead", () => {
     expect(connectionReturnPath("/dashboard/operations")).toBe("/dashboard/operations");
     expect(connectionReturnPath("/dashboard/operations", "organization")).toBe("/dashboard/operations");
-    expect(connectionReturnPath("/dashboard/operations", "individual")).toBe("/dashboard/settings");
+    expect(connectionReturnPath("/dashboard/operations", "individual")).toBe("/me/settings");
   });
 
-  it("keeps every other return path for an individual", () => {
-    expect(connectionReturnPath("/dashboard/setup?step=exchange", "individual")).toBe("/dashboard/setup?step=exchange");
-    expect(connectionReturnPath("/dashboard/sources?currency=SGD", "individual")).toBe("/dashboard/sources?currency=SGD");
-    expect(connectionReturnPath("https://example.com", "individual")).toBe("/dashboard/settings");
+  it("keeps every other return path for an individual, at their own address", () => {
+    expect(connectionReturnPath("/dashboard/setup?step=exchange", "individual")).toBe("/me/setup?step=exchange");
+    expect(connectionReturnPath("/dashboard/sources?currency=SGD", "individual")).toBe("/me/holdings?currency=SGD");
+    expect(connectionReturnPath("/me/settings", "individual")).toBe("/me/settings");
+    expect(connectionReturnPath("/dashboard/settings", "organization")).toBe("/dashboard/settings");
+    expect(connectionReturnPath("https://example.com", "individual")).toBe("/me/settings");
   });
 
   it("keeps Holdings currency return paths so price refresh preserves the toggle", () => {

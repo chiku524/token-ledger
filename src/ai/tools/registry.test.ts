@@ -82,7 +82,7 @@ describe("toolsFor", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.length).toBeLessThanOrEqual(5);
     expect(rows.map((row) => row.date)).toEqual([...rows.map((row) => row.date)].sort().reverse());
-    expect(result.route).toBe("/dashboard/ledger");
+    expect(result.route).toBe("/me/activity");
     expect(bannedTermsIn(JSON.stringify(result.data))).toEqual([]);
     const capped = await tool.execute({ limit: 9999, from: "not-a-date" }, ctx);
     expect((capped.data as unknown[]).length).toBeLessThanOrEqual(100);
@@ -92,5 +92,31 @@ describe("toolsFor", () => {
     const text = JSON.stringify(toolDefinitionsFor(session("organization")));
     expect(text).toMatch(/matching/i);
     expect(text).toMatch(/journal/i);
+  });
+});
+
+describe("the page an assistant tool points to", () => {
+  const contextFor = (accountType: SessionUser["accountType"]) =>
+    ({ ...session(accountType), books: individualBooks, hiddenTabs: [], csrf: null }) as unknown as ToolContext;
+  const run = (accountType: SessionUser["accountType"], name: string, input: Record<string, unknown>) =>
+    toolsFor(session(accountType)).find((tool) => tool.name === name)!.execute(input, contextFor(accountType));
+
+  it("is the individual's own address for every read tool they have, so following it costs no redirect", async () => {
+    expect((await run("individual", "list_holdings", {})).route).toBe("/me/holdings");
+    expect((await run("individual", "list_connections", {})).route).toBe("/me/holdings");
+    expect((await run("individual", "list_audit_events", {})).route).toBe("/me/history");
+    expect((await run("individual", "list_activity", {})).route).toBe("/me/activity");
+  });
+
+  it("is the individual's own address when the navigate tool refuses, too", async () => {
+    expect((await run("individual", "navigate", { slug: "matching" })).route).toBe("/me");
+    expect((await run("individual", "navigate", { slug: "nonsense" })).route).toBe("/me");
+    expect((await run("individual", "navigate", { slug: "settings" })).route).toBe("/me/settings");
+  });
+
+  it("stays on /dashboard for an organization", async () => {
+    expect((await run("organization", "list_holdings", {})).route).toBe("/dashboard/sources");
+    expect((await run("organization", "list_audit_events", {})).route).toBe("/dashboard/audit");
+    expect((await run("organization", "navigate", { slug: "nonsense" })).route).toBe("/dashboard");
   });
 });

@@ -14,10 +14,15 @@ import ReportsPage from "./reports/page";
 import SettingsPage from "./settings/page";
 import SourcesPage from "./sources/page";
 
-const event = (id: string, action: string, subjectType: string, detail: string, actor = "Sam"): AuditEvent => ({
+// Recent events sit on the newest day of activity, so they fall inside the default
+// 30-day range; the one old event sits months before it.
+const NEWEST_DAY = defaultActivityRange(individualBooks).to;
+const OLD_DAY = "2025-01-05";
+
+const event = (id: string, action: string, subjectType: string, detail: string, actor = "Sam", day = NEWEST_DAY): AuditEvent => ({
   id,
   organizationId: individualBooks.organization.id,
-  occurredAt: `2026-10-0${id}T10:00:00.000Z`,
+  occurredAt: `${day}T10:00:00.000Z`,
   actor,
   action,
   subjectType,
@@ -39,6 +44,7 @@ const books = {
     event("7", "entity.created", "entity", "Sam (Personal) added"),
     event("8", "source_transactions.imported", "source", "Imported 3 rows"),
     event("9", "source_transactions.imported", "source", "Posted 3 rows to the journal"),
+    event("10", "connection.created", "connection", "Old Coinbase key added", "Sam", OLD_DAY),
   ],
 };
 
@@ -186,6 +192,68 @@ describe("an individual's History", () => {
     expect(text).toContain("Connection added");
     expect(text).toContain("Wallet confirmed as yours");
     expect(text).not.toMatch(/journal|period\.|reconciliation|entity|Closed 2026-Q3/i);
+  });
+
+  describe("date range", () => {
+    const latest = defaultActivityRange(individualBooks);
+
+    it("opens on the latest 30 days ending at the newest activity", async () => {
+      individual();
+      const html = await renderHtml(AuditPage as Page);
+      expect(dateField(html, "from")).toBe(latest.from);
+      expect(dateField(html, "to")).toBe(latest.to);
+      const words = visibleText(html);
+      expect(words).toContain("Connection added");
+      expect(words).not.toContain("Old Coinbase key");
+    });
+
+    it("keeps a range chosen in the address, even an older one", async () => {
+      individual();
+      const html = await renderHtml(AuditPage as Page, { from: "2025-01-01", to: "2025-01-31" });
+      expect(dateField(html, "from")).toBe("2025-01-01");
+      expect(dateField(html, "to")).toBe("2025-01-31");
+      const words = visibleText(html);
+      expect(words).toContain("Old Coinbase key");
+      expect(words).not.toContain("Hot wallet confirmed");
+    });
+
+    it("treats an emptied date as no range at all", async () => {
+      individual();
+      const words = visibleText(await renderHtml(AuditPage as Page, { from: "", to: "" }));
+      expect(words).toContain("Old Coinbase key");
+      expect(words).toContain("Hot wallet confirmed");
+    });
+
+    it("leaves an organization's History on every date", async () => {
+      organization();
+      const html = await renderHtml(AuditPage as Page);
+      expect(dateField(html, "from") ?? "").toBe("");
+      expect(dateField(html, "to") ?? "").toBe("");
+      expect(visibleText(html)).toContain("Old Coinbase key");
+    });
+
+    it("downloads the same default range, and a range chosen in the address", async () => {
+      individual();
+      const byDefault = await (await auditExport(new Request("https://ledger.test/me/history/export"))).text();
+      expect(byDefault).toContain("Connection added");
+      expect(byDefault).not.toContain("Old Coinbase key");
+      const chosen = await (await auditExport(new Request("https://ledger.test/me/history/export?from=2025-01-01&to=2025-01-31"))).text();
+      expect(chosen).toContain("Old Coinbase key");
+      expect(chosen).not.toContain("Hot wallet confirmed");
+    });
+
+    it("downloads every date to an organization", async () => {
+      organization();
+      const text = await (await auditExport(new Request("https://ledger.test/dashboard/audit/export"))).text();
+      expect(text).toContain("Old Coinbase key");
+    });
+
+    it("keeps its links on the person's own address", async () => {
+      individual();
+      const html = await renderHtml(AuditPage as Page);
+      expect(html).toContain('href="/me/history/export');
+      expect(html).not.toContain('href="/dashboard');
+    });
   });
 
   it("downloads everything to an organization", async () => {

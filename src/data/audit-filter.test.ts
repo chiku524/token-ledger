@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuditEvent } from "./books";
-import { auditSubjectTypes, EMPTY_AUDIT_FILTER, filterAuditEvents, hasAuditFilter, parseAuditFilter } from "./audit-filter";
+import { auditSubjectTypes, EMPTY_AUDIT_FILTER, filterAuditEvents, hasAuditFilter, parseAuditFilter, withDefaultAuditRange } from "./audit-filter";
 
 function event(overrides: Partial<AuditEvent> & Pick<AuditEvent, "occurredAt" | "actor" | "action" | "subjectType">): AuditEvent {
   return {
@@ -50,5 +50,26 @@ describe("filterAuditEvents", () => {
 describe("auditSubjectTypes", () => {
   it("lists distinct subject types sorted", () => {
     expect(auditSubjectTypes(events)).toEqual(["connection", "journal_entry", "user"]);
+  });
+});
+
+describe("withDefaultAuditRange", () => {
+  const range = { from: "2026-10-01", to: "2026-10-30" };
+
+  it("opens on the range when the address chose none", () => {
+    const filter = parseAuditFilter({ action: "connection" });
+    expect(withDefaultAuditRange(filter, { action: "connection" }, range)).toEqual({ ...filter, from: range.from, to: range.to });
+  });
+
+  it("keeps whatever the address chose, even a single end", () => {
+    const only = parseAuditFilter({ from: "2025-01-01" });
+    expect(withDefaultAuditRange(only, { from: "2025-01-01" }, range)).toBe(only);
+    const end = parseAuditFilter({ to: "2025-02-01" });
+    expect(withDefaultAuditRange(end, { to: "2025-02-01" }, range)).toBe(end);
+  });
+
+  it("treats emptied date boxes as a choice of no range", () => {
+    const emptied = parseAuditFilter({ from: "", to: "" });
+    expect(withDefaultAuditRange(emptied, { from: "", to: "" }, range)).toEqual(emptied);
   });
 });

@@ -170,8 +170,7 @@ describe("verifyWalletBindingAction", () => {
     expect(result.params.get("saved")).toBeTruthy();
   });
 
-  // Known bug: `next` is used as the redirect target without connectionReturnPath, so it can leave the site.
-  it.fails("keeps the redirect on this site when next is external", async () => {
+  it("keeps the redirect on this site when next is external", async () => {
     signInLive("admin");
     const result = await redirectOf(
       verifyWalletBindingAction(form({ next: "https://evil.example/phish", challengeId: "bind_x", signature: "s" }, { csrf: "stale" })),

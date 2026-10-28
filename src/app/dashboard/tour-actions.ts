@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { actorName, assertCsrf, requireSession } from "@/auth/current";
+import { pathFor } from "@/data/me-paths";
 import { CONNECTION_TOUR_COOKIE, cookieSecure, sessionCookieOptions } from "@/auth/cookies";
 import { canTakeConnectionTour } from "@/data/getting-started";
 import { completeConnectionTour, reopenConnectionTour, writeAudit } from "@/db/auth-store";
@@ -48,5 +49,5 @@ export async function reopenConnectionTourAction(formData: FormData): Promise<vo
     });
   }
   revalidatePath("/dashboard", "layout");
-  redirect("/dashboard/sources");
+  redirect(pathFor(session.accountType, "/dashboard/sources"));
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/auth/current";
 import { isSectionAllowed, SECTION_REDIRECT } from "./account-sections";
+import { pathFor } from "./me-paths";
 import { loadOnboardingHiddenTabs } from "./onboarding";
 import { isHiddenForRole } from "./onboarding-sections";
 
@@ -19,10 +20,10 @@ import { isHiddenForRole } from "./onboarding-sections";
 export async function requireSectionAccess(href: string): Promise<void> {
   const session = await getSession();
   if (!session) return;
-  if (!isSectionAllowed(session.accountType, href)) redirect(SECTION_REDIRECT);
+  if (!isSectionAllowed(session.accountType, href)) redirect(pathFor(session.accountType, SECTION_REDIRECT));
   if (session.role !== "onboarding") return;
   // The example books have no stored settings, and demo sign-in has no database.
   if (session.demo) return;
   const hidden = await loadOnboardingHiddenTabs(session.organizationId);
-  if (isHiddenForRole(session.role, href, hidden)) redirect("/dashboard");
+  if (isHiddenForRole(session.role, href, hidden)) redirect(pathFor(session.accountType, "/dashboard"));
 }

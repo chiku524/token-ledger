@@ -333,7 +333,7 @@ describe("writable books (live owner, database configured)", () => {
   it("sends an individual away from Matching, Companies and Approvals", async () => {
     signInLive("owner", { accountType: "individual" });
     for (const page of [ReconciliationPage, EntitiesPage, ApprovalsPage]) {
-      expect((await redirectOf((page as Page)({ searchParams: Promise.resolve({}) }))).url).toBe("/dashboard");
+      expect((await redirectOf((page as Page)({ searchParams: Promise.resolve({}) }))).url).toBe("/me");
     }
   });
 
@@ -357,6 +357,44 @@ describe("writable books (live owner, database configured)", () => {
     expect(content).toContain("Companies");
     expect(content).toContain("All companies");
     expect(content).not.toContain("Account access");
+  });
+
+  it("sends an individual nowhere through /dashboard: every link, form and return address is their own /me", async () => {
+    signInLive("owner", { accountType: "individual" });
+    vi.mocked(listOrganizationUsers).mockResolvedValue([accountUser("owner")]);
+    const pages: [string, Page][] = [
+      ["Overview", OverviewPage as Page],
+      ["Holdings", SourcesPage as Page],
+      ["Activity", LedgerPage as Page],
+      ["Reports", ReportsPage as Page],
+      ["History", AuditPage as Page],
+      ["Settings", SettingsPage as Page],
+      ["Setup", SetupPage as Page],
+      ["People", UsersPage as Page],
+      ["Guide", GuidePage as Page],
+    ];
+    for (const [name, page] of pages) {
+      const html = await renderPage(page);
+      const addresses = [...html.matchAll(/(?:href|action|value)="(\/dashboard[^"]*)"/g)].map((match) => match[1]);
+      expect(addresses, name).toEqual([]);
+    }
+  });
+
+  it("still sends an organization's links to /dashboard", async () => {
+    signInLive("owner");
+    const html = await renderPage(SettingsPage as Page);
+    expect(html).toContain('href="/dashboard/setup"');
+    expect(html).not.toContain('href="/me');
+  });
+
+  it("calls the Settings row for an individual an Account, and an organization's an Organization", async () => {
+    signInLive("owner", { accountType: "individual" });
+    const individual = await pageText(SettingsPage as Page);
+    expect(individual).toContain("Account");
+    expect(individual).not.toContain("Organization");
+    resetRequest();
+    signInLive("owner");
+    expect(await pageText(SettingsPage as Page)).toContain("Organization");
   });
 
   it("does not name Companies in an individual's History description, and keeps it for an organization", async () => {
