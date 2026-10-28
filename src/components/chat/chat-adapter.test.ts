@@ -45,6 +45,19 @@ describe("toolLabel", () => {
     expect(toolLabel("post_journal")).toBe("Post journal");
     expect(toolLabel("unknown_tool")).toBe("unknown tool");
   });
+
+  it("calls the journal tools Activity for an individual, and keeps the rest", () => {
+    expect(toolLabel("list_journal", "individual")).toBe("List activity");
+    expect(toolLabel("post_journal", "individual")).toBe("Post activity entry");
+    expect(toolLabel("reverse_journal", "individual")).toBe("Reverse activity entry");
+    expect(toolLabel("navigate", "individual")).toBe("Open page");
+    expect(toolLabel("unknown_tool", "individual")).toBe("unknown tool");
+  });
+
+  it("keeps the journal names for an organization", () => {
+    expect(toolLabel("list_journal", "organization")).toBe(toolLabel("list_journal"));
+    expect(toolLabel("post_journal", "organization")).toBe("Post journal");
+  });
 });
 
 describe("createChatAdapter — a read turn", () => {

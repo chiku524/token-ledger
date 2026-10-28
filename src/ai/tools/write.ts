@@ -1,5 +1,6 @@
 import { can, canAccessEntity } from "@/auth/roles";
 import { actorName } from "@/auth/current";
+import { INDIVIDUAL_TOOL_LABELS, isIndividualAccount } from "@/data/account-sections";
 import { postFormJournal, assertCanReverse } from "@/data/journal-form";
 import { canWriteBooks } from "@/data/authorized-books";
 import { insertJournal, insertReversal } from "@/db/write";
@@ -102,10 +103,11 @@ export const postJournal: AgentTool = {
       lines.filter((line) => line.side === side).reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
     const debit = total("debit");
     const credit = total("credit");
+    const individual = isIndividualAccount(ctx.session.accountType);
     return {
-      action: "Post journal",
+      action: individual ? INDIVIDUAL_TOOL_LABELS.post_journal : "Post journal",
       fields: [
-        { label: "Company", value: entity?.name ?? entityId },
+        { label: individual ? "Account" : "Company", value: entity?.name ?? entityId },
         { label: "Reference", value: String(input.reference ?? "") },
         { label: "Date", value: String(input.entryDate ?? "") },
         { label: "Memo", value: String(input.memo ?? "") },
@@ -165,11 +167,12 @@ export const reverseJournal: AgentTool = {
   async preview(input, ctx) {
     const reference = String(input.reference ?? "").trim();
     const original = ctx.books.journalEntries.find((entry) => entry.reference === reference);
+    const individual = isIndividualAccount(ctx.session.accountType);
     return {
-      action: "Reverse journal",
+      action: individual ? INDIVIDUAL_TOOL_LABELS.reverse_journal : "Reverse journal",
       fields: [
         { label: "Original", value: reference || "—" },
-        { label: "Company", value: original ? ctx.books.entities.find((e) => e.id === original.entityId)?.name ?? original.entityId : "—" },
+        { label: individual ? "Account" : "Company", value: original ? ctx.books.entities.find((e) => e.id === original.entityId)?.name ?? original.entityId : "—" },
         { label: "New reference", value: String(input.newReference ?? "") },
         { label: "Date", value: String(input.entryDate ?? "") },
         { label: "Reason", value: String(input.memo ?? "") },

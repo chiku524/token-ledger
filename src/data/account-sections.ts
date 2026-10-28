@@ -48,6 +48,18 @@ export function sectionLabelFor(accountType: OrganizationAccountType | undefined
   return INDIVIDUAL_LABELS[path] ?? label;
 }
 
+/**
+ * What the assistant's journal tools are called for an individual: the tool card
+ * title and the confirmation card action. The Journal page is "Activity" for an
+ * individual, so the tools that read or write it are too. Organizations keep the
+ * original names. Keyed by tool name.
+ */
+export const INDIVIDUAL_TOOL_LABELS: Readonly<Record<string, string>> = {
+  list_journal: "List activity",
+  post_journal: "Post activity entry",
+  reverse_journal: "Reverse activity entry",
+};
+
 /** The name of the journal page: "Activity" for an individual, "Journal" otherwise. */
 export function journalName(accountType: OrganizationAccountType | undefined): string {
   return sectionLabelFor(accountType, "/dashboard/ledger", "Journal");
@@ -66,4 +78,18 @@ export function isSectionAllowed(accountType: OrganizationAccountType | undefine
   if (!isIndividualAccount(accountType)) return true;
   const path = href.split(/[?#]/)[0] ?? "";
   return INDIVIDUAL_SECTIONS.some((section) => (section === "/dashboard" ? path === section : path === section || path.startsWith(section + "/")));
+}
+
+/**
+ * The downloads an individual may request from `/dashboard/reports/export`. Like
+ * the sections, this is an allow-list: the Matching (`reconciliation`) export
+ * belongs to a page an individual does not have, so a typed URL must not reach it.
+ * An organization may request every kind.
+ */
+export const INDIVIDUAL_EXPORT_KINDS: readonly string[] = ["pdf", "trial-balance", "journal"];
+
+/** Whether an account of this type may download this export kind. */
+export function isExportKindAllowed(accountType: OrganizationAccountType | undefined, kind: string | null): boolean {
+  if (!isIndividualAccount(accountType)) return true;
+  return kind !== null && INDIVIDUAL_EXPORT_KINDS.includes(kind);
 }

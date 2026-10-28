@@ -85,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!ctx) return Response.json({ error: "Your session ended." }, { status: 401 });
 
   const historyRows = await loadMessages(session.organizationId, threadId);
-  const history = toHistory(historyRows.slice(0, -1));
+  const history = toHistory(historyRows.slice(0, -1), session.accountType);
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

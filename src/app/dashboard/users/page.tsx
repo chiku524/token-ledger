@@ -4,6 +4,7 @@ import { changeAccessAction, deactivateUserAction, inviteUserAction } from "@/ap
 import { ensureCsrf } from "@/auth/current";
 import { EXAMPLE_USERS } from "@/auth/example-users";
 import { can, canAssignRole, canDeactivate, removesLastOwner, roleLabel, ROLES } from "@/auth/roles";
+import { isIndividualAccount } from "@/data/account-sections";
 import { EmptyState } from "@/components/app/empty-state";
 import { Field } from "@/components/app/field";
 import { FormCard } from "@/components/app/form-card";
@@ -48,6 +49,10 @@ export default async function UsersPage({
   }
 
   const csrf = await ensureCsrf();
+  // An individual has no Companies section, so access is worded for one account, not a list of companies.
+  const individual = isIndividualAccount(session.accountType);
+  const scopeTitle = individual ? "Account access" : "Companies";
+  const everyScope = individual ? "Whole account" : "All companies";
   const database = hasDatabase() && !session.demo && !session.demoBooks;
   const people = database
     ? await listOrganizationUsers(session.organizationId)
@@ -111,8 +116,8 @@ export default async function UsersPage({
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Companies">
-          <Input name="entityScope" placeholder="Blank for every company" list="entity-ids" />
+        <Field label={scopeTitle}>
+          <Input name="entityScope" placeholder={individual ? "Blank for the whole account" : "Blank for every company"} list="entity-ids" />
         </Field>
         <datalist id="entity-ids">
           {books.entities.map((entity) => (
@@ -122,7 +127,9 @@ export default async function UsersPage({
           ))}
         </datalist>
         <p className="text-sm text-muted-foreground md:col-span-2">
-          Leave this blank for every company. A comma-separated list limits an accountant or viewer to those companies. Owners and admins always see every company.
+          {individual
+            ? "Leave this blank to share the whole account. Owners and admins always see the whole account."
+            : "Leave this blank for every company. A comma-separated list limits an accountant or viewer to those companies. Owners and admins always see every company."}
         </p>
         <div className="md:col-span-2">
           <SubmitButton>Create invite link</SubmitButton>
@@ -138,7 +145,7 @@ export default async function UsersPage({
                 <TableHead>Person</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Companies</TableHead>
+                <TableHead>{scopeTitle}</TableHead>
                 <TableHead>Access</TableHead>
               </TableRow>
             </TableHeader>
@@ -159,7 +166,7 @@ export default async function UsersPage({
                         {person.status}
                       </StatusBadge>
                     </TableCell>
-                    <TableCell>{person.entityScope.length === 0 ? "All companies" : person.entityScope.join(", ")}</TableCell>
+                    <TableCell>{person.entityScope.length === 0 ? everyScope : person.entityScope.join(", ")}</TableCell>
                     <TableCell>
                       {database && person.status !== "inactive" ? (
                         <div className="grid gap-2">
@@ -177,9 +184,9 @@ export default async function UsersPage({
                               ))}
                             </NativeSelect>
                             <label className="sr-only" htmlFor={`scope-${person.id}`}>
-                              Companies for {person.name}
+                              {scopeTitle} for {person.name}
                             </label>
-                            <Input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder="All companies" />
+                            <Input id={`scope-${person.id}`} name="entityScope" defaultValue={person.entityScope.join(", ")} placeholder={everyScope} />
                             <SubmitButton variant="secondary">Save access</SubmitButton>
                           </form>
                           {canDeactivate(session, person) && !lastOwner ? (

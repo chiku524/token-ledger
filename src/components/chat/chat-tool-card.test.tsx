@@ -6,6 +6,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+import { ChatAccountTypeProvider } from "./chat-account-type";
 import { ChatToolCard } from "./chat-tool-card";
 
 function props(overrides: Partial<ToolCallMessagePartProps> = {}): ToolCallMessagePartProps {
@@ -21,6 +22,36 @@ function props(overrides: Partial<ToolCallMessagePartProps> = {}): ToolCallMessa
     ...overrides,
   } as ToolCallMessagePartProps;
 }
+
+describe("ChatToolCard account type", () => {
+  it("titles a journal tool card Activity for an individual, in every state", () => {
+    const withIndividual = (overrides: Partial<ToolCallMessagePartProps>) =>
+      renderToStaticMarkup(
+        <ChatAccountTypeProvider value="individual">
+          <ChatToolCard {...props(overrides)} />
+        </ChatAccountTypeProvider>,
+      );
+    const pending = withIndividual({ approval: { id: "aitc_1" } });
+    expect(pending).toContain("Post activity entry");
+    expect(pending).not.toContain("Post journal");
+    const running = withIndividual({ toolName: "list_journal", status: { type: "running" } });
+    expect(running).toContain("List activity");
+    const done = withIndividual({ toolName: "reverse_journal", result: { summary: "Reversed JE-1." } });
+    expect(done).toContain("Reverse activity entry");
+    expect(done).not.toContain("Reverse journal");
+  });
+
+  it("keeps the journal wording for an organization and when no account type is provided", () => {
+    expect(renderToStaticMarkup(<ChatToolCard {...props({ approval: { id: "aitc_1" } })} />)).toContain("Post journal");
+    expect(
+      renderToStaticMarkup(
+        <ChatAccountTypeProvider value="organization">
+          <ChatToolCard {...props({ toolName: "list_journal", result: { summary: "ok" } })} />
+        </ChatAccountTypeProvider>,
+      ),
+    ).toContain("List journal");
+  });
+});
 
 describe("ChatToolCard", () => {
   it("shows a pending write as a confirmation card with Confirm and Cancel", () => {

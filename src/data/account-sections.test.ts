@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INDIVIDUAL_SECTIONS, isIndividualAccount, isSectionAllowed, journalName, journalNameLower, sectionLabelFor } from "./account-sections";
+import { INDIVIDUAL_EXPORT_KINDS, INDIVIDUAL_SECTIONS, INDIVIDUAL_TOOL_LABELS, isExportKindAllowed, isIndividualAccount, isSectionAllowed, journalName, journalNameLower, sectionLabelFor } from "./account-sections";
 
 const INSTITUTION_ONLY = [
   "/dashboard/reconciliation",
@@ -75,5 +75,35 @@ describe("the Activity name", () => {
     expect(isIndividualAccount("individual")).toBe(true);
     expect(isIndividualAccount("organization")).toBe(false);
     expect(isIndividualAccount(undefined)).toBe(false);
+  });
+});
+
+describe("isExportKindAllowed", () => {
+  it("lets an organization download every kind, and an unspecified account too", () => {
+    for (const kind of ["pdf", "trial-balance", "journal", "reconciliation", "anything-new", null]) {
+      expect(isExportKindAllowed("organization", kind)).toBe(true);
+      expect(isExportKindAllowed(undefined, kind)).toBe(true);
+    }
+  });
+
+  it("lets an individual download only the kinds on its own pages", () => {
+    for (const kind of INDIVIDUAL_EXPORT_KINDS) expect(isExportKindAllowed("individual", kind)).toBe(true);
+    expect([...INDIVIDUAL_EXPORT_KINDS].sort()).toEqual(["journal", "pdf", "trial-balance"]);
+  });
+
+  it("keeps an individual out of reconciliation, unknown kinds and a missing kind", () => {
+    expect(isExportKindAllowed("individual", "reconciliation")).toBe(false);
+    expect(isExportKindAllowed("individual", "anything-new")).toBe(false);
+    expect(isExportKindAllowed("individual", null)).toBe(false);
+  });
+});
+
+describe("INDIVIDUAL_TOOL_LABELS", () => {
+  it("renames only the tools that name the Journal page", () => {
+    expect(Object.keys(INDIVIDUAL_TOOL_LABELS).sort()).toEqual(["list_journal", "post_journal", "reverse_journal"]);
+    for (const label of Object.values(INDIVIDUAL_TOOL_LABELS)) {
+      expect(label).not.toMatch(/journal/i);
+      expect(label).toMatch(/activity/i);
+    }
   });
 });

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import type { OrganizationAccountType } from "@/data/account-type";
 import { starterPromptsFor } from "@/data/chat-starters";
 import { ChatToolCard } from "./chat-tool-card";
+import { ChatAccountTypeProvider } from "./chat-account-type";
 import { ChatRuntimeProvider } from "./chat-runtime-provider";
 import { ChatMarkdown } from "./chat-markdown";
 import { ChatThinking } from "./chat-thinking";
@@ -398,7 +399,9 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
           initialThreadId={activeThreadId}
           initialMessages={initialMessages}
         >
-          <ChatThread speech={speech} accountType={accountType} />
+          <ChatAccountTypeProvider value={accountType}>
+            <ChatThread speech={speech} accountType={accountType} />
+          </ChatAccountTypeProvider>
         </ChatRuntimeProvider>
       )}
     </m.aside>

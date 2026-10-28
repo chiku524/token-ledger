@@ -15,7 +15,7 @@ import {
   verifyOwnershipSignature,
 } from "@/auth/wallet-ownership";
 import { canWriteBooks } from "@/data/authorized-books";
-import { connectionReturnPath } from "@/data/connection-return";
+import { connectionReturnPathForSession } from "@/data/connection-return-session";
 import { verifiedWalletDraft } from "@/data/connections";
 import { loadBooks } from "@/data/load-books";
 import { getDb } from "@/db/client";
@@ -75,7 +75,7 @@ export async function issueOwnershipChallenge(formData: FormData): Promise<Issue
 }
 
 export async function verifyWalletOwnershipAction(formData: FormData) {
-  const path = connectionReturnPath(formData.get("next"));
+  const path = await connectionReturnPathForSession(formData.get("next"));
   try {
     await assertCsrf(formData);
     const session = await requirePermission("source.connect");

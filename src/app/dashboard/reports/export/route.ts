@@ -1,4 +1,5 @@
 import { getSession } from "@/auth/current";
+import { isExportKindAllowed } from "@/data/account-sections";
 import { can, canAccessEntity } from "@/auth/roles";
 import { formatMinor, journalCsv, netBalanceMinor, reconciliationCsv, trialBalance, trialBalanceCsv } from "@/ledger";
 import { booksForSession } from "@/data/authorized-books";
@@ -17,6 +18,8 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
+  // An individual has no Matching page, so its export is not theirs to download either.
+  if (!isExportKindAllowed(session.accountType, kind)) return new Response("That export is not part of this account.", { status: 404 });
   const books = await booksForSession(session);
   const requestedEntity = url.searchParams.get("entity");
   if (requestedEntity && !canAccessEntity(session, requestedEntity)) {

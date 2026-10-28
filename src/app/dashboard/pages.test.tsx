@@ -337,6 +337,38 @@ describe("writable books (live owner, database configured)", () => {
     }
   });
 
+  it("words an individual's Users page for one account, not companies, and keeps invites working", async () => {
+    signInLive("owner", { accountType: "individual" });
+    vi.mocked(listOrganizationUsers).mockResolvedValue([accountUser("owner"), accountUser("viewer", { email: "dee@harbourline.example" })]);
+    const html = await renderPage(UsersPage as Page);
+    const content = text(html);
+    expect(content).toContain("Invite someone");
+    expect(content).toContain("Account access");
+    expect(content).toContain("Whole account");
+    expect(content).not.toMatch(/compan/i);
+    // The invite still carries the same field, so the scope the server reads is unchanged.
+    expect(html).toContain('name="entityScope"');
+  });
+
+  it("keeps the Companies wording on an organization's Users page", async () => {
+    signInLive("owner");
+    vi.mocked(listOrganizationUsers).mockResolvedValue([accountUser("owner"), accountUser("viewer", { email: "dee@harbourline.example" })]);
+    const content = await pageText(UsersPage as Page);
+    expect(content).toContain("Companies");
+    expect(content).toContain("All companies");
+    expect(content).not.toContain("Account access");
+  });
+
+  it("does not name Companies in an individual's History description, and keeps it for an organization", async () => {
+    signInLive("owner", { accountType: "individual" });
+    const individual = await pageText(AuditPage as Page);
+    expect(individual).toContain("New wallets and accounts, imports");
+    expect(individual).not.toMatch(/compan/i);
+    resetRequest();
+    signInLive("owner");
+    expect(await pageText(AuditPage as Page)).toContain("New companies, wallets and accounts, imports");
+  });
+
   it("opens the connect flow on Setup", async () => {
     signInLive("admin");
     const html = await renderPage(SetupPage as Page, { step: "exchange" });

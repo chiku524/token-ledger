@@ -15,6 +15,7 @@ import { configuredEmbedder } from "@/ai/embeddings/config";
 import { providerForOrganization } from "@/ai/settings";
 import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
 import { assistantReply, toHistory } from "@/ai/service";
+import { scrubStoredMessages } from "@/ai/hidden-sections";
 import { toolByName } from "@/ai/tools/registry";
 import { loadToolContext } from "@/ai/context";
 import { appendMessage, loadMessages, loadToolCall, recordToolCall, resolveToolCall, auditToolRun, createThread, loadThread } from "@/db/ai";
@@ -84,7 +85,7 @@ export async function sendMessageAction(formData: FormData): Promise<ChatActionR
   if (!ctx) return { status: "error", text: "Your session ended. Sign in again." };
 
   const historyRows = await loadMessages(session.organizationId, activeThreadId);
-  const history = toHistory(historyRows.slice(0, -1));
+  const history = toHistory(historyRows.slice(0, -1), session.accountType);
 
   let turn;
   try {
@@ -257,7 +258,8 @@ export async function loadThreadMessagesAction(threadId: string): Promise<ChatHi
   const thread = await loadThread(session.organizationId, session.id, threadId);
   if (!thread) return [];
   const messages = await loadMessages(session.organizationId, threadId);
-  return messages
+  // A thread written before the individual sections existed may link to a page this account does not have.
+  return scrubStoredMessages(messages, session.accountType)
     .filter((message) => message.role === "user" || message.role === "assistant")
     .map((message) => ({
       id: message.id,
