@@ -2,6 +2,7 @@ import { TrendingUp } from "lucide-react";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
+import { SegmentedLinks } from "@/components/app/segmented-links";
 import { NumberCell, NumberHead } from "@/components/app/table-cells";
 import { TableCard } from "@/components/app/table-card";
 import { ChartFrame } from "@/components/charts/frame";
@@ -9,6 +10,7 @@ import { GainLossBars, GainLossLine } from "@/components/charts/lazy";
 import { Stagger } from "@/components/motion/stagger";
 import { Alert } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { HOLDINGS_DISPLAY_CURRENCIES } from "@/data/display-currency";
 import {
   directionOf,
   directionWord,
@@ -32,11 +34,14 @@ export function GainLossPanel({
   id,
   action,
   className,
+  currencyHref,
 }: {
   gainLoss: GainLoss;
   id?: string;
   action?: React.ReactNode;
   className?: string;
+  /** When set, a MYR / SGD / USD switcher is shown; each link goes to this address. */
+  currencyHref?: (currency: string) => string;
 }) {
   const copy = gainLossCopy(gainLoss.basis);
   const { currency, totals } = gainLoss;
@@ -53,6 +58,21 @@ export function GainLossPanel({
   return (
     <section id={id} className={className} aria-label={copy.title}>
       <SectionHeader title={`${copy.title} \u00b7 ${currency}`} description={copy.description} action={action} />
+
+      {currencyHref ? (
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          <p className="text-sm text-muted-foreground">Gain / loss currency</p>
+          <SegmentedLinks
+            label="Gain / loss currency"
+            items={HOLDINGS_DISPLAY_CURRENCIES.map((code) => ({
+              key: code,
+              href: currencyHref(code),
+              label: code,
+              current: code === currency,
+            }))}
+          />
+        </div>
+      ) : null}
 
       {hasRows ? (
         <>

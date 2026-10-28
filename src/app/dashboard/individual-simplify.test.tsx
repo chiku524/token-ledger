@@ -80,6 +80,20 @@ describe("an individual's report and activity pages", () => {
     }
   });
 
+  it("lets an individual switch the Overview gain / loss currency, with no accounting words", async () => {
+    individual();
+    for (const code of ["USD", "SGD", "MYR"]) {
+      const html = await renderHtml(OverviewPage as Page, { currency: code });
+      const words = visibleText(html);
+      expect(words).toContain(`Gain / loss \u00b7 ${code}`);
+      expect(html).toMatch(new RegExp(`<a[^>]*aria-current="page"[^>]*>${code}</a>`));
+      expect(bannedTermsIn(words)).toEqual([]);
+    }
+    const html = await renderHtml(OverviewPage as Page, { currency: "USD" });
+    expect(html).toContain('href="/me?currency=SGD#gain-loss"');
+    expect(html).toContain("/me/holdings?currency=USD#gain-loss");
+  });
+
   it("names the three reports and the downloads in plain words", async () => {
     individual();
     const words = visibleText(await renderHtml(ReportsPage as Page));

@@ -19,6 +19,7 @@ import {
   journalActivityChart,
   reconciliationStatus,
 } from "@/data/charts";
+import { one } from "@/data/query";
 import { journalName, journalNameLower } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { isHoldingsDisplayCurrency, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
@@ -31,11 +32,16 @@ import { IndividualOverview } from "./individual-overview";
 
 export const metadata = { title: "Overview" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ currency?: string | string[] }>;
+} = {}) {
+  const params = (await searchParams) ?? {};
   const { session, books } = await loadAuthorizedBooks();
   // An individual has no Matching, Companies or Combined, so the overview leaves them out.
   const individual = session.accountType === "individual";
-  if (individual) return <IndividualOverview books={books} />;
+  if (individual) return <IndividualOverview books={books} gainLossCurrency={one(params.currency)} />;
   // An individual's Journal is called Activity.
   const book = journalName(session.accountType);
   const bookLower = journalNameLower(session.accountType);
@@ -53,7 +59,7 @@ export default async function DashboardPage() {
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
   const functionalCurrency = books.entities[0]?.functionalCurrency ?? "";
-  const gainLossCurrency = resolveHoldingsDisplayCurrency(undefined, isHoldingsDisplayCurrency(functionalCurrency) ? functionalCurrency : undefined);
+  const gainLossCurrency = resolveHoldingsDisplayCurrency(one(params.currency), isHoldingsDisplayCurrency(functionalCurrency) ? functionalCurrency : undefined);
   const gainLoss = holdingsGainLoss(books, { individual: false, currency: gainLossCurrency });
   const currencyNote = individual
     ? "Each chart stays in your reporting currency."
@@ -117,7 +123,9 @@ export default async function DashboardPage() {
 
       <GainLossPanel
         gainLoss={gainLoss}
-        className="mt-10"
+        id="gain-loss"
+        className="mt-10 scroll-mt-6"
+        currencyHref={(code) => `/dashboard?currency=${code}#gain-loss`}
         action={
           <Link href={`/dashboard/sources?currency=${gainLossCurrency}#gain-loss`} className="text-sm text-link underline">
             Open holdings

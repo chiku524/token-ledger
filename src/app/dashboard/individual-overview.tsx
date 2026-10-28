@@ -28,7 +28,7 @@ const RECENT_ROWS = 5;
  * lately, and how their value has changed. Everything here is read from
  * connected wallets and exchanges.
  */
-export function IndividualOverview({ books }: { books: Books }) {
+export function IndividualOverview({ books, gainLossCurrency }: { books: Books; gainLossCurrency?: string }) {
   const today = new Date().toISOString().slice(0, 10);
   const currency = individualCurrency(undefined, books.entities[0]?.functionalCurrency);
   const summary = portfolioSummary(books, { asOf: today, currency });
@@ -37,7 +37,7 @@ export function IndividualOverview({ books }: { books: Books }) {
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
     .slice(0, RECENT_ROWS);
   const series = valueOverTime(books, { range: { from: "1970-01-01", to: today }, currency });
-  const gainLoss = holdingsGainLoss(books, { individual: true, currency });
+  const gainLoss = holdingsGainLoss(books, { individual: true, currency: individualCurrency(gainLossCurrency, books.entities[0]?.functionalCurrency) });
   const hasHoldings = summary.rows.length > 0 || summary.unpriced.length > 0;
   const bars: MoneyRow[] = summary.rows.map((row) => ({
     id: row.assetCode,
@@ -112,9 +112,11 @@ export function IndividualOverview({ books }: { books: Books }) {
       {hasHoldings ? (
         <GainLossPanel
           gainLoss={gainLoss}
-          className="mt-10"
+          id="gain-loss"
+          className="mt-10 scroll-mt-6"
+          currencyHref={(code) => mePath(`/dashboard?currency=${code}#gain-loss`)}
           action={
-            <Link href={mePath(`/dashboard/sources?currency=${currency}#gain-loss`)} className="text-sm text-link underline">
+            <Link href={mePath(`/dashboard/sources?currency=${gainLoss.currency}#gain-loss`)} className="text-sm text-link underline">
               Open holdings
             </Link>
           }
