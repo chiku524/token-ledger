@@ -67,7 +67,7 @@ export async function signUpAction(formData: FormData) {
   // An individual has no Connections step in the form. Send them to the Connect dialog
   // (open on the setup page) so the first thing they do is bring in a wallet or exchange.
   if (parsed.value.accountType === "individual") {
-    redirect(`/dashboard/setup?saved=${encodeURIComponent(INDIVIDUAL_SIGNUP_SAVED)}`);
+    redirect(`/me/setup?saved=${encodeURIComponent(INDIVIDUAL_SIGNUP_SAVED)}`);
   }
 
   const connected = parsed.value.connections.length;

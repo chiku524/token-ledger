@@ -1,5 +1,6 @@
 import { isSectionAllowed } from "./account-sections";
 import type { OrganizationAccountType } from "./account-type";
+import { dashboardPath } from "./me-paths";
 
 const CONNECTION_RETURNS = [
   "/dashboard/settings",
@@ -21,8 +22,14 @@ const HOLDINGS_CURRENCY_RETURN = /^\/dashboard\/sources\?currency=(USD|SGD|MYR)$
  * for one; they land on Settings instead.
  */
 export function connectionReturnPath(value: unknown, accountType?: OrganizationAccountType): string {
-  const path = typeof value === "string" ? value : "";
-  if ((CONNECTION_RETURNS as readonly string[]).includes(path)) return isSectionAllowed(accountType, path) ? path : "/dashboard/settings";
-  if (HOLDINGS_CURRENCY_RETURN.test(path)) return path;
-  return "/dashboard/settings";
+  // A form may name the page by either address. The answer is the dashboard address, which the
+  // actions revalidate; an individual's request for it is sent on to /me by the account guard.
+  const path = typeof value === "string" ? dashboardPath(value) : "";
+  return (CONNECTION_RETURNS as readonly string[]).includes(path)
+    ? isSectionAllowed(accountType, path)
+      ? path
+      : "/dashboard/settings"
+    : HOLDINGS_CURRENCY_RETURN.test(path)
+      ? path
+      : "/dashboard/settings";
 }

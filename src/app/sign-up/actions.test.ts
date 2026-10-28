@@ -99,7 +99,7 @@ describe("signUpAction", () => {
       jurisdiction: "us",
       functionalCurrency: "USD",
     });
-    expect(result.pathname).toBe("/dashboard/setup");
+    expect(result.pathname).toBe("/me/setup");
     expect(result.params.get("saved")).toMatch(/Connect a wallet or an exchange/);
     expect(vi.mocked(registerOrganization).mock.calls[0]![0]).toMatchObject({
       accountType: "individual",
@@ -122,7 +122,7 @@ describe("signUpAction", () => {
       ...WALLET,
       ...EXCHANGE,
     });
-    expect(result.pathname).toBe("/dashboard/setup");
+    expect(result.pathname).toBe("/me/setup");
     expect(vi.mocked(registerOrganization).mock.calls[0]![0].connections).toEqual([]);
   });
 

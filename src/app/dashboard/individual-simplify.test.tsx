@@ -123,7 +123,7 @@ describe("an individual's Overview, Holdings, Guide and Setup", () => {
   it("points the Overview at Holdings, Activity and Reports, with no entries", async () => {
     individual();
     const html = await renderHtml(OverviewPage as Page);
-    for (const path of ["/dashboard/sources#observed-balances", "/dashboard/ledger", "/dashboard/reports"]) expect(html).toContain(`href="${path}"`);
+    for (const path of ["/me/holdings#observed-balances", "/me/activity", "/me/reports"]) expect(html).toContain(`href="${path}"`);
     const words = visibleText(html);
     expect(words).toContain("Portfolio value");
     expect(words).not.toMatch(/Recent entries|Unposted|Post an entry/i);

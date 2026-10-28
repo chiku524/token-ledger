@@ -27,7 +27,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isSectionAllowed, sectionLabelFor } from "@/data/account-sections";
+import { isIndividualAccount, isSectionAllowed, sectionLabelFor } from "@/data/account-sections";
+import { dashboardPath, mePath } from "@/data/me-paths";
 import type { OrganizationAccountType } from "@/data/account-type";
 import { isHiddenForRole } from "@/data/onboarding-sections";
 import type { Role } from "@/auth/roles";
@@ -102,7 +103,12 @@ export type NavAccess = {
 export function navGroups({ showUsers, showOnboarding, showPlatform, role, hiddenTabs = [], accountType }: NavAccess): NavGroup[] {
   const visibleLink = (link: NavLink) => isSectionAllowed(accountType, link.href) && !isHiddenForRole(role, link.href, hiddenTabs);
   // An individual sees "Activity" where an organization sees "Journal"; the breadcrumbs read from here too.
-  const named = (link: NavLink): NavLink => ({ ...link, label: sectionLabelFor(accountType, link.href, link.label) });
+  // An individual's links point into /me; the checks above and the labels below read the dashboard address.
+  const named = (link: NavLink): NavLink => ({
+    ...link,
+    label: sectionLabelFor(accountType, link.href, link.label),
+    href: isIndividualAccount(accountType) ? mePath(link.href) : link.href,
+  });
   const accountLinks: NavLink[] = [
     { href: "/dashboard/guide", label: "Guide", icon: BookOpen },
     { href: "/dashboard/operations", label: "Operations", icon: Activity },
@@ -118,8 +124,11 @@ export function navGroups({ showUsers, showOnboarding, showPlatform, role, hidde
   ].filter((group) => group.links.length > 0);
 }
 
+/** Whether `href` is the page `pathname` is on. The `/me` and `/dashboard` addresses of a page count as the same page. */
 export function isActiveLink(pathname: string, href: string): boolean {
-  return href === "/dashboard" ? pathname === "/dashboard" : pathname === href || pathname.startsWith(`${href}/`);
+  const current = dashboardPath(pathname);
+  const link = dashboardPath(href);
+  return link === "/dashboard" ? current === "/dashboard" : current === link || current.startsWith(`${link}/`);
 }
 
 export function NavMain(access: NavAccess) {

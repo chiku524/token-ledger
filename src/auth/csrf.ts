@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { isMePath } from "@/data/me-paths";
 
 export const CSRF_COOKIE = "tl_csrf";
 
@@ -22,6 +23,9 @@ export function originAllowed(origin: string | null, host: string | null): boole
 }
 
 export function safeNextPath(value: string | null | undefined): string {
-  if (!value || !value.startsWith("/dashboard") || value.startsWith("//") || value.includes("\\")) return "/dashboard";
+  if (!value || value.startsWith("//") || value.includes("\\")) return "/dashboard";
+  // The dashboard, or an individual's area. Either way the account's own area redirects a mismatch.
+  if (isMePath(value)) return value;
+  if (!value.startsWith("/dashboard")) return "/dashboard";
   return value;
 }

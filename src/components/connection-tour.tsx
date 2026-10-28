@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { OrganizationAccountType } from "@/data/account-type";
+import { dashboardPath, pathFor } from "@/data/me-paths";
 import { useEffect, useState } from "react";
 import { completeConnectionTourAction } from "@/app/dashboard/tour-actions";
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,7 @@ export function ConnectionTourStep({
       ) : null}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <Button asChild>
-          <Link href={current.href}>{current.cta}</Link>
+          <Link href={pathFor(accountType, current.href)}>{current.cta}</Link>
         </Button>
         {canContinue ? (
           <Button type="button" variant="secondary" onClick={onContinue}>
@@ -98,7 +99,7 @@ export function ConnectionTourStep({
       {last ? (
         <p className="mt-4 text-sm text-muted-foreground">
           Prefer the long version?{" "}
-          <Link href="/dashboard/guide" className="underline">
+          <Link href={pathFor(accountType, "/dashboard/guide")} className="underline">
             Open the guide
           </Link>
           .
@@ -130,11 +131,11 @@ export function ConnectionTour({
     if (!open) return;
     const id = step.href.split("#")[1];
     if (!id) return;
-    if (!pathname.startsWith(step.href.split("#")[0] ?? "")) return;
+    if (!dashboardPath(pathname).startsWith(step.href.split("#")[0] ?? "")) return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, [open, pathname, step.href]);
 
-  if (pathname.startsWith("/dashboard/setup")) return null;
+  if (dashboardPath(pathname).startsWith("/dashboard/setup")) return null;
 
   async function finish() {
     setError(null);

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import type { SessionUser } from "@/auth/current";
+import { keepInOwnArea } from "@/auth/account-home";
 import { requireSession } from "@/auth/current";
 import type { Books } from "./books";
 import { exampleBooks } from "./example-books";
@@ -20,6 +21,7 @@ export async function booksForSession(session: SessionUser): Promise<Books> {
 
 export const loadAuthorizedBooks = cache(async (): Promise<{ session: SessionUser; books: Books }> => {
   const session = await requireSession();
+  await keepInOwnArea(session.accountType);
   const books = await booksForSession(session);
   return { session, books };
 });

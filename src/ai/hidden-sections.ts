@@ -1,5 +1,6 @@
 import { isIndividualAccount, isSectionAllowed } from "@/data/account-sections";
 import type { OrganizationAccountType } from "@/data/account-type";
+import { dashboardPath as toDashboardPath } from "@/data/me-paths";
 import { NAV_ROUTES } from "./tools/routes";
 
 /**
@@ -37,14 +38,19 @@ const MARKDOWN_LINK = /!?\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))
  * A bare dashboard path or URL, as in `/dashboard/reconciliation?tab=1` or `https://host/dashboard/entities`. */
 const DASHBOARD_REFERENCE = /(?:https?:\/\/[^\s)<>\]"']+?)?\/dashboard(?:\/[A-Za-z0-9_~-]+(?:\.[A-Za-z0-9_~-]+)*)*(?:[?#][^\s)<>\]"']*)?/g;
 
+/** The same, written as an individual's address: `/me/matching` or `https://host/me/people`. Not `/memo` or `/home/me/x`. */
+const ME_REFERENCE = /(?:https?:\/\/[^\s)<>\]"'/]+|(?<![\w/.~-]))\/me(?![\w~-])(?:\/[A-Za-z0-9_~-]+(?:\.[A-Za-z0-9_~-]+)*)*(?:[?#][^\s)<>\]"']*)?/g;
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** The dashboard path inside a link target, or null when the target is not a dashboard page. */
+/** The dashboard path inside a link target (an `/me` address counts as its dashboard page), or null when the target is neither. */
 function dashboardPath(target: string): string | null {
   const match = /(?:^|^https?:\/\/[^/\s]+)(\/dashboard(?:[/?#].*)?)$/i.exec(target.trim());
-  return match ? (match[1] ?? null) : null;
+  if (match) return match[1] ?? null;
+  const me = /(?:^|^https?:\/\/[^/\s]+)(\/me(?:[/?#].*)?)$/i.exec(target.trim());
+  return me?.[1] ? toDashboardPath(me[1]) : null;
 }
 
 /** Whether a dashboard reference points at a section this account type does not have. */
@@ -63,9 +69,8 @@ export function scrubHiddenSectionLinks(text: string, accountType: OrganizationA
   const withoutLinks = text.replace(MARKDOWN_LINK, (whole, target: string) =>
     isHiddenReference(target, accountType) ? HIDDEN_SECTION_PLACEHOLDER : whole,
   );
-  return withoutLinks.replace(DASHBOARD_REFERENCE, (reference) =>
-    isHiddenReference(reference, accountType) ? HIDDEN_SECTION_PLACEHOLDER : reference,
-  );
+  const scrub = (reference: string) => (isHiddenReference(reference, accountType) ? HIDDEN_SECTION_PLACEHOLDER : reference);
+  return withoutLinks.replace(DASHBOARD_REFERENCE, scrub).replace(ME_REFERENCE, scrub);
 }
 
 /** Whether `text` links to or names a section an individual does not have. Always false for an organization. */

@@ -18,6 +18,7 @@ import { AssistantRuntimeProvider, useLocalRuntime, WebSpeechDictationAdapter, t
 import { createChatAdapter } from "./chat-adapter";
 import { createElevenLabsSpeechAdapter } from "./speech-adapter";
 import { confirmToolCallAction } from "@/app/dashboard/chat-actions";
+import { isMePath } from "@/data/me-paths";
 
 export interface ChatRuntimeProviderProps {
   children: ReactNode;
@@ -63,7 +64,7 @@ export function ChatRuntimeProvider({
         csrf,
         memory,
         onNavigate: (route) => {
-          if (route && route.startsWith("/dashboard")) router.push(route);
+          if (route && (route.startsWith("/dashboard") || isMePath(route))) router.push(route);
         },
         onThreadId: (threadId) => {
           threadIdRef.current = threadId;

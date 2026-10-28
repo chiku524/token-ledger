@@ -1,6 +1,7 @@
 import { can } from "@/auth/roles";
 import { isIndividualAccount } from "@/data/account-sections";
 import type { OrganizationAccountType } from "@/data/account-type";
+import { pathFor } from "@/data/me-paths";
 import { isHiddenForRole } from "@/data/onboarding-sections";
 import { isHiddenNavSlug, navRouteBySlug, navRoutesFor } from "./routes";
 import type { AgentTool, ToolResult } from "./types";
@@ -62,7 +63,9 @@ export const navigate: AgentTool = {
     if (isHiddenForRole(ctx.session.role, route.href, ctx.hiddenTabs)) {
       return { summary: `${route.label} is hidden on this workspace.`, route: "/dashboard" };
     }
-    return { summary: `Opening ${route.label}.`, data: { href: route.href, label: route.label }, route: route.href };
+    // An individual is taken straight to its own address instead of through a redirect.
+    const href = pathFor(accountType, route.href);
+    return { summary: `Opening ${route.label}.`, data: { href, label: route.label }, route: href };
   },
 };
 
