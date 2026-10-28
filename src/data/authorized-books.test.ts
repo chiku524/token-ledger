@@ -10,6 +10,7 @@ function session(overrides: Partial<SessionUser> = {}): SessionUser {
     email: "owner@assetmanager-a.example",
     name: "Owner",
     role: "owner",
+    accountType: "organization",
     platformAdmin: false,
     entityScope: [],
     demo: false,

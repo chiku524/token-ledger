@@ -1,3 +1,4 @@
+import type { OrganizationAccountType } from "./account-type";
 import { EXAMPLE_NOTICE } from "./example-books";
 import type {
   Books,
@@ -16,6 +17,7 @@ export interface SnapshotOrganization {
   id: string;
   name: string;
   origin: "example" | "live";
+  accountType: OrganizationAccountType;
 }
 
 export interface SnapshotLine {

@@ -32,6 +32,7 @@ export async function signUpAction(formData: FormData) {
 
   try {
     const created = await registerOrganization({
+      accountType: parsed.value.accountType,
       ownerName: parsed.value.account.name,
       email: parsed.value.account.email,
       passwordHash: await hashPassword(parsed.value.account.password),

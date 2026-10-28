@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEMO_DATA_COOKIE } from "./cookies";
 import { getSession } from "./current";
-import { resetRequest, setCookie, signInLive } from "@/test/server-harness";
+import { resetRequest, setCookie, signInDemo, signInLive } from "@/test/server-harness";
 
 vi.mock("next/headers", async () => (await import("@/test/server-harness")).headersMock);
 vi.mock("next/navigation", async () => (await import("@/test/server-harness")).navigationMock);
@@ -14,6 +14,23 @@ beforeEach(() => {
 afterEach(() => {
   vi.resetAllMocks();
   vi.unstubAllEnvs();
+});
+
+describe("getSession account type", () => {
+  it("is an organization unless the user's organization says otherwise", async () => {
+    signInLive("owner");
+    expect((await getSession())?.accountType).toBe("organization");
+  });
+
+  it("carries an individual account through to the session", async () => {
+    signInLive("owner", { accountType: "individual" });
+    expect((await getSession())?.accountType).toBe("individual");
+  });
+
+  it("treats a demo session as an organization", async () => {
+    signInDemo("owner");
+    expect((await getSession())?.accountType).toBe("organization");
+  });
 });
 
 describe("getSession with the demo-data cookie", () => {

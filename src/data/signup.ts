@@ -1,8 +1,19 @@
+import {
+  DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
+  INDIVIDUAL_DEFAULTS,
+  ORGANIZATION_ACCOUNT_TYPES,
+  personalBooksName,
+  type OrganizationAccountType,
+} from "./account-type";
 import { connectionFromForm, type ConnectionDraft } from "./connections";
 import { connectionFormSchema, firstIssue, passwordFormSchema } from "./validate";
 import { z } from "zod";
 
 const nameText = z.string().trim().min(1, "Enter a name.").max(200);
+
+export const signupAccountTypeSchema = z.enum(ORGANIZATION_ACCOUNT_TYPES, {
+  message: "Choose whether this account is for an individual or an organization.",
+});
 
 export const signupAccountSchema = z
   .object({
@@ -28,6 +39,7 @@ export interface SignupConnectionFields {
 }
 
 export interface ParsedSignup {
+  accountType: OrganizationAccountType;
   account: z.infer<typeof signupAccountSchema>;
   company: z.infer<typeof signupCompanySchema>;
   connections: ConnectionDraft[];
@@ -44,13 +56,30 @@ export function parseSignup(formData: FormData): { ok: true; value: ParsedSignup
   });
   if (!account.success) return { ok: false, message: firstIssue(account.error) };
 
-  const company = signupCompanySchema.safeParse({
-    organizationName: formData.get("organizationName"),
-    entityName: formData.get("entityName"),
-    jurisdiction: String(formData.get("jurisdiction") ?? "").toUpperCase(),
-    functionalCurrency: formData.get("functionalCurrency"),
-    reportingFramework: formData.get("reportingFramework") || "IFRS",
-  });
+  // A form that does not say (an older page, a script) is an organization, as before.
+  const accountType = signupAccountTypeSchema.safeParse(formData.get("accountType") || DEFAULT_ORGANIZATION_ACCOUNT_TYPE);
+  if (!accountType.success) return { ok: false, message: firstIssue(accountType.error) };
+  const individual = accountType.data === "individual";
+
+  // An individual skips the Company step: the books are named after the person,
+  // and country and currency fall back to defaults when left blank.
+  const company = signupCompanySchema.safeParse(
+    individual
+      ? {
+          organizationName: personalBooksName(account.data.name),
+          entityName: personalBooksName(account.data.name),
+          jurisdiction: String(formData.get("jurisdiction") || INDIVIDUAL_DEFAULTS.jurisdiction).toUpperCase(),
+          functionalCurrency: formData.get("functionalCurrency") || INDIVIDUAL_DEFAULTS.functionalCurrency,
+          reportingFramework: INDIVIDUAL_DEFAULTS.reportingFramework,
+        }
+      : {
+          organizationName: formData.get("organizationName"),
+          entityName: formData.get("entityName"),
+          jurisdiction: String(formData.get("jurisdiction") ?? "").toUpperCase(),
+          functionalCurrency: formData.get("functionalCurrency"),
+          reportingFramework: formData.get("reportingFramework") || "IFRS",
+        },
+  );
   if (!company.success) return { ok: false, message: firstIssue(company.error) };
 
   const connections: ConnectionDraft[] = [];
@@ -73,7 +102,7 @@ export function parseSignup(formData: FormData): { ok: true; value: ParsedSignup
     connections.push(connectionFromForm(parsed.data));
   }
 
-  return { ok: true, value: { account: account.data, company: company.data, connections } };
+  return { ok: true, value: { accountType: accountType.data, account: account.data, company: company.data, connections } };
 }
 
 export function assignSignupEntity(drafts: readonly ConnectionDraft[], entityId: string): ConnectionDraft[] {

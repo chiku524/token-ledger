@@ -9,12 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { cn } from "@/lib/utils";
+import { personalBooksName, type OrganizationAccountType } from "@/data/account-type";
 import { WATCH_VENUES } from "@/data/connections";
 
-const STEPS = ["Account", "Company", "Connections", "Review"] as const;
+/** The third step is the Company for an organization and a short Details step for an individual. */
+function stepsFor(accountType: OrganizationAccountType): readonly string[] {
+  return ["Type", "Account", accountType === "individual" ? "Details" : "Company", "Connections", "Review"];
+}
 
 export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) {
   const [step, setStep] = useState(0);
+  const [accountType, setAccountType] = useState<OrganizationAccountType>("organization");
+  const individual = accountType === "individual";
+  const STEPS = stepsFor(accountType);
   const [wallet, setWallet] = useState(false);
   const [exchange, setExchange] = useState(false);
   const [custodian, setCustodian] = useState(false);
@@ -31,11 +38,12 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
         return;
       }
     }
-    if (step === 1) {
+    if (step === 2) {
       const data = new FormData(form);
+      const personal = personalBooksName(String(data.get("name") ?? ""));
       setSummary({
-        organization: String(data.get("organizationName") ?? ""),
-        company: String(data.get("entityName") ?? ""),
+        organization: individual ? personal : String(data.get("organizationName") ?? ""),
+        company: individual ? personal : String(data.get("entityName") ?? ""),
         email: String(data.get("email") ?? ""),
       });
     }
@@ -60,49 +68,90 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
 
       <div hidden={step !== 0} className="grid gap-3">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          This starts a new set of books. You will be the owner. A wallet, exchange, or custodian can be connected on the
-          next steps, or skipped and added later in Settings.
+          Token Ledger keeps books for a company or for one person. Pick the one that fits. You can add people and
+          connections later.
         </p>
-        <Field label="Your name">
-          <Input name="name" required maxLength={80} autoComplete="name" data-step="0" />
-        </Field>
-        <Field label="Email">
-          <Input name="email" type="email" required maxLength={200} autoComplete="email" data-step="0" />
-        </Field>
-        <Field label="Password">
-          <Input name="password" type="password" required minLength={12} autoComplete="new-password" data-step="0" />
-        </Field>
-        <Field label="Confirm password">
-          <Input name="confirm" type="password" required minLength={12} autoComplete="new-password" data-step="0" />
-        </Field>
+        <fieldset className="grid gap-2">
+          <legend className="sr-only">Account type</legend>
+          <AccountTypeChoice
+            value="organization"
+            title="Organization"
+            description="A company, fund, or treasury. Entities, approvals, and accountants."
+            selected={accountType}
+            onSelect={setAccountType}
+          />
+          <AccountTypeChoice
+            value="individual"
+            title="Individual"
+            description="Your own holdings. No company details to fill in."
+            selected={accountType}
+            onSelect={setAccountType}
+          />
+        </fieldset>
       </div>
 
       <div hidden={step !== 1} className="grid gap-3">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          The organization holds the books. The company is the legal entity that will own the connections.
+          This starts a new set of books. You will be the owner. A wallet, exchange, or custodian can be connected on the
+          next steps, or skipped and added later in Settings.
         </p>
-        <Field label="Organization">
-          <Input name="organizationName" required maxLength={200} data-step="1" />
+        <Field label="Your name">
+          <Input name="name" required maxLength={80} autoComplete="name" data-step="1" />
         </Field>
-        <Field label="Company">
-          <Input name="entityName" required maxLength={200} data-step="1" />
+        <Field label="Email">
+          <Input name="email" type="email" required maxLength={200} autoComplete="email" data-step="1" />
         </Field>
+        <Field label="Password">
+          <Input name="password" type="password" required minLength={12} autoComplete="new-password" data-step="1" />
+        </Field>
+        <Field label="Confirm password">
+          <Input name="confirm" type="password" required minLength={12} autoComplete="new-password" data-step="1" />
+        </Field>
+      </div>
+
+      <div hidden={step !== 2} className="grid gap-3">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {individual
+            ? "Your books are named after you. Pick the country and currency you report in. You can change them later."
+            : "The organization holds the books. The company is the legal entity that will own the connections."}
+        </p>
+        {individual ? null : (
+          <>
+            <Field label="Organization">
+              <Input name="organizationName" required maxLength={200} data-step="2" />
+            </Field>
+            <Field label="Company">
+              <Input name="entityName" required maxLength={200} data-step="2" />
+            </Field>
+          </>
+        )}
         <Field label="Country code">
-          <Input name="jurisdiction" required maxLength={2} placeholder="MY" className="uppercase" data-step="1" />
+          <Input
+            key={accountType}
+            name="jurisdiction"
+            required
+            maxLength={2}
+            placeholder={individual ? "US" : "MY"}
+            defaultValue={individual ? "US" : ""}
+            className="uppercase"
+            data-step="2"
+          />
         </Field>
         <Field label="Currency">
-          <NativeSelect name="functionalCurrency" defaultValue="MYR" data-step="1">
+          <NativeSelect key={accountType} name="functionalCurrency" defaultValue={individual ? "USD" : "MYR"} data-step="2">
             <NativeSelectOption value="MYR">MYR</NativeSelectOption>
             <NativeSelectOption value="SGD">SGD</NativeSelectOption>
             <NativeSelectOption value="USD">USD</NativeSelectOption>
           </NativeSelect>
         </Field>
-        <Field label="Reporting standard">
-          <Input name="reportingFramework" required defaultValue="IFRS" maxLength={40} data-step="1" />
-        </Field>
+        {individual ? null : (
+          <Field label="Reporting standard">
+            <Input name="reportingFramework" required defaultValue="IFRS" maxLength={40} data-step="2" />
+          </Field>
+        )}
       </div>
 
-      <div hidden={step !== 2} className="grid gap-4">
+      <div hidden={step !== 3} className="grid gap-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Connect a wallet, an exchange, a custodian, or all of them. Each one is read-only — scopes are balances and
           movements. A connection cannot withdraw, trade, or sign.
@@ -115,10 +164,10 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
           intro="Watch a public address."
         >
           <Field label="Name">
-            <Input name="walletName" required={wallet} maxLength={200} disabled={!wallet} data-step="2" />
+            <Input name="walletName" required={wallet} maxLength={200} disabled={!wallet} data-step="3" />
           </Field>
           <Field label="Network">
-            <NativeSelect name="walletChain" defaultValue="ethereum" disabled={!wallet} data-step="2">
+            <NativeSelect name="walletChain" defaultValue="ethereum" disabled={!wallet} data-step="3">
               {WATCH_VENUES.map((venue) => (
                 <NativeSelectOption key={venue.key} value={venue.key}>
                   {venue.label}
@@ -127,14 +176,14 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
             </NativeSelect>
           </Field>
           <Field label="Wallet type">
-            <NativeSelect name="walletRole" defaultValue="hot" disabled={!wallet} data-step="2">
+            <NativeSelect name="walletRole" defaultValue="hot" disabled={!wallet} data-step="3">
               <NativeSelectOption value="hot">Hot wallet</NativeSelectOption>
               <NativeSelectOption value="cold">Cold wallet</NativeSelectOption>
               <NativeSelectOption value="staking">Staking</NativeSelectOption>
             </NativeSelect>
           </Field>
           <Field label="Address">
-            <Input name="walletIdentifier" required={wallet} maxLength={200} disabled={!wallet} className="font-mono" data-step="2" />
+            <Input name="walletIdentifier" required={wallet} maxLength={200} disabled={!wallet} className="font-mono" data-step="3" />
           </Field>
         </ConnectionChoice>
         <ConnectionChoice
@@ -145,7 +194,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
           intro="Record an account id. Leave the wallet type blank."
         >
           <Field label="Name">
-            <Input name="exchangeName" required={exchange} maxLength={200} disabled={!exchange} data-step="2" />
+            <Input name="exchangeName" required={exchange} maxLength={200} disabled={!exchange} data-step="3" />
           </Field>
           <Field label="Account ID">
             <Input
@@ -154,7 +203,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
               maxLength={200}
               disabled={!exchange}
               className="font-mono"
-              data-step="2"
+              data-step="3"
             />
           </Field>
         </ConnectionChoice>
@@ -166,10 +215,10 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
           intro="Record a vault id. Add a network only when the vault has one."
         >
           <Field label="Name">
-            <Input name="custodianName" required={custodian} maxLength={200} disabled={!custodian} data-step="2" />
+            <Input name="custodianName" required={custodian} maxLength={200} disabled={!custodian} data-step="3" />
           </Field>
           <Field label="Network">
-            <NativeSelect name="custodianChain" defaultValue="" disabled={!custodian} data-step="2">
+            <NativeSelect name="custodianChain" defaultValue="" disabled={!custodian} data-step="3">
               <NativeSelectOption value="">None</NativeSelectOption>
               {WATCH_VENUES.map((venue) => (
                 <NativeSelectOption key={venue.key} value={venue.key}>
@@ -185,21 +234,27 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
               maxLength={200}
               disabled={!custodian}
               className="font-mono"
-              data-step="2"
+              data-step="3"
             />
           </Field>
         </ConnectionChoice>
       </div>
 
-      <div hidden={step !== 3} className="grid gap-3 text-sm leading-relaxed">
+      <div hidden={step !== 4} className="grid gap-3 text-sm leading-relaxed">
         <p>
-          <span className="text-muted-foreground">Organization. </span>
+          <span className="text-muted-foreground">Account type. </span>
+          {individual ? "Individual" : "Organization"}
+        </p>
+        <p>
+          <span className="text-muted-foreground">{individual ? "Books. " : "Organization. "}</span>
           {summary.organization || "—"}
         </p>
+        {individual ? null : (
         <p>
           <span className="text-muted-foreground">Company. </span>
           {summary.company || "—"}
         </p>
+        )}
         <p>
           <span className="text-muted-foreground">Email. </span>
           {summary.email || "—"}
@@ -219,7 +274,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
         ) : null}
         {step < STEPS.length - 1 ? (
           <Button type="button" onClick={goNext}>
-            {step === 2 ? "Review" : "Continue"}
+            {step === 3 ? "Review" : "Continue"}
           </Button>
         ) : (
           <SubmitButton pendingLabel="Creating account…">
@@ -228,6 +283,43 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
         )}
       </div>
     </form>
+  );
+}
+
+function AccountTypeChoice({
+  value,
+  title,
+  description,
+  selected,
+  onSelect,
+}: {
+  value: OrganizationAccountType;
+  title: string;
+  description: string;
+  selected: OrganizationAccountType;
+  onSelect: (value: OrganizationAccountType) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 text-sm",
+        selected === value && "border-primary bg-primary/5",
+      )}
+    >
+      <input
+        type="radio"
+        className="mt-0.5 size-4 accent-brand"
+        name="accountType"
+        value={value}
+        checked={selected === value}
+        onChange={() => onSelect(value)}
+        data-step="0"
+      />
+      <span>
+        <span className="font-medium">{title}</span>
+        <span className="mt-1 block text-muted-foreground">{description}</span>
+      </span>
+    </label>
   );
 }
 
@@ -263,7 +355,7 @@ function ConnectionChoice({
           value="on"
           checked={checked}
           onChange={(event) => onChange(event.target.checked)}
-          data-step="2"
+          data-step="3"
         />
         <span>
           Connect this now

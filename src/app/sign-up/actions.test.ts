@@ -84,6 +84,39 @@ describe("signUpAction", () => {
     expect(message.text).toContain("https://ledger.test/verify-email?token=verify-token");
   });
 
+  it("registers an organization by default", async () => {
+    await signUp(SIGNUP);
+    expect(vi.mocked(registerOrganization).mock.calls[0]![0].accountType).toBe("organization");
+  });
+
+  it("registers an individual with their own name, a default country, and the same landing page", async () => {
+    const result = await signUp({
+      name: "Amina Rahman",
+      email: "amina@harbourline.example",
+      password: PASSWORD,
+      confirm: PASSWORD,
+      accountType: "individual",
+      jurisdiction: "us",
+      functionalCurrency: "USD",
+    });
+    expect(result.pathname).toBe("/dashboard/settings");
+    expect(vi.mocked(registerOrganization).mock.calls[0]![0]).toMatchObject({
+      accountType: "individual",
+      ownerName: "Amina Rahman",
+      organizationName: "Amina Rahman (Personal)",
+      entityName: "Amina Rahman (Personal)",
+      jurisdiction: "US",
+      functionalCurrency: "USD",
+      reportingFramework: "IFRS",
+    });
+  });
+
+  it("refuses an unknown account type", async () => {
+    const result = await signUp({ ...SIGNUP, accountType: "team" });
+    expect(result.pathname).toBe("/sign-up");
+    expect(registerOrganization).not.toHaveBeenCalled();
+  });
+
   it("counts one read-only connection", async () => {
     const result = await signUp({ ...SIGNUP, ...WALLET });
     expect(result.params.get("saved")).toBe("Account created with 1 read-only connection. Permissions stay at balances and movements.");
