@@ -3,7 +3,15 @@ import { postJournalEntry, toMinor, type JournalEntryInput, type JournalLineInpu
 import type { Books, StoredFxRate } from "./books";
 import { exampleBooks } from "./example-books";
 import { holdingsGainLoss } from "./gain-loss";
-import { holdingsRealizedGainLoss, REALIZED_COPY, realizedNotIncludedText } from "./realized-gain-loss";
+import {
+  describeRealizedRange,
+  holdingsRealizedGainLoss,
+  presetRange,
+  REALIZED_COPY,
+  realizedNotIncludedText,
+  realizedRangeQuery,
+  resolveRealizedRange,
+} from "./realized-gain-loss";
 
 const ENT = exampleBooks.entities[0].id;
 const usd = (amount: string) => toMinor(amount, 2);
@@ -183,6 +191,123 @@ describe("what is left out of realized gain / loss", () => {
     const result = holdingsRealizedGainLoss(exampleBooks as Books, { currency: "USD", now: NOW });
     expect(result.rows).toEqual([]);
     expect(result.totals.gainMinor).toBe(0n);
+  });
+});
+
+describe("realized gain / loss over a date range", () => {
+  // Bought 10 at 100 each in mid 2025. Sold 5 for 600 (July 2025: gain 100) and 5 for 450 (Jan 2026: loss 50).
+  const history = [
+    buy("a", "2025-06-01", "ABC", 10, "1000.00"),
+    sellForCash("s1", "2025-07-01", "ABC", 5, "600.00"),
+    sellForCash("s2", "2026-01-20", "ABC", 5, "450.00"),
+  ];
+  const run = (range?: ReturnType<typeof presetRange>, journalEntries = history) =>
+    holdingsRealizedGainLoss(books({ journalEntries }), { currency: "USD", now: NOW, range });
+
+  it("opens on All time: every sale up to today", () => {
+    const result = run();
+    expect(result.range).toEqual({ key: "all", from: null, to: "2026-01-31" });
+    expect(result.totals).toMatchObject({ proceedsMinor: usd("1050.00"), costMinor: usd("1000.00"), gainMinor: usd("50.00") });
+    expect(result.salesCounted).toBe(2);
+    expect(result.earliestSaleDay).toBe("2025-07-01");
+  });
+
+  it("counts only sales inside the range, with cost still coming from the earlier purchases", () => {
+    const thisYear = run(presetRange("ytd", NOW));
+    expect(thisYear.range).toEqual({ key: "ytd", from: "2026-01-01", to: "2026-01-31" });
+    // The 2025 purchase still sets the 100 average: cost 500, proceeds 450.
+    expect(thisYear.totals).toMatchObject({ proceedsMinor: usd("450.00"), costMinor: usd("500.00"), gainMinor: usd("-50.00") });
+    expect(thisYear.salesCounted).toBe(1);
+    const last12 = run(presetRange("12m", NOW));
+    expect(last12.range.from).toBe("2025-02-01");
+    expect(last12.totals.gainMinor).toBe(usd("50.00"));
+    const custom = run({ key: "custom", from: "2025-06-15", to: "2025-12-31" });
+    expect(custom.totals).toMatchObject({ proceedsMinor: usd("600.00"), costMinor: usd("500.00"), gainMinor: usd("100.00") });
+  });
+
+  it("includes sales on the first and last day of the range", () => {
+    expect(run({ key: "custom", from: "2025-07-01", to: "2025-07-01" }).salesCounted).toBe(1);
+    expect(run({ key: "custom", from: "2026-01-20", to: "2026-01-20" }).salesCounted).toBe(1);
+    expect(run({ key: "custom", from: "2025-07-02", to: "2026-01-19" }).salesCounted).toBe(0);
+  });
+
+  it("splits the whole history cleanly: ranges that meet add up to All time", () => {
+    const early = run({ key: "custom", from: null, to: "2025-12-31" });
+    const late = run({ key: "custom", from: "2026-01-01", to: "2026-01-31" });
+    expect(early.totals.gainMinor + late.totals.gainMinor).toBe(run().totals.gainMinor);
+  });
+
+  it("does not list sales left out in other dates", () => {
+    const spend = entry("p", "2025-08-01", [
+      { accountCode: "5100", side: "debit", amountMinor: usd("5.00"), currency: "USD" },
+      { accountCode: "1330", side: "credit", amountMinor: usd("5.00"), currency: "USD", assetCode: "XYZ", quantityMinor: 1n, quantityDirection: "out", sourceId: "src_buidl_eth" },
+    ]);
+    const journal = [...history, buy("x", "2025-06-01", "XYZ", 5, "50.00"), spend];
+    const left = [{ assetCode: "XYZ", reason: "no-proceeds", sales: 1 }];
+    expect(run(presetRange("all", NOW), journal).notIncluded).toEqual(left);
+    expect(run(presetRange("ytd", NOW), journal).notIncluded).toEqual([]);
+    expect(run({ key: "custom", from: "2025-08-01", to: "2025-08-31" }, journal).notIncluded).toEqual(left);
+  });
+
+  it("still ignores sales after today when the range reaches into the future", () => {
+    const future = [...history, buy("x", "2025-06-01", "XYZ", 5, "50.00"), sellForCash("f", "2026-03-01", "XYZ", 1, "10.00")];
+    expect(run({ key: "custom", from: "2026-01-01", to: "2026-12-31" }, future).salesCounted).toBe(1);
+  });
+
+  it("works in the other currencies too", () => {
+    const result = holdingsRealizedGainLoss(books({ journalEntries: history }), { currency: "MYR", now: NOW, range: presetRange("ytd", NOW) });
+    expect(result.currency).toBe("MYR");
+    expect(result.range.key).toBe("ytd");
+    expect(result.rows[0]).toMatchObject({ proceedsMinor: usd("2115.00"), costMinor: usd("2350.00") });
+  });
+});
+
+describe("realized date range helpers", () => {
+  const now = new Date("2026-10-28T15:00:00.000Z");
+
+  it("builds the presets from today", () => {
+    expect(presetRange("ytd", now)).toEqual({ key: "ytd", from: "2026-01-01", to: "2026-10-28" });
+    expect(presetRange("12m", now)).toEqual({ key: "12m", from: "2025-10-29", to: "2026-10-28" });
+    expect(presetRange("all", now)).toEqual({ key: "all", from: null, to: "2026-10-28" });
+    // 29 February has no twin a year earlier.
+    expect(presetRange("12m", new Date("2028-02-29T10:00:00.000Z")).from).toBe("2027-03-01");
+  });
+
+  it("defaults to All time and reads a preset or custom dates from the address", () => {
+    expect(resolveRealizedRange({}, now)).toEqual({ range: presetRange("all", now), error: null });
+    expect(resolveRealizedRange({ range: "ytd" }, now).range.key).toBe("ytd");
+    expect(resolveRealizedRange({ range: "12m" }, now).range.key).toBe("12m");
+    expect(resolveRealizedRange({ range: "nonsense" }, now).range.key).toBe("all");
+    expect(resolveRealizedRange({ from: "2026-02-01", to: "2026-03-01" }, now)).toEqual({ range: { key: "custom", from: "2026-02-01", to: "2026-03-01" }, error: null });
+    // Dates win over a preset, and one end alone is enough.
+    expect(resolveRealizedRange({ range: "ytd", from: "2026-02-01", to: "2026-03-01" }, now).range.key).toBe("custom");
+    expect(resolveRealizedRange({ from: "2026-02-01" }, now).range).toEqual({ key: "custom", from: "2026-02-01", to: "2026-10-28" });
+    expect(resolveRealizedRange({ to: "2026-02-01" }, now).range).toEqual({ key: "custom", from: null, to: "2026-02-01" });
+  });
+
+  it("falls back to All time with a message for dates that cannot be used", () => {
+    for (const input of [{ from: "2026-13-01", to: "2026-12-01" }, { from: "soon" }, { from: "2026-05-01", to: "2026-04-01" }]) {
+      const result = resolveRealizedRange(input, now);
+      expect(result.range.key).toBe("all");
+      expect(result.error).toBeTruthy();
+    }
+  });
+
+  it("keeps the range in an address, and keeps the default out of it", () => {
+    expect(realizedRangeQuery(presetRange("all", now))).toBe("");
+    expect(realizedRangeQuery(presetRange("ytd", now))).toBe("range=ytd");
+    expect(realizedRangeQuery(presetRange("12m", now))).toBe("range=12m");
+    expect(realizedRangeQuery({ key: "custom", from: "2026-02-01", to: "2026-03-01" })).toBe("from=2026-02-01&to=2026-03-01");
+    for (const range of [presetRange("ytd", now), { key: "custom" as const, from: "2026-02-01", to: "2026-03-01" }]) {
+      const params = Object.fromEntries(new URLSearchParams(realizedRangeQuery(range)));
+      expect(resolveRealizedRange(params, now).range).toEqual(range);
+    }
+  });
+
+  it("describes the range in words", () => {
+    expect(describeRealizedRange(presetRange("all", now))).toBe("All time, up to 2026-10-28");
+    expect(describeRealizedRange(presetRange("ytd", now))).toBe("This year: 2026-01-01 to 2026-10-28");
+    expect(describeRealizedRange({ key: "custom", from: "2026-02-01", to: "2026-03-01" })).toBe("Custom: 2026-02-01 to 2026-03-01");
   });
 });
 

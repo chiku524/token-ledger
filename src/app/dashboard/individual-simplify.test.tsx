@@ -90,6 +90,16 @@ describe("an individual's report and activity pages", () => {
     }
   });
 
+  it("gives an individual no date range for realized gain / loss, even if one is in the address", async () => {
+    individual();
+    for (const page of [OverviewPage as Page, SourcesPage as Page]) {
+      const plain = await renderHtml(page, { currency: "USD" });
+      const withRange = await renderHtml(page, { currency: "USD", range: "ytd", from: "2026-01-01", to: "2026-02-01" });
+      expect(withRange).toBe(plain);
+      expect(visibleText(withRange)).not.toMatch(/Last 12 months|Update dates|All time/);
+    }
+  });
+
   it("lets an individual switch the Overview gain / loss currency, with no accounting words", async () => {
     individual();
     for (const code of ["USD", "SGD", "MYR"]) {

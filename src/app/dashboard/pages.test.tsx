@@ -292,6 +292,80 @@ describe("role gating", () => {
     }
   });
 
+  it("lets an organization pick the dates for Realized gain / loss, keeping the currency", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    const { postJournalEntry, toMinor } = await import("@/ledger");
+    const entityId = exampleBooks.entities[0].id;
+    const sourceId = exampleBooks.sources[0].id;
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const year = now.getUTCFullYear();
+    const post = (id: string, entryDate: string, lines: Parameters<typeof postJournalEntry>[0]["lines"]) => ({
+      ...postJournalEntry({ id, entityId, reference: id, entryDate, memo: id, lines }),
+      postedBy: "test",
+      postedAt: `${entryDate}T00:00:00.000Z`,
+      reversesEntryId: null,
+    });
+    const sale = (id: string, day: string, units: bigint, proceeds: string) =>
+      post(id, day, [
+        { accountCode: "1000", side: "debit", amountMinor: toMinor(proceeds, 2), currency: "USD" },
+        { accountCode: "1330", side: "credit", amountMinor: toMinor(proceeds, 2), currency: "USD", assetCode: "BUIDL", quantityMinor: units, quantityDirection: "out", sourceId },
+      ]);
+    // Buy 10 BUIDL for 1,000.00 (100 each). Two years ago sell 4 for 480.00 (gain 80). Today sell 3 for 240.00 (loss 60).
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      journalEntries: [
+        post("rr-buy", `${year - 3}-01-05`, [
+          { accountCode: "1330", side: "debit", amountMinor: toMinor("1000.00", 2), currency: "USD", assetCode: "BUIDL", quantityMinor: 10_000_000n, quantityDirection: "in", sourceId },
+          { accountCode: "1000", side: "credit", amountMinor: toMinor("1000.00", 2), currency: "USD" },
+        ]),
+        sale("rr-old", `${year - 2}-03-10`, 4_000_000n, "480.00"),
+        sale("rr-new", today, 3_000_000n, "240.00"),
+      ],
+    });
+    signInLive("owner");
+    const base = { SourcesPage: "/dashboard/sources", OverviewPage: "/dashboard" };
+    for (const [page, path] of [[SourcesPage as Page, base.SourcesPage], [OverviewPage as Page, base.OverviewPage]] as const) {
+      // Default: All time (80 - 60 = 20).
+      const all = await renderPage(page, { currency: "USD" });
+      expect(text(all)).toContain("All time, up to " + today);
+      expect(text(all)).toContain("+USD 20.00");
+      expect(all).toMatch(/<a[^>]*aria-current="page"[^>]*>All time<\/a>/);
+      for (const label of ["This year", "Last 12 months", "All time"]) expect(text(all)).toContain(label);
+      expect(all).toContain(`href="${path}?currency=USD&amp;range=ytd#gain-loss"`);
+      expect(all).toContain(`href="${path}?currency=USD&amp;range=12m#gain-loss"`);
+
+      // This year: only today's sale, against the average cost from the older purchase.
+      const ytd = await renderPage(page, { currency: "MYR", range: "ytd" });
+      expect(text(ytd)).toContain("This year: " + year + "-01-01 to " + today);
+      expect(text(ytd)).toContain("Realized gain / loss \u00b7 MYR");
+      expect(ytd).toMatch(/<a[^>]*aria-current="page"[^>]*>This year<\/a>/);
+      // The currency links keep the range, and the range links keep the currency.
+      expect(ytd).toContain(`href="${path}?currency=SGD&amp;range=ytd`);
+      expect(ytd).toContain(`href="${path}?currency=MYR&amp;range=12m#gain-loss"`);
+      expect(ytd).toContain(`href="${path}?currency=MYR#gain-loss"`);
+      expect(ytd).toMatch(/<input[^>]*type="hidden"[^>]*name="currency"[^>]*value="MYR"/);
+
+      const usdYtd = text(await renderPage(page, { currency: "USD", range: "ytd" }));
+      expect(usdYtd).toContain("-USD 60.00");
+      expect(usdYtd).not.toContain("+USD 20.00");
+
+      // Dates picked by hand.
+      const custom = await renderPage(page, { currency: "USD", from: `${year - 2}-03-01`, to: `${year - 2}-03-31` });
+      expect(text(custom)).toContain(`Custom: ${year - 2}-03-01 to ${year - 2}-03-31`);
+      expect(text(custom)).toContain("+USD 80.00");
+      expect(custom).toContain(`value="${year - 2}-03-01"`);
+      expect(custom).toContain(`href="${path}?currency=SGD&amp;from=${year - 2}-03-01&amp;to=${year - 2}-03-31`);
+      const empty = text(await renderPage(page, { currency: "USD", from: `${year - 1}-01-01`, to: `${year - 1}-01-31` }));
+      expect(empty).toContain("No sales with proceeds recorded in these dates.");
+
+      // Dates that cannot be used.
+      const bad = text(await renderPage(page, { currency: "USD", from: "2026-05-01", to: "2026-04-01" }));
+      expect(bad).toContain("The start date is after the end date.");
+      expect(bad).toContain("All time, up to " + today);
+    }
+  });
+
   it("says when there are no sales to count, and lists a payment with no proceeds instead of guessing", async () => {
     signInDemo("owner");
     const content = await pageText(SourcesPage as Page, { currency: "USD" });

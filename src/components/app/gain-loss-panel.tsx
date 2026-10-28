@@ -11,7 +11,15 @@ import { Stagger } from "@/components/motion/stagger";
 import { Alert } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HOLDINGS_DISPLAY_CURRENCIES } from "@/data/display-currency";
-import { REALIZED_COPY, realizedNotIncludedText, type RealizedGainLoss } from "@/data/realized-gain-loss";
+import { PeriodForm } from "@/components/period-form";
+import {
+  describeRealizedRange,
+  REALIZED_COPY,
+  REALIZED_PRESETS,
+  realizedNotIncludedText,
+  type RealizedGainLoss,
+  type RealizedPreset,
+} from "@/data/realized-gain-loss";
 import {
   directionOf,
   directionWord,
@@ -37,6 +45,7 @@ export function GainLossPanel({
   className,
   currencyHref,
   realized,
+  realizedRange,
 }: {
   gainLoss: GainLoss;
   id?: string;
@@ -46,6 +55,8 @@ export function GainLossPanel({
   currencyHref?: (currency: string) => string;
   /** Organizations only: sales already made, shown after the unrealized figures. */
   realized?: RealizedGainLoss;
+  /** Organizations only: how to change the dates the realized figures cover. */
+  realizedRange?: RealizedRangeControls;
 }) {
   const copy = gainLossCopy(gainLoss.basis);
   const { currency, totals } = gainLoss;
@@ -168,7 +179,7 @@ export function GainLossPanel({
         </EmptyState>
       )}
 
-      {realized ? <RealizedBlock realized={realized} /> : null}
+      {realized ? <RealizedBlock realized={realized} controls={realizedRange} /> : null}
 
       {gainLoss.notIncluded.length > 0 ? (
         <div className="mt-4 max-w-2xl text-sm text-muted-foreground">
@@ -185,12 +196,24 @@ export function GainLossPanel({
     </section>
   );
 }
-function RealizedBlock({ realized }: { realized: RealizedGainLoss }) {
+export interface RealizedRangeControls {
+  /** Where a preset leads. Keeps the currency. */
+  presetHref: (key: RealizedPreset) => string;
+  /** Where the From / To form goes (with the section anchor). The currency is sent along. */
+  formPath: string;
+  /** Why the dates in the address were not used, if so. */
+  error?: string | null;
+}
+
+function RealizedBlock({ realized, controls }: { realized: RealizedGainLoss; controls?: RealizedRangeControls }) {
   const { currency, totals } = realized;
   const direction = directionOf(totals.gainMinor);
   const hasRows = realized.rows.length > 0;
+  const inRange = realized.range.key !== "all";
   const hint = !hasRows
-    ? REALIZED_COPY.emptyMessage
+    ? inRange
+      ? REALIZED_COPY.emptyInRangeMessage
+      : REALIZED_COPY.emptyMessage
     : totals.percent === null
       ? `${directionWord(totals.gainMinor)}, nothing to compare against`
       : `${directionWord(totals.gainMinor)}, ${signedPercent(totals.percent)} of cost of units sold`;
@@ -201,6 +224,37 @@ function RealizedBlock({ realized }: { realized: RealizedGainLoss }) {
         {REALIZED_COPY.title} {"\u00b7"} {currency}
       </h3>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.description}</p>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.rangeNote}</p>
+
+      {controls ? (
+        <div className="mt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <p className="text-sm text-muted-foreground">Dates</p>
+            <SegmentedLinks
+              label={REALIZED_COPY.rangeLabel}
+              items={REALIZED_PRESETS.map((preset) => ({
+                key: preset.key,
+                href: controls.presetHref(preset.key),
+                label: preset.label,
+                current: preset.key === realized.range.key,
+              }))}
+            />
+          </div>
+          {controls.error ? (
+            <Alert variant="warning" className="mt-3 max-w-2xl">
+              {controls.error} Showing all time instead.
+            </Alert>
+          ) : null}
+          <div className="mt-4">
+            <PeriodForm
+              path={controls.formPath}
+              range={{ from: realized.range.from ?? realized.earliestSaleDay ?? realized.range.to, to: realized.range.to }}
+              hidden={{ currency }}
+            />
+          </div>
+        </div>
+      ) : null}
+      <p className="mt-3 text-sm font-medium text-foreground">{describeRealizedRange(realized.range)}</p>
 
       <Stagger className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
         <StatCard label={REALIZED_COPY.proceedsLabel} value={moneyText(totals.proceedsMinor, currency)} />
