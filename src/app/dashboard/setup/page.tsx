@@ -12,6 +12,7 @@ import { ReadOnlyNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { connectExchanges } from "@/data/connect-catalog";
 import { booksAreWritable } from "@/data/load-books";
+import { pathFor } from "@/data/me-paths";
 import { one } from "@/data/query";
 import { SETUP_FLOW, setupStep } from "@/data/setup-flow";
 import { reownProjectId } from "@/env";
@@ -76,11 +77,11 @@ export default async function SetupPage({
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             {current.index > 0 && !individual ? (
               <Button asChild variant="secondary">
-                <Link href={`/dashboard/setup?step=${SETUP_FLOW[current.index - 1]?.id ?? "wallet"}`}>Back</Link>
+                <Link href={pathFor(session.accountType, `/dashboard/setup?step=${SETUP_FLOW[current.index - 1]?.id ?? "wallet"}`)}>Back</Link>
               </Button>
             ) : null}
             <Button asChild variant="secondary">
-              <Link href={step.next}>{step.skip}</Link>
+              <Link href={pathFor(session.accountType, step.next)}>{step.skip}</Link>
             </Button>
           </div>
         </div>
@@ -97,10 +98,10 @@ export default async function SetupPage({
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button asChild>
-                <Link href="/dashboard/settings">Open settings</Link>
+                <Link href={pathFor(session.accountType, "/dashboard/settings")}>Open settings</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link href="/dashboard/sources">View holdings</Link>
+                <Link href={pathFor(session.accountType, "/dashboard/sources")}>View holdings</Link>
               </Button>
             </div>
           </CardContent>

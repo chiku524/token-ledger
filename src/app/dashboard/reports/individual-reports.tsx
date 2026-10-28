@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { mePath } from "@/data/me-paths";
 import { Calendar, Download, FileSpreadsheet, Wallet } from "lucide-react";
 import { ChartFrame } from "@/components/charts/frame";
 import { MoneyBars, MoneyLine } from "@/components/charts/lazy";
@@ -65,13 +66,13 @@ export function IndividualReports({
   const query = `from=${range.from}&to=${range.to}&currency=${currency}`;
   const tabLinks = TABS.map((item) => ({
     key: item.key,
-    href: `/dashboard/reports?tab=${item.key}&${query}`,
+    href: mePath(`/dashboard/reports?tab=${item.key}&${query}`),
     label: item.label,
     current: item.key === tab,
   }));
   const currencyLinks = HOLDINGS_DISPLAY_CURRENCIES.map((code) => ({
     key: code,
-    href: `/dashboard/reports?tab=${tab}&from=${range.from}&to=${range.to}&currency=${code}`,
+    href: mePath(`/dashboard/reports?tab=${tab}&from=${range.from}&to=${range.to}&currency=${code}`),
     label: code,
     current: code === currency,
   }));
@@ -91,7 +92,7 @@ export function IndividualReports({
       <Flash error={error} saved={saved} />
 
       <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
-        <form method="get" action="/dashboard/reports" className="flex flex-wrap items-center gap-2">
+        <form method="get" action={mePath("/dashboard/reports")} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="tab" value={tab} />
           <input type="hidden" name="currency" value={currency} />
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -106,7 +107,7 @@ export function IndividualReports({
         {canExport ? (
           <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3 sm:border-0 sm:pt-0">
             <Button asChild variant="outline" size="sm">
-              <a href={`/dashboard/reports/export?kind=pdf&${query}`} className="gap-1.5">
+              <a href={mePath(`/dashboard/reports/export?kind=pdf&${query}`)} className="gap-1.5">
                 <Download className="size-3.5" />
                 PDF
               </a>
@@ -118,7 +119,7 @@ export function IndividualReports({
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 {downloads.map(([kind, label]) => (
                   <Button key={kind} asChild variant="ghost" size="sm">
-                    <a href={`/dashboard/reports/export?kind=${kind}&${query}`} className="gap-1.5">
+                    <a href={mePath(`/dashboard/reports/export?kind=${kind}&${query}`)} className="gap-1.5">
                       <FileSpreadsheet className="size-3.5" />
                       {label}
                     </a>
@@ -160,7 +161,7 @@ function PortfolioTab({ books, range, currency }: { books: Books; range: DateRan
         icon={Wallet}
         action={
           <Button asChild variant="secondary">
-            <Link href="/dashboard/sources">Open Holdings</Link>
+            <Link href={mePath("/dashboard/sources")}>Open Holdings</Link>
           </Button>
         }
       >

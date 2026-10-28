@@ -67,14 +67,14 @@ describe("navigate tool for an individual", () => {
 
   it("opens a page the account has, under its Activity name", async () => {
     const holdings = await navigate.execute({ slug: "holdings" }, individual());
-    expect(holdings.route).toBe("/dashboard/sources");
+    expect(holdings.route).toBe("/me/holdings");
     const activity = await navigate.execute({ slug: "activity" }, individual());
-    expect(activity.route).toBe("/dashboard/ledger");
+    expect(activity.route).toBe("/me/activity");
     expect(activity.summary).toBe("Opening Activity.");
   });
 
   it("still opens the Activity page from the old Journal names", async () => {
-    expect((await navigate.execute({ slug: "journal" }, individual())).route).toBe("/dashboard/ledger");
+    expect((await navigate.execute({ slug: "journal" }, individual())).route).toBe("/me/activity");
     expect((await navigate.execute({ slug: "ledger" }, individual())).summary).toBe("Opening Activity.");
   });
 

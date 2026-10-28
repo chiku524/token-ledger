@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { mePath } from "@/data/me-paths";
 import { Wallet } from "lucide-react";
 import { ChartFrame } from "@/components/charts/frame";
 import { MoneyBars, MoneyLine } from "@/components/charts/lazy";
@@ -71,16 +72,16 @@ export function IndividualOverview({ books }: { books: Books }) {
       </Stagger>
 
       <nav aria-label="Day to day" className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-        <Link href="/dashboard/sources#observed-balances" className="text-link underline">
+        <Link href={mePath("/dashboard/sources#observed-balances")} className="text-link underline">
           Holdings
         </Link>
-        <Link href="/dashboard/ledger" className="text-link underline">
+        <Link href={mePath("/dashboard/ledger")} className="text-link underline">
           Activity
         </Link>
-        <Link href="/dashboard/reports" className="text-link underline">
+        <Link href={mePath("/dashboard/reports")} className="text-link underline">
           Reports
         </Link>
-        <Link href="/dashboard/settings#connections" className="text-muted-foreground underline hover:text-foreground">
+        <Link href={mePath("/dashboard/settings#connections")} className="text-muted-foreground underline hover:text-foreground">
           Connections
         </Link>
       </nav>
@@ -97,7 +98,7 @@ export function IndividualOverview({ books }: { books: Books }) {
           icon={Wallet}
           action={
             <Button asChild variant="secondary">
-              <Link href="/dashboard/setup">Connect a wallet or exchange</Link>
+              <Link href={mePath("/dashboard/setup")}>Connect a wallet or exchange</Link>
             </Button>
           }
         >
@@ -109,7 +110,7 @@ export function IndividualOverview({ books }: { books: Books }) {
         <SectionHeader
           title="Recent activity"
           action={
-            <Link href="/dashboard/ledger" className="text-sm text-link underline">
+            <Link href={mePath("/dashboard/ledger")} className="text-sm text-link underline">
               Open activity
             </Link>
           }
@@ -150,7 +151,7 @@ export function IndividualOverview({ books }: { books: Books }) {
               title="What you hold"
               description={`Values in ${currency} at the latest saved prices.`}
               action={
-                <Link href="/dashboard/reports" className="text-sm text-link underline">
+                <Link href={mePath("/dashboard/reports")} className="text-sm text-link underline">
                   Open reports
                 </Link>
               }
