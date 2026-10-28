@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { bannedTermsIn, visibleText } from "@/test/banned-terms";
 import { hiddenSectionsIn } from "@/test/hidden-sections";
 import { AiChatbotGuide } from "./ai-chatbot-guide";
 
@@ -30,7 +31,13 @@ describe("AiChatbotGuide for an individual", () => {
   it("still shows the guide and the tour restart, with the Activity path", () => {
     expect(html).toContain("Guide sections");
     expect(html).toContain("Restart getting-started tour");
-    expect(html).toContain("Connect \u2192 Check \u2192 Balances \u2192 Activity \u2192 Reports");
+    expect(html).toContain("Connect \u2192 Check \u2192 Holdings \u2192 Reports");
+  });
+
+  it("uses no accounting terms or entry wording", () => {
+    const words = visibleText(html);
+    expect(bannedTermsIn(words)).toEqual([]);
+    expect(words).not.toMatch(/posted|deliberate post|second ledger/i);
   });
 
   it("leaves the organization guide unchanged", () => {

@@ -496,6 +496,39 @@ describe("save error branches", () => {
   });
 });
 
+describe("entries on an individual account", () => {
+  const NO_ENTRIES = "Personal accounts do not have entries to post or reverse. Activity shows what your wallets and exchanges report.";
+  const REVERSAL = { entryId: "je_a_capital", reference: "R-1", entryDate: "2026-06-20", memo: "Again" };
+  const revaluation = specs.find((spec) => spec.name === "postRevaluationAction")!;
+
+  const cases: Array<[string, (formData: FormData) => Promise<unknown>, string, Record<string, string>, () => Mock]> = [
+    ["postJournalAction", postJournalAction, "/dashboard/ledger", JOURNAL, () => vi.mocked(insertJournal)],
+    ["prepareJournalAction", prepareJournalAction, "/dashboard/ledger", JOURNAL, () => vi.mocked(createDraft)],
+    ["reverseJournalAction", reverseJournalAction, "/dashboard/ledger", REVERSAL, () => vi.mocked(insertReversal)],
+    ["submitDraftAction", submitDraftAction, "/dashboard/approvals", { draftId: "draft_1" }, () => vi.mocked(submitDraft)],
+    ["approveDraftAction", approveDraftAction, "/dashboard/approvals", { draftId: "draft_1" }, () => vi.mocked(approveDraft)],
+    ["postRevaluationAction", postRevaluationAction, "/dashboard/reports", revaluation.fields, () => vi.mocked(insertJournal)],
+  ];
+
+  it.each(cases)("%s refuses an individual's request made by hand, and writes nothing", async (_name, action, path, fields, write) => {
+    revaluation.arrange?.();
+    signInLive("owner", { accountType: "individual" });
+    await expectError(action(form(fields)), path, NO_ENTRIES);
+    expect(write()).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("still lets an organization post, so only individuals are refused", async () => {
+    signInLive("accountant", { entityScope: [MY] });
+    await expectSaved(postJournalAction(form(JOURNAL)), "/dashboard/ledger", specs.find((spec) => spec.name === "postJournalAction")!.saved);
+  });
+
+  it("imports activity for an individual without mentioning Matching", async () => {
+    signInLive("owner", { accountType: "individual" });
+    await expectSaved(importCsvAction(form({ sourceId: "src_buidl_eth", csv: CSV })), "/dashboard/sources", "Activity imported.");
+  });
+});
+
 describe("createEntityAction", () => {
   it("uppercases the country code and records the actor", async () => {
     const user = signInLive("owner");

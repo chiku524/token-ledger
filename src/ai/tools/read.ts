@@ -1,4 +1,5 @@
 import { canAccessEntity } from "@/auth/roles";
+import { activityHistory } from "@/data/individual-reports";
 import type { AgentTool, ToolContext, ToolResult } from "./types";
 
 /**
@@ -100,6 +101,36 @@ export const listJournal: AgentTool = {
   },
 };
 
+/** The read-only Activity view an individual sees: transfers and balance changes. */
+export const listActivity: AgentTool = {
+  name: "list_activity",
+  description: "List recent activity, newest first: transfers read from connected wallets and exchanges, and balance changes between checks.",
+  parameters: {
+    type: "object",
+    properties: {
+      from: { type: "string", description: "Optional start date, YYYY-MM-DD." },
+      to: { type: "string", description: "Optional end date, YYYY-MM-DD." },
+      limit: { type: "number", description: "How many rows to return (default 20)." },
+    },
+    additionalProperties: false,
+  },
+  kind: "read",
+  requiresConfirm: false,
+  permission: "books.read",
+  async execute(input, ctx): Promise<ToolResult> {
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    const from = typeof input.from === "string" && day.test(input.from) ? input.from : "1970-01-01";
+    const to = typeof input.to === "string" && day.test(input.to) ? input.to : "9999-12-31";
+    const limit = typeof input.limit === "number" && input.limit > 0 ? Math.min(input.limit, 100) : 20;
+    const history = activityHistory(ctx.books, { from, to });
+    const rows = [...history.transactions, ...history.balanceChanges]
+      .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
+      .slice(0, limit)
+      .map((row) => ({ date: row.date, type: row.type, asset: row.assetCode, amount: row.amount, source: row.source }));
+    return { summary: `${rows.length} activity row${rows.length === 1 ? "" : "s"}.`, data: rows, route: "/dashboard/ledger" };
+  },
+};
+
 export const listReconciliation: AgentTool = {
   name: "list_reconciliation",
   description: "List reconciliation exceptions (unmatched source movements) and matched counts.",
@@ -168,6 +199,7 @@ export const readTools: readonly AgentTool[] = [
   listEntities,
   listHoldings,
   listJournal,
+  listActivity,
   listReconciliation,
   listConnections,
   listAudit,

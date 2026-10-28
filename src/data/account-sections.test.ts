@@ -88,7 +88,11 @@ describe("isExportKindAllowed", () => {
 
   it("lets an individual download only the kinds on its own pages", () => {
     for (const kind of INDIVIDUAL_EXPORT_KINDS) expect(isExportKindAllowed("individual", kind)).toBe(true);
-    expect([...INDIVIDUAL_EXPORT_KINDS].sort()).toEqual(["journal", "pdf", "trial-balance"]);
+    expect([...INDIVIDUAL_EXPORT_KINDS].sort()).toEqual(["activity", "pdf", "portfolio", "value-over-time"]);
+  });
+
+  it("keeps an individual out of the organization exports", () => {
+    for (const kind of ["trial-balance", "journal", "reconciliation"]) expect(isExportKindAllowed("individual", kind)).toBe(false);
   });
 
   it("keeps an individual out of reconciliation, unknown kinds and a missing kind", () => {
@@ -100,7 +104,7 @@ describe("isExportKindAllowed", () => {
 
 describe("INDIVIDUAL_TOOL_LABELS", () => {
   it("renames only the tools that name the Journal page", () => {
-    expect(Object.keys(INDIVIDUAL_TOOL_LABELS).sort()).toEqual(["list_journal", "post_journal", "reverse_journal"]);
+    expect(Object.keys(INDIVIDUAL_TOOL_LABELS).sort()).toEqual(["list_activity", "list_journal", "post_journal", "reverse_journal"]);
     for (const label of Object.values(INDIVIDUAL_TOOL_LABELS)) {
       expect(label).not.toMatch(/journal/i);
       expect(label).toMatch(/activity/i);

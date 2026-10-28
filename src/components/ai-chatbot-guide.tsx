@@ -67,7 +67,7 @@ function DoctrinePanel({ individual }: { individual: boolean }) {
         steps={[
           { emoji: "📡", title: "Read source" },
           { emoji: "👀", title: "Observe" },
-          { emoji: "✍️", title: "Deliberate post" },
+          { emoji: "✍️", title: individual ? "Review" : "Deliberate post" },
           { emoji: "📊", title: "Report" },
         ]}
       />
@@ -76,7 +76,7 @@ function DoctrinePanel({ individual }: { individual: boolean }) {
           {
             icon: Sparkles,
             title: "Same product, spoken",
-            body: "The assistant drives the dashboard you already have — it does not invent a second ledger.",
+            body: individual ? "The assistant drives the dashboard you already have — it does not invent a second set of numbers." : "The assistant drives the dashboard you already have — it does not invent a second ledger.",
           },
           {
             icon: ShieldAlert,
@@ -101,13 +101,13 @@ function DoctrinePanel({ individual }: { individual: boolean }) {
       </div>
       <ul className="grid gap-2 text-sm text-muted-foreground">
         <li>
-          <span className="font-medium text-foreground">👀 Observations ≠ journals.</span> A Check never posts.
+          <span className="font-medium text-foreground">👀 {individual ? "Observations stay observed." : "Observations ≠ journals."}</span> {individual ? "A Check only reads." : "A Check never posts."}
         </li>
         <li>
           <span className="font-medium text-foreground">🔒 Sources are read-only.</span> No exchange or custodian spending.
         </li>
         <li>
-          <span className="font-medium text-foreground">✍️ Posts are deliberate.</span> {individual ? "Entries and revaluation stay intentional." : "Matching, close, and revaluation stay intentional."}
+          <span className="font-medium text-foreground">✍️ {individual ? "Your numbers come from your accounts." : "Posts are deliberate."}</span> {individual ? "The assistant reads what your wallets and exchanges report; it cannot change it." : "Matching, close, and revaluation stay intentional."}
         </li>
       </ul>
     </div>
@@ -225,7 +225,7 @@ function ConnectionsPanel({ individual }: { individual: boolean }) {
     <div className="grid gap-8">
       <FlowDiagram
         steps={[
-          { emoji: "🏢", title: individual ? "Your books" : "Company" },
+          { emoji: "🏢", title: individual ? "Your account" : "Company" },
           { emoji: "🔌", title: "Connection" },
           { emoji: "👛", title: "Account" },
           { emoji: "👀", title: "Observation" },

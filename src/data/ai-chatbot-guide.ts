@@ -1,5 +1,5 @@
 /** Sections for the in-app Guide / AI chatbot capability handbook. */
-import { isIndividualAccount, journalName } from "./account-sections";
+import { isIndividualAccount } from "./account-sections";
 import type { OrganizationAccountType } from "./account-type";
 
 export type GuideSectionId =
@@ -126,8 +126,9 @@ export const REFUSALS = [
  * The same handbook for an individual account. An individual has no Matching,
  * Companies, Approvals, Combined, Billing, Treasury, Payables, Operations or
  * Onboarding pages (see `account-sections.ts`), so the guide neither describes
- * nor points to them, and the journal page is called Activity. Organizations
- * keep the exports above unchanged.
+ * nor points to them. Activity is a read-only view, so there is nothing to post,
+ * and the guide uses plain words for reports. Organizations keep the exports
+ * above unchanged.
  */
 
 type GuideStep = { emoji: string; title: string; detail: string };
@@ -136,10 +137,10 @@ type ExamplePrompt = { tone: string; text: string };
 type Refusal = { emoji: string; title: string; detail: string };
 
 const INDIVIDUAL_BLURBS: Partial<Record<GuideSectionId, string>> = {
-  doctrine: "The chatbot follows the same rules as the app \u2014 reading never posts an entry.",
-  "first-run": "The path to take before Activity or Reports.",
+  doctrine: "The chatbot follows the same rules as the app \u2014 it only reads what your wallets and exchanges report.",
+  "first-run": "The path to take before Reports.",
   capabilities: "Holdings, connections, activity, and reports \u2014 gated by your role.",
-  refusals: "No privilege escalation, no invented entries, no source-side spending.",
+  refusals: "No privilege escalation, no invented balances, no source-side spending.",
   connections: "Read-only consent for your account \u2014 wallets, exchanges, and custodians.",
 };
 
@@ -150,37 +151,43 @@ export function guideSectionsFor(accountType?: OrganizationAccountType): readonl
 
 export function firstRunStepsFor(accountType?: OrganizationAccountType): readonly GuideStep[] {
   if (!isIndividualAccount(accountType)) return FIRST_RUN_STEPS;
-  return FIRST_RUN_STEPS.map((step, index) => {
-    if (index === 0) return { ...step, detail: "You create your account; invite a spouse or an accountant from Users." };
-    if (index === 4) return { ...step, title: journalName(accountType), detail: "Deliberate posts \u2014 never automatic from a Check." };
-    return step;
-  });
+  const [signIn, connect, check, holdings] = FIRST_RUN_STEPS;
+  return [
+    { ...signIn, detail: "You create your account; invite a spouse or an accountant from Users." },
+    connect,
+    check,
+    holdings,
+    { emoji: "5\uFE0F\u20E3", title: "Reports", detail: "Portfolio summary, activity history, and value over time \u2014 CSV or PDF." },
+  ];
 }
 
 export function capabilityGroupsFor(accountType?: OrganizationAccountType): readonly CapabilityGroup[] {
   if (!isIndividualAccount(accountType)) return CAPABILITY_GROUPS;
-  const [sources, journal, , reports, , people] = CAPABILITY_GROUPS;
+  const [sources, activity, , reports, , people] = CAPABILITY_GROUPS;
   return [
     sources,
-    { ...journal, title: journalName(accountType), items: ["Post entries", "Reverse with a note"] },
-    { ...reports, title: "Reports", items: ["Trial balance & statements", "CSV / PDF export"] },
+    { ...activity, title: "Activity", items: ["Transactions in and out", "Balance changes"] },
+    { ...reports, title: "Reports", items: ["Portfolio summary", "Activity history", "Value over time", "CSV / PDF download"] },
     { ...people, title: "History & people", items: ["Audit history", "Users & invites"] },
   ];
 }
 
 export function examplePromptsFor(accountType?: OrganizationAccountType): readonly ExamplePrompt[] {
   if (!isIndividualAccount(accountType)) return EXAMPLE_PROMPTS;
-  const keep = new Set(["Getting started", "Reports", "Explain", "Ops"]);
+  const keep = new Set(["Getting started", "Explain", "Ops"]);
   return [
     ...EXAMPLE_PROMPTS.filter((prompt) => keep.has(prompt.tone)),
-    { tone: journalName(accountType), text: "Show my latest entries." },
+    { tone: "Reports", text: "Download my portfolio summary as CSV." },
+    { tone: "Activity", text: "Show my latest activity." },
   ];
 }
 
 export function refusalsFor(accountType?: OrganizationAccountType): readonly Refusal[] {
   if (!isIndividualAccount(accountType)) return REFUSALS;
   return REFUSALS.filter((item) => item.title !== "Bypass Approvals or period close").map((item) => {
-    if (item.title === "Invent posted journals") return { ...item, title: "Invent posted entries" };
+    if (item.title === "Invent posted journals") {
+      return { ...item, title: "Invent balances or activity", detail: "Everything shown is read from your wallets and exchanges." };
+    }
     if (item.title === "Cross entity or role walls") return { ...item, title: "Cross role walls", detail: "Your role always applies." };
     return item;
   });
@@ -189,13 +196,13 @@ export function refusalsFor(accountType?: OrganizationAccountType): readonly Ref
 /** The line under the Guide page title. */
 export function guideDescriptionFor(accountType?: OrganizationAccountType): string {
   return isIndividualAccount(accountType)
-    ? "Ask for reports, holdings, connections, and more \u2014 the assistant can do anything you can, under your role. Observations stay observed; entries stay deliberate."
+    ? "Ask for holdings, activity, reports, and connections \u2014 the assistant can do anything you can, under your role. Everything is read from your wallets and exchanges."
     : "Ask for reports, matching, connections, and more \u2014 the assistant can do anything you can, under your role. Observations stay observed; journals stay deliberate.";
 }
 
 /** The path the restart-tour button reopens. */
 export function tourPathFor(accountType?: OrganizationAccountType): string {
   return isIndividualAccount(accountType)
-    ? "Connect \u2192 Check \u2192 Balances \u2192 " + journalName(accountType) + " \u2192 Reports"
+    ? "Connect \u2192 Check \u2192 Holdings \u2192 Reports"
     : "Connect \u2192 Check \u2192 Balances \u2192 Match \u2192 Journal \u2192 Reports";
 }

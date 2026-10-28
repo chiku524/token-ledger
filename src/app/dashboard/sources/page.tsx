@@ -60,6 +60,7 @@ function SnapshotTable({
   quoteCurrency,
   asOf,
   showTotal = false,
+  showCompany = true,
 }: {
   caption: string;
   snapshots: readonly BooksBalanceSnapshot[];
@@ -67,6 +68,8 @@ function SnapshotTable({
   quoteCurrency: string;
   asOf: string;
   showTotal?: boolean;
+  /** An individual has one set of holdings, so there is no company to name. */
+  showCompany?: boolean;
 }) {
   const rows = snapshots.map((snapshot) => ({
     snapshot,
@@ -88,7 +91,7 @@ function SnapshotTable({
         <caption className="sr-only">{caption}</caption>
         <TableHeader>
           <TableRow>
-            <TableHead scope="col">Company</TableHead>
+            {showCompany ? <TableHead scope="col">Company</TableHead> : null}
             <TableHead scope="col">Held at</TableHead>
             <TableHead scope="col">Asset</TableHead>
             <NumberHead scope="col">Quantity</NumberHead>
@@ -99,7 +102,7 @@ function SnapshotTable({
         <TableBody>
           {rows.map(({ snapshot, value }) => (
             <TableRow key={snapshot.id}>
-              <TableCell>{entityName(snapshot.entityId, books.entities)}</TableCell>
+              {showCompany ? <TableCell>{entityName(snapshot.entityId, books.entities)}</TableCell> : null}
               <TableCell>{sourceName(snapshot.sourceId, books.sources)}</TableCell>
               <TableCell>{snapshot.assetCode}</TableCell>
               <NumberCell>{formatQuantity(snapshot.quantityMinor, snapshot.assetCode, books.assets)}</NumberCell>
@@ -114,7 +117,7 @@ function SnapshotTable({
           <TableFooter>
             <TableRow>
               <TableHead scope="row">Total</TableHead>
-              <TableCell />
+              {showCompany ? <TableCell /> : null}
               <TableCell />
               <TableCell />
               <NumberCell>{formatMoney(totalMinor, quoteCurrency)}</NumberCell>
@@ -138,7 +141,7 @@ export default async function SourcesPage({
   await requireSectionAccess("/dashboard/sources");
   const { session, books } = await loadAuthorizedBooks();
   const writable = booksAreWritable() && !session.demo && !session.demoBooks;
-  // An individual's Journal is called Activity, and posting is described as entries.
+  // An individual sees plain holdings: no company, no booked value, no journal wording.
   const individual = isIndividualAccount(session.accountType);
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
@@ -153,11 +156,13 @@ export default async function SourcesPage({
     asOf,
     rates: books.fxRates,
   });
-  const connectors = listStubAdapters();
-  const liveConnectors = listLiveAdapters();
+  // Accounting-system exports are an organization feature; an individual only connects wallets and exchanges.
+  const shownConnector = (connector: { category: string }) => !individual || connector.category !== "accounting";
+  const connectors = listStubAdapters().filter(shownConnector);
+  const liveConnectors = listLiveAdapters().filter(shownConnector);
   const latest = sortSnapshots(latestSnapshots(books.balanceSnapshots));
   const history = books.balanceSnapshots.length > latest.length ? sortSnapshots(books.balanceSnapshots) : [];
-  const panels = [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
+  const panels = individual ? [] : [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
   const currencyLinks = HOLDINGS_DISPLAY_CURRENCIES.map((currency) => ({
     key: currency,
     href: `/dashboard/sources?currency=${currency}`,
@@ -170,7 +175,9 @@ export default async function SourcesPage({
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Holdings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Observed balances from read-only wallets, exchanges, and custodians — not market prices or {individual ? "booked value" : "journal book value"}.
+          {individual
+            ? "What your connected wallets, exchanges, and custodians report holding, with market value alongside."
+            : "Observed balances from read-only wallets, exchanges, and custodians — not market prices or journal book value."}
         </p>
       </header>
       <Flash error={one(params.error)} saved={one(params.saved)} />
@@ -183,7 +190,7 @@ export default async function SourcesPage({
       <section id="observed-balances" className="scroll-mt-6">
         <SectionHeader
           title="Observed balances"
-          description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}. Activity that has not been ${individual ? "posted" : "journaled"} still appears here.`}
+          description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}.${individual ? "" : " Activity that has not been journaled still appears here."}`}
           action={
             canSource ? (
               <Link href="/dashboard/settings#connections" className="text-sm text-link underline">
@@ -226,6 +233,7 @@ export default async function SourcesPage({
               quoteCurrency={quoteCurrency}
               asOf={asOf}
               showTotal
+              showCompany={!individual}
             />
             {history.length > 0 ? (
               <details className="group mt-3">
@@ -238,6 +246,7 @@ export default async function SourcesPage({
                   books={books}
                   quoteCurrency={quoteCurrency}
                   asOf={asOf}
+                  showCompany={!individual}
                 />
               </details>
             ) : null}
@@ -279,13 +288,13 @@ export default async function SourcesPage({
 
       <details className="group mt-10">
         <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
-          Market value, booked value, and accounts
+          {individual ? "Market value and accounts" : "Market value, booked value, and accounts"}
         </summary>
         <div className="mt-6 space-y-10">
           <section id="market-value" className="scroll-mt-6">
             <SectionHeader
               title="Market value"
-              description={`Observed holdings valued at the latest saved price in ${valuation.quoteCurrency}. A price never posts ${individual ? "an entry" : "to the journal"}.`}
+              description={`Observed holdings valued at the latest saved price in ${valuation.quoteCurrency}.${individual ? "" : " A price never posts to the journal."}`}
             />
             {canSource && writable ? (
               <div className="mt-4">
@@ -357,8 +366,9 @@ export default async function SourcesPage({
             )}
           </section>
 
+          {individual ? null : (
           <section>
-            <SectionHeader title="Booked value" description={individual ? "What your posted entries say — separate from observed balances." : "What the journal says — separate from observed balances."} />
+            <SectionHeader title="Booked value" description="What the journal says — separate from observed balances." />
             {panels.length === 0 ? (
               <EmptyState className="mt-4">No booked value to chart yet.</EmptyState>
             ) : (
@@ -376,11 +386,12 @@ export default async function SourcesPage({
               </div>
             )}
           </section>
+          )}
 
           <div className="grid gap-4 xl:grid-cols-2">
             {!writable && (canSource || canImport) ? (
               <div className="xl:col-span-2">
-                <ReadOnlyNote demo={session.demo} />
+                <ReadOnlyNote demo={session.demo} individual={individual} />
               </div>
             ) : null}
             {canSource || canImport ? null : (
@@ -416,7 +427,7 @@ export default async function SourcesPage({
                   <caption className="sr-only">Wallets, exchanges, and custodians</caption>
                   <TableHeader>
                     <TableRow>
-                      <TableHead scope="col">Company</TableHead>
+                      {individual ? null : <TableHead scope="col">Company</TableHead>}
                       <TableHead scope="col">Connection</TableHead>
                       <TableHead scope="col">Name</TableHead>
                       <TableHead scope="col">Type</TableHead>
@@ -428,7 +439,7 @@ export default async function SourcesPage({
                   <TableBody>
                     {books.sources.map((source) => (
                       <TableRow key={source.id}>
-                        <TableCell>{entityName(source.entityId, books.entities)}</TableCell>
+                        {individual ? null : <TableCell>{entityName(source.entityId, books.entities)}</TableCell>}
                         <TableCell>
                           {source.connectionId ? (books.connections.find((connection) => connection.id === source.connectionId)?.name ?? "—") : "—"}
                         </TableCell>
@@ -450,7 +461,7 @@ export default async function SourcesPage({
           <section>
             <SectionHeader
               title="Connectors"
-              description={`Live readers are read-only. Checking records an observation and does not post ${individual ? "an entry" : "a journal"}.`}
+              description={individual ? "Live readers are read-only. Checking reads your current balances and never moves anything." : "Live readers are read-only. Checking records an observation and does not post a journal."}
             />
             <ul className="mt-4 grid gap-3 md:grid-cols-2">
               {liveConnectors.map((connector) => (

@@ -1,6 +1,7 @@
 ﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetRequest, signInDemo, signInLive } from "@/test/server-harness";
-import { exampleBooks } from "@/data/example-books";
+import { individualBooks as exampleBooks } from "@/test/individual-books";
+import { bannedTermsIn } from "@/test/banned-terms";
 
 vi.mock("next/headers", async () => (await import("@/test/server-harness")).headersMock);
 vi.mock("next/navigation", async () => (await import("@/test/server-harness")).navigationMock);
@@ -33,9 +34,18 @@ describe("GET /dashboard/reports/export by account type", () => {
     expect(response.headers.get("content-type")).toContain("csv");
   });
 
-  it.each(["trial-balance", "journal"])("lets an individual download the %s export", async (kind) => {
+  it.each(["portfolio", "activity", "value-over-time"])("lets an individual download the %s export as plain CSV", async (kind) => {
     signInLive("owner", { accountType: "individual" });
-    expect((await GET(exportRequest(kind))).status).toBe(200);
+    const response = await GET(exportRequest(kind));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("csv");
+    expect(response.headers.get("content-disposition") ?? "").not.toMatch(/trial|journal|ledger|reconcil/i);
+    expect(bannedTermsIn(await response.text())).toEqual([]);
+  });
+
+  it.each(["trial-balance", "journal", "general-ledger"])("answers an individual's %s export the way it answers a page that does not exist", async (kind) => {
+    signInLive("owner", { accountType: "individual" });
+    expect((await GET(exportRequest(kind))).status).toBe(404);
   });
 
   it("lets an individual download the PDF", async () => {

@@ -26,12 +26,14 @@ import { isIndividualAccount, journalName } from "@/data/account-sections";
 import type { OrganizationAccountType } from "@/data/account-type";
 import type { Books } from "@/data/books";
 
-export function ReadOnlyNote({ demo = false }: { demo?: boolean }) {
+export function ReadOnlyNote({ demo = false, individual = false }: { demo?: boolean; individual?: boolean }) {
   return (
     <p className="mb-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
       {demo
         ? "This demo does not save. Connect a database, then sign in with a password."
-        : "This sample is read-only. Connect a database to add companies, wallets, and entries."}
+        : individual
+          ? "This sample is read-only. Connect a database to add wallets and exchanges."
+          : "This sample is read-only. Connect a database to add companies, wallets, and entries."}
     </p>
   );
 }
@@ -244,7 +246,8 @@ export function MarketDataControls({
       <input type="hidden" name="next" value={next} />
       <SubmitButton variant="secondary">Refresh prices and rates</SubmitButton>
       <span className="text-sm text-muted-foreground">
-        Fetches live CoinGecko prices (USD, SGD, MYR) and FX rates, stored with their source and date. Never posts {isIndividualAccount(accountType) ? "an entry" : "a journal"}.
+        Fetches live CoinGecko prices (USD, SGD, MYR) and FX rates, stored with their source and date.
+        {isIndividualAccount(accountType) ? "" : " Never posts a journal."}
       </span>
     </form>
   );
@@ -263,7 +266,7 @@ export function CsvImportForm({
     <FormCard
       action={importCsvAction}
       title="Import activity"
-      description={`Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian. It does not create ${isIndividualAccount(accountType) ? "an entry" : "a journal entry"}.`}
+      description={`Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian.${isIndividualAccount(accountType) ? "" : " It does not create a journal entry."}`}
     >
       <input type="hidden" name="csrf" value={csrf} />
       <Field label="Held at">

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { SessionUser } from "@/auth/current";
+import { individualBooks } from "@/test/individual-books";
+import { bannedTermsIn } from "@/test/banned-terms";
 import { hiddenSectionsIn } from "@/test/hidden-sections";
-import { ALL_TOOLS, INDIVIDUAL_TOOLS, toolDefinitionsFor, toolsFor } from "./registry";
+import { ALL_TOOLS, INDIVIDUAL_TOOLS, toolByName, toolDefinitionsFor, toolsFor } from "./registry";
+import type { ToolContext } from "./types";
 
 function session(accountType: SessionUser["accountType"] | undefined, role: SessionUser["role"] = "owner"): Pick<{ session: SessionUser }, "session"> {
   return {
@@ -53,8 +56,36 @@ describe("toolsFor", () => {
     const definitions = toolDefinitionsFor(session("individual"));
     const text = JSON.stringify(definitions);
     expect(hiddenSectionsIn(text)).toEqual([]);
-    expect(text).toContain("Activity");
+    expect(text).toContain("list_activity");
+    expect(text).not.toMatch(/journal|post_|reverse_/i);
     expect(definitions.find((tool) => tool.name === "navigate")?.description).not.toMatch(/journal/i);
+  });
+
+  it("offers an individual no tool that posts, reverses or lists entries", () => {
+    const names = toolsFor(session("individual")).map((tool) => tool.name);
+    expect(names).toContain("list_activity");
+    for (const name of ["post_journal", "reverse_journal", "list_journal", "post_revaluation"]) expect(names).not.toContain(name);
+    for (const name of INDIVIDUAL_TOOLS) expect(toolByName(name)?.kind).not.toBe("write");
+    expect(toolsFor(session("individual")).every((tool) => !tool.requiresConfirm)).toBe(true);
+  });
+
+  it("keeps list_activity to individuals, so an organization's tools do not change", () => {
+    expect(toolsFor(session("organization")).map((tool) => tool.name)).not.toContain("list_activity");
+    expect(toolsFor(session(undefined)).map((tool) => tool.name)).not.toContain("list_activity");
+  });
+
+  it("reads activity newest first for an individual, limited and with no entry wording", async () => {
+    const tool = toolsFor(session("individual")).find((item) => item.name === "list_activity")!;
+    const ctx = { ...session("individual"), books: individualBooks, hiddenTabs: [], csrf: null } as unknown as ToolContext;
+    const result = await tool.execute({ limit: 5 }, ctx);
+    const rows = result.data as Array<{ date: string }>;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(5);
+    expect(rows.map((row) => row.date)).toEqual([...rows.map((row) => row.date)].sort().reverse());
+    expect(result.route).toBe("/dashboard/ledger");
+    expect(bannedTermsIn(JSON.stringify(result.data))).toEqual([]);
+    const capped = await tool.execute({ limit: 9999, from: "not-a-date" }, ctx);
+    expect((capped.data as unknown[]).length).toBeLessThanOrEqual(100);
   });
 
   it("keeps naming the Journal and Matching for an organization", () => {

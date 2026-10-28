@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { bannedTermsIn } from "@/test/banned-terms";
 import { hiddenSectionsIn } from "@/test/hidden-sections";
 import {
   canTakeConnectionTour,
@@ -82,9 +83,9 @@ describe("the guide for an individual", () => {
     observedBalanceCount: 3,
   };
 
-  it("has five steps with no Match", () => {
-    expect(gettingStartedPhases("individual")).toEqual(["connect", "check", "holdings", "journal", "reports"]);
-    expect(phaseIndex("reports", "individual")).toBe(4);
+  it("has four steps with no Match or Journal", () => {
+    expect(gettingStartedPhases("individual")).toEqual(["connect", "check", "holdings", "reports"]);
+    expect(phaseIndex("reports", "individual")).toBe(3);
   });
 
   it("keeps all six steps for an organization, with or without the type", () => {
@@ -94,9 +95,9 @@ describe("the guide for an individual", () => {
     expect(phaseIndex("reports")).toBe(5);
   });
 
-  it("walks Holdings, Journal, Reports after Check", () => {
+  it("walks Holdings, Reports after Check", () => {
     expect(resolveGettingStartedPhase(checked, 0, "individual")).toBe("holdings");
-    expect(resolveGettingStartedPhase(checked, 1, "individual")).toBe("journal");
+    expect(resolveGettingStartedPhase(checked, 1, "individual")).toBe("reports");
     expect(resolveGettingStartedPhase(checked, 2, "individual")).toBe("reports");
     expect(resolveGettingStartedPhase(checked, 99, "individual")).toBe("reports");
   });
@@ -159,12 +160,16 @@ describe("the Activity wording", () => {
   const checked = { connections: [{ status: "healthy" as const, lastSyncedAt: "2026-01-01T00:00:00Z" }], observedBalanceCount: 2 };
   const empty = { connections: [], observedBalanceCount: 0 };
 
-  it("calls the Journal step Activity for an individual", () => {
-    const step = gettingStartedStep("journal", empty, "individual");
-    expect(step).toMatchObject({ label: "Activity", cta: "Open Activity", href: "/dashboard/ledger" });
-    expect(step.title).toBe("Post entries deliberately");
-    expect(step.body).toContain("Use Activity");
-    expect(step.body).not.toMatch(/journal/i);
+  it("gives an individual a Holdings step and a Reports step, with no entries to post", () => {
+    const holdings = gettingStartedStep("holdings", empty, "individual");
+    expect(holdings.label).toBe("Holdings");
+    expect(holdings.href).toBe("/dashboard/sources#observed-balances");
+    const reports = gettingStartedStep("reports", empty, "individual");
+    expect(reports).toMatchObject({ title: "See your reports", href: "/dashboard/reports" });
+    expect(reports.body).toMatch(/portfolio summary/i);
+    expect(reports.body).toMatch(/activity history/i);
+    expect(reports.body).toMatch(/value over time/i);
+    expect(bannedTermsIn([reports.title, reports.body].join(" "))).toEqual([]);
   });
 
   it("leaves the organization's Journal step as it was", () => {
@@ -178,7 +183,8 @@ describe("the Activity wording", () => {
       for (const phase of gettingStartedPhases("individual")) {
         const step = gettingStartedStep(phase, progress, "individual");
         const text = [step.label, step.title, step.body, step.cta].join(" ");
-        expect(text).not.toMatch(/journal/i);
+        expect(text).not.toMatch(/journal|posted|post /i);
+        expect(bannedTermsIn(text)).toEqual([]);
         expect(hiddenSectionsIn(text)).toEqual([]);
       }
     }
@@ -186,6 +192,6 @@ describe("the Activity wording", () => {
 
   it("still mentions the journal for an organization's Holdings step", () => {
     expect(gettingStartedStep("holdings", checked).body).toContain("the journal");
-    expect(gettingStartedStep("holdings", checked, "individual").body).toContain("your Activity entries");
+    expect(gettingStartedStep("holdings", checked, "individual").body).toContain("wallets and exchanges report holding");
   });
 });

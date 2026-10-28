@@ -1,5 +1,5 @@
 import { getSession } from "@/auth/current";
-import { isExportKindAllowed } from "@/data/account-sections";
+import { isExportKindAllowed, isIndividualAccount } from "@/data/account-sections";
 import { can, canAccessEntity } from "@/auth/roles";
 import { formatMinor, journalCsv, netBalanceMinor, reconciliationCsv, trialBalance, trialBalanceCsv } from "@/ledger";
 import { booksForSession } from "@/data/authorized-books";
@@ -7,7 +7,20 @@ import { parseDateRange } from "@/data/period";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, sourceName } from "@/data/present";
 import { canRevalue, entityReport } from "@/data/entity-report";
-import { entityReportDocument, reportPdf } from "@/data/report-pdf";
+import { entityReportDocument, individualReportDocument, reportPdf } from "@/data/report-pdf";
+import type { Books } from "@/data/books";
+import type { DateRange } from "@/data/period";
+import {
+  activityCsv,
+  activityHistory,
+  individualCurrency,
+  individualReportFilename,
+  portfolioCsv,
+  portfolioSummary,
+  valueOverTime,
+  valueOverTimeCsv,
+  type IndividualReportKind,
+} from "@/data/individual-reports";
 
 export const runtime = "nodejs";
 
@@ -18,7 +31,7 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind");
-  // An individual has no Matching page, so its export is not theirs to download either.
+  // An individual downloads only the plain reports; the accounting exports are not theirs.
   if (!isExportKindAllowed(session.accountType, kind)) return new Response("That export is not part of this account.", { status: 404 });
   const books = await booksForSession(session);
   const requestedEntity = url.searchParams.get("entity");
@@ -30,6 +43,9 @@ export async function GET(request: Request) {
     { from: books.period.start, to: books.period.end },
   );
   if (!parsed.ok) return new Response(parsed.message, { status: 400 });
+  if (isIndividualAccount(session.accountType)) {
+    return individualExport(kind as IndividualReportKind, books, parsed.range, url.searchParams.get("currency") ?? undefined);
+  }
   const scoped = sliceBooks(books, parsed.range);
   const entity = books.entities.find((item) => item.id === url.searchParams.get("entity")) ?? books.entities[0];
 
@@ -107,6 +123,21 @@ export async function GET(request: Request) {
   }
 
   return new Response("Unknown export kind.", { status: 400 });
+}
+
+async function individualExport(kind: IndividualReportKind, books: Books, range: DateRange, currencyParam: string | undefined) {
+  const currency = individualCurrency(currencyParam, books.entities[0]?.functionalCurrency);
+  const filename = individualReportFilename(kind, range);
+  switch (kind) {
+    case "portfolio":
+      return csv(portfolioCsv(books, portfolioSummary(books, { asOf: range.to, currency })), filename);
+    case "activity":
+      return csv(activityCsv(books, activityHistory(books, range)), filename);
+    case "value-over-time":
+      return csv(valueOverTimeCsv(valueOverTime(books, { range, currency })), filename);
+    case "pdf":
+      return pdf(await reportPdf(individualReportDocument({ books, range, currency, generatedAt: new Date() })), filename);
+  }
 }
 
 function csv(body: string, filename: string) {

@@ -17,25 +17,28 @@ export function toolByName(name: string): AgentTool | undefined {
 /**
  * The tools an individual account may use. This is an allow-list, like the
  * section list in `account-sections.ts`: a new tool stays hidden from
- * individuals until it is added here on purpose. Matching, companies, period
- * close, billing and treasury belong to pages an individual does not have.
+ * individuals until it is added here on purpose. Every tool here only reads:
+ * posting and reversing entries, matching, companies, period close, billing and
+ * treasury belong to features an individual does not have.
  */
 export const INDIVIDUAL_TOOLS: readonly string[] = [
   "navigate",
   "list_holdings",
-  "list_journal",
+  "list_activity",
   "list_connections",
   "list_audit_events",
-  "post_journal",
-  "reverse_journal",
 ];
 
-/** Descriptions that name the journal page, worded for an individual ("Activity"). */
+/** Tools that only exist for an individual: an organization's tool list stays exactly as it was. */
+const INDIVIDUAL_ONLY_TOOLS: readonly string[] = ["list_activity"];
+
+/**
+ * Descriptions worded for an individual. The Activity page is read-only, so there
+ * is no tool to post or reverse an entry; `list_activity` reads what wallets and
+ * exchanges reported.
+ */
 const INDIVIDUAL_DESCRIPTIONS: Readonly<Record<string, string>> = {
-  list_journal: "List posted entries on the Activity page, newest first, with reference, date, memo and totals.",
-  post_journal:
-    "Post a balanced entry to Activity. Provide at least two lines whose debits equal credits. The entry cannot be edited once posted; correct it with a reversal.",
-  reverse_journal: "Reverse a posted entry, creating the correcting entry. Requires the entry reference and a reason.",
+  list_holdings: "List balances by asset, the latest reading per account, as reported by connected wallets and exchanges.",
 };
 
 /** The tool as this account type sees it: same behavior, account-appropriate wording. */
@@ -62,6 +65,7 @@ export function toolsFor(ctx: Pick<ToolContext, "session">): AgentTool[] {
   const individual = isIndividualAccount(accountType);
   return ALL_TOOLS.filter((tool) => !tool.permission || can(ctx.session.role, tool.permission))
     .filter((tool) => !individual || INDIVIDUAL_TOOLS.includes(tool.name))
+    .filter((tool) => individual || !INDIVIDUAL_ONLY_TOOLS.includes(tool.name))
     .map((tool) => adaptTool(tool, accountType));
 }
 

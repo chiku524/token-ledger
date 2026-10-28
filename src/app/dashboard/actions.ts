@@ -5,6 +5,7 @@ import type { ExchangeCredentialInput } from "@/adapters/credentials/store";
 import { custodianDefinition } from "@/adapters/sources/custodian/registry";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
+import { isIndividualAccount } from "@/data/account-sections";
 import { canWriteBooks } from "@/data/authorized-books";
 import { connectionReturnPathForSession } from "@/data/connection-return-session";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
@@ -134,6 +135,7 @@ export async function postRevaluationAction(formData: FormData) {
   const path = "/dashboard/reports";
   const session = await guard(path, "journal.post", formData);
   requireWritable(path, session);
+  requireOrganization(path, session);
   const entityId = String(formData.get("entityId") ?? "");
   const asOf = String(formData.get("asOf") ?? "");
   const reference = String(formData.get("reference") ?? "").trim();
@@ -243,13 +245,14 @@ export async function importCsvAction(formData: FormData) {
   const parsed = parseSourceTransactionCsv(text, books.assets);
   if (!parsed.ok) fail(path, parsed.errors[0] ?? "CSV could not be read.");
   await save(path, () => insertSourceTransactions(books, sourceId, parsed.rows, actorName(session)));
-  finish(path, "Activity imported. Matching on the next load uses these rows.");
+  finish(path, isIndividualAccount(session.accountType) ? "Activity imported." : "Activity imported. Matching on the next load uses these rows.");
 }
 
 export async function postJournalAction(formData: FormData) {
   const path = "/dashboard/ledger";
   const session = await guard(path, "journal.post", formData);
   requireWritable(path, session);
+  requireOrganization(path, session);
   const parsed = journalFormSchema.safeParse({
     entityId: formData.get("entityId"),
     reference: formData.get("reference"),
@@ -356,6 +359,7 @@ export async function prepareJournalAction(formData: FormData) {
   const path = "/dashboard/ledger";
   const session = await guard(path, "journal.prepare", formData);
   requireWritable(path, session);
+  requireOrganization(path, session);
   const parsed = journalFormSchema.safeParse({
     entityId: formData.get("entityId"),
     reference: formData.get("reference"),
@@ -387,6 +391,7 @@ export async function submitDraftAction(formData: FormData) {
   const path = "/dashboard/approvals";
   const session = await guard(path, "journal.prepare", formData);
   requireWritable(path, session);
+  requireOrganization(path, session);
   const draftId = String(formData.get("draftId") ?? "");
   await save(path, () => submitDraft(session.organizationId, draftId, actorName(session)));
   finish(path, "Draft submitted for approval.");
@@ -397,6 +402,7 @@ export async function approveDraftAction(formData: FormData) {
   const path = "/dashboard/approvals";
   const session = await guard(path, "journal.approve", formData);
   requireWritable(path, session);
+  requireOrganization(path, session);
   const draftId = String(formData.get("draftId") ?? "");
   const isOwner = session.role === "owner";
   const overrideNote = isOwner ? String(formData.get("overrideNote") ?? "").trim() || null : null;
@@ -416,6 +422,7 @@ export async function reverseJournalAction(formData: FormData) {
   const path = "/dashboard/ledger";
   const session = await guard(path, "journal.reverse", formData);
   requireWritable(path, session);
+  requireOrganization(path, session);
   const parsed = reversalFormSchema.safeParse({
     entryId: formData.get("entryId"),
     reference: formData.get("reference"),
@@ -480,6 +487,17 @@ async function guard(path: string, permission: Permission, formData: FormData): 
 
 function requireWritable(path: string, session: SessionUser): void {
   if (!canWriteBooks(session)) fail(path, READ_ONLY);
+}
+
+/**
+ * Posting, drafting, approving, and reversing entries are organization features:
+ * an individual's Activity page is read-only. The page offers no form for them,
+ * so this only stops a request made by hand (defense in depth).
+ */
+const INDIVIDUAL_NO_ENTRIES = "Personal accounts do not have entries to post or reverse. Activity shows what your wallets and exchanges report.";
+
+function requireOrganization(path: string, session: SessionUser): void {
+  if (isIndividualAccount(session.accountType)) fail(path, INDIVIDUAL_NO_ENTRIES);
 }
 
 function assertEntity(session: SessionUser, entityId: string): void {

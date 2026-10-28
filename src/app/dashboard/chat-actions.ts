@@ -16,7 +16,8 @@ import { providerForOrganization } from "@/ai/settings";
 import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
 import { assistantReply, toHistory } from "@/ai/service";
 import { scrubStoredMessages } from "@/ai/hidden-sections";
-import { toolByName } from "@/ai/tools/registry";
+import { INDIVIDUAL_TOOLS, toolByName } from "@/ai/tools/registry";
+import { isIndividualAccount } from "@/data/account-sections";
 import { loadToolContext } from "@/ai/context";
 import { appendMessage, loadMessages, loadToolCall, recordToolCall, resolveToolCall, auditToolRun, createThread, loadThread } from "@/db/ai";
 import { hasDatabase } from "@/db/availability";
@@ -151,6 +152,12 @@ export async function confirmToolCallAction(formData: FormData): Promise<ChatAct
   if (decision === "reject") {
     await resolveToolCall({ organizationId: session.organizationId, toolCallId, status: "rejected" });
     return { status: "answered", threadId: "", text: "Cancelled." };
+  }
+
+  // A proposal saved before this account's tools were narrowed must not run (defense in depth).
+  if (isIndividualAccount(session.accountType) && !INDIVIDUAL_TOOLS.includes(call.toolName)) {
+    await resolveToolCall({ organizationId: session.organizationId, toolCallId, status: "failed", error: "Not available on this account." });
+    return { status: "error", text: "That action is not available on this account." };
   }
 
   const tool = toolByName(call.toolName);

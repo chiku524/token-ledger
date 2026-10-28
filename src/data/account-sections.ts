@@ -49,12 +49,14 @@ export function sectionLabelFor(accountType: OrganizationAccountType | undefined
 }
 
 /**
- * What the assistant's journal tools are called for an individual: the tool card
- * title and the confirmation card action. The Journal page is "Activity" for an
- * individual, so the tools that read or write it are too. Organizations keep the
- * original names. Keyed by tool name.
+ * What the assistant's tools are called for an individual: the tool card title
+ * and the confirmation card action. An individual reads their Activity and
+ * never posts or reverses entries, so only `list_activity` is offered. The
+ * journal keys stay so an older chat thread that already holds those cards still
+ * reads in plain words. Organizations keep the original names. Keyed by tool name.
  */
 export const INDIVIDUAL_TOOL_LABELS: Readonly<Record<string, string>> = {
+  list_activity: "List activity",
   list_journal: "List activity",
   post_journal: "Post activity entry",
   reverse_journal: "Reverse activity entry",
@@ -82,11 +84,13 @@ export function isSectionAllowed(accountType: OrganizationAccountType | undefine
 
 /**
  * The downloads an individual may request from `/dashboard/reports/export`. Like
- * the sections, this is an allow-list: the Matching (`reconciliation`) export
- * belongs to a page an individual does not have, so a typed URL must not reach it.
+ * the sections, this is an allow-list. An individual's reports are plain: the
+ * PDF report, the portfolio summary, the activity history and value over time.
+ * The accounting exports (`trial-balance`, `journal`, `reconciliation`) belong
+ * to pages an individual does not have, so a typed URL must not reach them.
  * An organization may request every kind.
  */
-export const INDIVIDUAL_EXPORT_KINDS: readonly string[] = ["pdf", "trial-balance", "journal"];
+export const INDIVIDUAL_EXPORT_KINDS: readonly string[] = ["pdf", "portfolio", "activity", "value-over-time"];
 
 /** Whether an account of this type may download this export kind. */
 export function isExportKindAllowed(accountType: OrganizationAccountType | undefined, kind: string | null): boolean {

@@ -29,18 +29,22 @@ function render(phase: GettingStartedPhase, accountType?: "individual" | "organi
 }
 
 describe("ConnectionTourStep for an individual", () => {
-  it("counts five steps from the first", () => {
+  it("counts four steps from the first", () => {
     const html = render("connect", "individual");
-    expect(html).toContain("1 of 5");
+    expect(html).toContain("1 of 4");
+    expect(html).not.toContain("of 5");
     expect(html).not.toContain("of 6");
   });
 
-  it("ends Reports on 5 of 5, and goes Holdings, Journal, Reports without Matching", () => {
-    expect(render("holdings", "individual")).toContain("3 of 5");
-    expect(render("journal", "individual")).toContain("4 of 5");
+  it("ends Reports on 4 of 4, and goes Holdings, Reports without Matching or entries", () => {
+    expect(render("check", "individual")).toContain("2 of 4");
+    const holdings = render("holdings", "individual");
+    expect(holdings).toContain("3 of 4");
+    expect(holdings).not.toMatch(/journal|posted/i);
     const reports = render("reports", "individual");
-    expect(reports).toContain("5 of 5");
+    expect(reports).toContain("4 of 4");
     expect(reports).not.toContain("Matching");
+    expect(reports).not.toMatch(/journal|posted|trial balance/i);
   });
 
   it("keeps an organization at six", () => {

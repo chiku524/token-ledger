@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { can } from "@/auth/roles";
-import { isIndividualAccount, journalName } from "@/data/account-sections";
+import { isIndividualAccount } from "@/data/account-sections";
 import { canRevalue, entityReport } from "@/data/entity-report";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
@@ -26,6 +26,7 @@ import { FinancialStatementsCards } from "@/components/app/financial-statements"
 import { requireSectionAccess } from "@/data/section-access";
 import { SubmitButton } from "@/components/submit-button";
 import { cn } from "@/lib/utils";
+import { IndividualReports, parseIndividualTab } from "./individual-reports";
 
 export const metadata = { title: "Reports" };
 
@@ -36,6 +37,8 @@ export default async function ReportsPage({
     entity?: string | string[];
     from?: string | string[];
     to?: string | string[];
+    tab?: string | string[];
+    currency?: string | string[];
     error?: string | string[];
     saved?: string | string[];
   }>;
@@ -43,7 +46,7 @@ export default async function ReportsPage({
   const params = await searchParams;
   await requireSectionAccess("/dashboard/reports");
   const { session, books } = await loadAuthorizedBooks();
-  // An individual has no Matching or Companies, and calls the Journal "Activity".
+  // An individual gets plain-language reports, with none of the accounting views below.
   const individual = isIndividualAccount(session.accountType);
   const requested = one(params.entity);
   const entity = books.entities.find((item) => item.id === requested) ?? books.entities[0];
@@ -53,25 +56,37 @@ export default async function ReportsPage({
   );
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
 
+  if (individual) {
+    return (
+      <IndividualReports
+        books={books}
+        range={range}
+        tab={parseIndividualTab(one(params.tab))}
+        currencyParam={one(params.currency)}
+        canExport={can(session.role, "books.export")}
+        error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)}
+        saved={one(params.saved)}
+      />
+    );
+  }
+
   if (!entity) {
     return (
       <>
         <PageHeader
           kicker="Reports"
           title="Reports"
-          description={individual ? "Your books are not ready yet." : "Add a company before balances can be prepared."}
+          description="Add a company before balances can be prepared."
         />
         <EmptyState
           icon={Building2}
           action={
-            individual ? undefined : (
-              <Button asChild variant="secondary">
-                <Link href="/dashboard/entities">Companies</Link>
-              </Button>
-            )
+            <Button asChild variant="secondary">
+              <Link href="/dashboard/entities">Companies</Link>
+            </Button>
           }
         >
-          {individual ? "No books yet." : "No companies yet."}
+          No companies yet.
         </EmptyState>
       </>
     );
@@ -87,9 +102,9 @@ export default async function ReportsPage({
 
   const moreExports: [string, string, React.ComponentType<{ className?: string }>][] = [
     ["trial-balance", "Balances", FileSpreadsheet],
-    ["journal", journalName(session.accountType), FileSpreadsheet],
+    ["journal", "Journal", FileSpreadsheet],
+    ["reconciliation", "Matching", FileSpreadsheet],
   ];
-  if (!individual) moreExports.push(["reconciliation", "Matching", FileSpreadsheet]);
 
   return (
     <>
@@ -252,11 +267,11 @@ export default async function ReportsPage({
           title="Crypto held"
           description={
             <>
-              Booked value from <strong>posted {individual ? "entries" : "journal entries"}</strong>, grouped by what the account is for: crypto, crypto
-              held for sale, or stablecoins. Reading a wallet records an observed balance and does not post {individual ? "an entry" : "a journal"}, so a
-              holding appears here only after it is {individual ? "posted" : "journaled"} on the{" "}
+              Booked value from <strong>posted journal entries</strong>, grouped by what the account is for: crypto, crypto
+              held for sale, or stablecoins. Reading a wallet records an observed balance and does not post a journal, so a
+              holding appears here only after it is journaled on the{" "}
               <Link href="/dashboard/ledger" className="text-link underline">
-                {journalName(session.accountType)}
+                Journal
               </Link>{" "}
               page. Observed balances are on{" "}
               <Link href="/dashboard/sources" className="text-link underline">
@@ -280,9 +295,7 @@ export default async function ReportsPage({
             <TableBody>
               {carrying.length === 0 ? (
                 <EmptyRow colSpan={4}>
-                  {individual
-                    ? "No posted crypto yet. A wallet Check records an observation on Holdings but does not post an entry; post one on the Activity page to see it held here."
-                    : "No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal; post an entry on the Journal page to see it held here."}
+                  No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal; post an entry on the Journal page to see it held here.
                 </EmptyRow>
               ) : (
                 carrying.map((row) => (
