@@ -1,0 +1,2 @@
+CREATE TYPE "public"."organization_account_type" AS ENUM('organization', 'individual');--> statement-breakpoint
+ALTER TABLE "organizations" ADD COLUMN "account_type" "organization_account_type" DEFAULT 'organization' NOT NULL;

@@ -4,7 +4,8 @@ import { isRole } from "@/auth/roles";
 import { authSecretConfigured, readAuthSecret } from "@/env";
 import { newSecretToken, sealToken } from "@/auth/tokens";
 import { getDb } from "./client";
-import { auditEvents, emailVerifications, invites, passwordResets, sessions, signInAttempts, users } from "./schema";
+import type { OrganizationAccountType } from "@/data/account-type";
+import { auditEvents, emailVerifications, invites, organizations, passwordResets, sessions, signInAttempts, users } from "./schema";
 
 export interface AccountUser {
   id: string;
@@ -19,6 +20,8 @@ export interface AccountUser {
   passwordHash: string | null;
   connectionTourCompletedAt: Date | null;
   emailVerifiedAt: Date | null;
+  /** Whether the user's organization is a company or a person. Set on session lookups; absent elsewhere. */
+  accountType?: OrganizationAccountType;
 }
 
 const SESSION_MS = 12 * 60 * 60 * 1000;
@@ -90,14 +93,15 @@ export async function userForSessionToken(token: string): Promise<AccountUser | 
   if (!authSecretConfigured()) return null;
   const db = getDb();
   const rows = await db
-    .select({ user: users, expiresAt: sessions.expiresAt })
+    .select({ user: users, expiresAt: sessions.expiresAt, accountType: organizations.accountType })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
+    .innerJoin(organizations, eq(organizations.id, users.organizationId))
     .where(eq(sessions.id, sealToken(token, readAuthSecret())))
     .limit(1);
   const row = rows[0];
   if (!row || row.expiresAt.getTime() < Date.now() || row.user.status !== "active") return null;
-  return mapUser(row.user);
+  return { ...mapUser(row.user), accountType: row.accountType };
 }
 
 export async function insertUser(input: {

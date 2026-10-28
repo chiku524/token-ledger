@@ -22,6 +22,7 @@ function session(overrides: Partial<SessionUser>): SessionUser {
     email: "a@b.test",
     name: "A",
     role: "onboarding",
+    accountType: "organization",
     platformAdmin: false,
     entityScope: [],
     demo: false,

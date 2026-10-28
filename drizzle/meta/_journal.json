@@ -169,6 +169,13 @@
       "when": 1791440742023,
       "tag": "0023_romantic_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793171595609,
+      "tag": "0024_outgoing_mockingbird",
+      "breakpoints": true
     }
   ]
 }

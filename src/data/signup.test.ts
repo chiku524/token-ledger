@@ -20,6 +20,53 @@ const account = {
 };
 
 describe("parseSignup", () => {
+  it("treats a form with no account type as an organization", () => {
+    const parsed = parseSignup(form(account));
+    if (!parsed.ok) throw new Error(parsed.message);
+    expect(parsed.value.accountType).toBe("organization");
+    expect(parsed.value.company).toMatchObject({ organizationName: "North Desk", entityName: "North Desk Pte. Ltd.", jurisdiction: "SG" });
+  });
+
+  it("keeps requiring company details for an organization", () => {
+    const parsed = parseSignup(form({ ...account, accountType: "organization", entityName: "" }));
+    expect(parsed.ok).toBe(false);
+  });
+
+  it("refuses an account type it does not know", () => {
+    const parsed = parseSignup(form({ ...account, accountType: "team" }));
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.message).toMatch(/individual or an organization/i);
+  });
+
+  it("names an individual's books after them and needs no company details", () => {
+    const parsed = parseSignup(
+      form({ name: account.name, email: account.email, password: account.password, confirm: account.confirm, accountType: "individual" }),
+    );
+    if (!parsed.ok) throw new Error(parsed.message);
+    expect(parsed.value.accountType).toBe("individual");
+    expect(parsed.value.company).toEqual({
+      organizationName: "Amina Shah (Personal)",
+      entityName: "Amina Shah (Personal)",
+      jurisdiction: "US",
+      functionalCurrency: "USD",
+      reportingFramework: "IFRS",
+    });
+  });
+
+  it("lets an individual pick a country and one of the three currencies", () => {
+    const parsed = parseSignup(
+      form({ ...account, accountType: "individual", organizationName: "ignored", entityName: "ignored", jurisdiction: "my", functionalCurrency: "MYR", reportingFramework: "MFRS" }),
+    );
+    if (!parsed.ok) throw new Error(parsed.message);
+    expect(parsed.value.company).toMatchObject({ jurisdiction: "MY", functionalCurrency: "MYR", organizationName: "Amina Shah (Personal)", reportingFramework: "IFRS" });
+  });
+
+  it("refuses an individual's unsupported currency or malformed country", () => {
+    expect(parseSignup(form({ ...account, accountType: "individual", functionalCurrency: "EUR" })).ok).toBe(false);
+    expect(parseSignup(form({ ...account, accountType: "individual", jurisdiction: "Malaysia" })).ok).toBe(false);
+  });
+
   it("accepts an account with no connections", () => {
     const parsed = parseSignup(form(account));
     expect(parsed.ok).toBe(true);

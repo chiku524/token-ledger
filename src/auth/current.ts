@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasDatabase } from "@/db/availability";
 import { userForSessionToken, type AccountUser } from "@/db/auth-store";
+import { DEFAULT_ORGANIZATION_ACCOUNT_TYPE, type OrganizationAccountType } from "@/data/account-type";
 import { isPlatformAdminEmail } from "@/env";
 import { CSRF_COOKIE, csrfMatches, newCsrfToken, originAllowed } from "./csrf";
 import { DEMO_COOKIE, DEMO_DATA_COOKIE, SESSION_COOKIE } from "./cookies";
@@ -16,6 +17,8 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
+  /** Whether this user's books belong to a company or a person. Demo sessions are organizations. */
+  accountType: OrganizationAccountType;
   /** Cross-organization operator role, from the stored flag or the env allowlist. */
   platformAdmin: boolean;
   entityScope: string[];
@@ -49,6 +52,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
         email: demo.email,
         name: demo.name,
         role: demo.role,
+        accountType: DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
         platformAdmin: false,
         entityScope: demo.entityScope,
         demo: true,
@@ -138,6 +142,7 @@ function toSession(user: AccountUser): SessionUser {
     email: user.email,
     name: user.name,
     role: user.role,
+    accountType: user.accountType ?? DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
     platformAdmin: user.platformAdmin,
     entityScope: user.entityScope,
     demo: false,

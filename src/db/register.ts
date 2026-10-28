@@ -1,5 +1,6 @@
 import { ENTITY_CHART } from "@/data/chart-template";
 import { READ_ONLY_SCOPES, type ConnectionDraft } from "@/data/connections";
+import { DEFAULT_ORGANIZATION_ACCOUNT_TYPE, type OrganizationAccountType } from "@/data/account-type";
 import { assignSignupEntity } from "@/data/signup";
 import { STARTER_ASSETS } from "@/data/starter-assets";
 import { getDb } from "./client";
@@ -7,6 +8,8 @@ import { accounts, assets, auditEvents, connections, entities, organizations, so
 import { BooksWriteError } from "./write";
 
 export async function registerOrganization(input: {
+  /** Defaults to `organization`. An individual is the same shape: one entity, one owner. */
+  accountType?: OrganizationAccountType;
   ownerName: string;
   email: string;
   passwordHash: string;
@@ -29,6 +32,7 @@ export async function registerOrganization(input: {
       id: organizationId,
       name: input.organizationName,
       origin: "live",
+      accountType: input.accountType ?? DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
     });
     await tx.insert(entities).values({
       id: entityId,

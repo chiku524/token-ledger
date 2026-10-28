@@ -35,6 +35,7 @@ function session(role: Role, entityScope: string[] = []): SessionUser {
     email: `${role}@harbourline.example`,
     name: `Test ${role}`,
     role,
+    accountType: "organization",
     platformAdmin: false,
     entityScope,
     demo: false,
@@ -46,7 +47,7 @@ function session(role: Role, entityScope: string[] = []): SessionUser {
 const EMPTY_BOOKS: Books = {
   notice: "",
   period: { start: "2026-01-01", end: "2026-03-31", label: "Q1" },
-  organization: { id: "org_harbourline", name: "Harbourline", origin: "live" },
+  organization: { id: "org_harbourline", name: "Harbourline", origin: "live", accountType: "organization" },
   entities: [{ id: "ent_my", organizationId: "org_harbourline", name: "Harbourline MY", jurisdiction: "MY", functionalCurrency: "MYR", reportingFramework: "IFRS", parentEntityId: null }],
   assets: [],
   connections: [],

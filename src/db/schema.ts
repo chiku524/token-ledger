@@ -16,6 +16,7 @@
  * for reporting. They are not an accounting-policy opinion.
  */
 import { sql } from "drizzle-orm";
+import { ORGANIZATION_ACCOUNT_TYPES } from "../data/account-type";
 import {
   bigint,
   boolean,
@@ -41,6 +42,8 @@ import {
  */
 const quantity = (name: string) => numeric(name, { precision: 78, scale: 0, mode: "bigint" });
 
+/** Who owns an organization's books: a company or a person. See `src/data/account-type.ts`. */
+export const organizationAccountType = pgEnum("organization_account_type", ORGANIZATION_ACCOUNT_TYPES);
 export const dataOrigin = pgEnum("data_origin", ["example", "live"]);
 export const sourceKind = pgEnum("source_kind", ["wallet", "exchange", "custodian"]);
 export const walletRole = pgEnum("wallet_role", ["hot", "cold", "staking"]);
@@ -66,6 +69,7 @@ export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   origin: dataOrigin("origin").notNull(),
+  accountType: organizationAccountType("account_type").notNull().default("organization"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

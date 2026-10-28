@@ -40,6 +40,7 @@ export const exampleOrganization = {
   id: ORG_ID,
   name: "Asset Manager A",
   origin: "example" as const,
+  accountType: "organization" as const,
 };
 
 export const exampleEntities = [

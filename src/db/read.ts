@@ -82,7 +82,7 @@ export async function loadBooksFromDatabase(requestedOrganizationId?: string): P
   });
 
   const snapshot: BooksSnapshot = {
-    organization: { id: organization.id, name: organization.name, origin: organization.origin },
+    organization: { id: organization.id, name: organization.name, origin: organization.origin, accountType: organization.accountType },
     entities: entityRows,
     assets: assetRows,
     connections: connectionRows.map((connection) => ({

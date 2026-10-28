@@ -97,7 +97,7 @@ async function main() {
       .values(books.organization)
       .onConflictDoUpdate({
         target: organizations.id,
-        set: { name: sql`excluded.name`, origin: sql`excluded.origin` },
+        set: { name: sql`excluded.name`, origin: sql`excluded.origin`, accountType: sql`excluded.account_type` },
       });
     await tx.insert(entities).values(books.entities[0]);
     await tx.insert(assets).values([...books.assets]);

@@ -1,5 +1,6 @@
 import type { FxRate } from "@/ledger/fx";
 import type { AssetPrice } from "@/ledger/pricing";
+import type { OrganizationAccountType } from "./account-type";
 import type { ReconciliationOverride } from "./reconciliation";
 import type { AccountType, PostedJournalEntry, QuantityDirection, Side } from "@/ledger";
 
@@ -139,7 +140,7 @@ export interface AuditEvent {
 export interface Books {
   notice: string;
   period: { start: string; end: string; label: string };
-  organization: { id: string; name: string; origin: "example" | "live" };
+  organization: { id: string; name: string; origin: "example" | "live"; accountType: OrganizationAccountType };
   entities: readonly BooksEntity[];
   assets: readonly BooksAsset[];
   connections: readonly BooksConnection[];
