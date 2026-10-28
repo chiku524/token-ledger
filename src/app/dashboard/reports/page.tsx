@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { can } from "@/auth/roles";
+import { isIndividualAccount, journalName } from "@/data/account-sections";
 import { canRevalue, entityReport } from "@/data/entity-report";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { parseDateRange } from "@/data/period";
@@ -42,6 +43,8 @@ export default async function ReportsPage({
   const params = await searchParams;
   await requireSectionAccess("/dashboard/reports");
   const { session, books } = await loadAuthorizedBooks();
+  // An individual has no Matching or Companies, and calls the Journal "Activity".
+  const individual = isIndividualAccount(session.accountType);
   const requested = one(params.entity);
   const entity = books.entities.find((item) => item.id === requested) ?? books.entities[0];
   const parsed = parseDateRange(
@@ -53,16 +56,22 @@ export default async function ReportsPage({
   if (!entity) {
     return (
       <>
-        <PageHeader kicker="Reports" title="Reports" description="Add a company before balances can be prepared." />
+        <PageHeader
+          kicker="Reports"
+          title="Reports"
+          description={individual ? "Your books are not ready yet." : "Add a company before balances can be prepared."}
+        />
         <EmptyState
           icon={Building2}
           action={
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/entities">Companies</Link>
-            </Button>
+            individual ? undefined : (
+              <Button asChild variant="secondary">
+                <Link href="/dashboard/entities">Companies</Link>
+              </Button>
+            )
           }
         >
-          No companies yet.
+          {individual ? "No books yet." : "No companies yet."}
         </EmptyState>
       </>
     );
@@ -78,9 +87,9 @@ export default async function ReportsPage({
 
   const moreExports: [string, string, React.ComponentType<{ className?: string }>][] = [
     ["trial-balance", "Balances", FileSpreadsheet],
-    ["journal", "Journal", FileSpreadsheet],
-    ["reconciliation", "Matching", FileSpreadsheet],
+    ["journal", journalName(session.accountType), FileSpreadsheet],
   ];
+  if (!individual) moreExports.push(["reconciliation", "Matching", FileSpreadsheet]);
 
   return (
     <>
@@ -243,11 +252,11 @@ export default async function ReportsPage({
           title="Crypto held"
           description={
             <>
-              Booked value from <strong>posted journal entries</strong>, grouped by what the account is for: crypto, crypto
-              held for sale, or stablecoins. Reading a wallet records an observed balance and does not post a journal, so a
-              holding appears here only after it is journaled on the{" "}
+              Booked value from <strong>posted {individual ? "entries" : "journal entries"}</strong>, grouped by what the account is for: crypto, crypto
+              held for sale, or stablecoins. Reading a wallet records an observed balance and does not post {individual ? "an entry" : "a journal"}, so a
+              holding appears here only after it is {individual ? "posted" : "journaled"} on the{" "}
               <Link href="/dashboard/ledger" className="text-link underline">
-                Journal
+                {journalName(session.accountType)}
               </Link>{" "}
               page. Observed balances are on{" "}
               <Link href="/dashboard/sources" className="text-link underline">
@@ -271,8 +280,9 @@ export default async function ReportsPage({
             <TableBody>
               {carrying.length === 0 ? (
                 <EmptyRow colSpan={4}>
-                  No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal;
-                  post an entry on the Journal page to see it held here.
+                  {individual
+                    ? "No posted crypto yet. A wallet Check records an observation on Holdings but does not post an entry; post one on the Activity page to see it held here."
+                    : "No journaled crypto yet. A wallet Check records an observation on Holdings but does not post a journal; post an entry on the Journal page to see it held here."}
                 </EmptyRow>
               ) : (
                 carrying.map((row) => (

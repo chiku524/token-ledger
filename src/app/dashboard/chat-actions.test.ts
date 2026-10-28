@@ -31,7 +31,7 @@ vi.mock("@/ai/context", () => ({
 }));
 vi.mock("@/ai/service", () => ({
   assistantReply: vi.fn(async () => ({ text: "Here is the answer.", status: "answered", readResults: [], provider: "ollama" })),
-  toHistory: (messages: { role: string; content: string }[]) => messages,
+  toHistory: vi.fn((messages: { role: string; content: string }[], _accountType?: string) => messages),
 }));
 
 const aiDb = vi.hoisted(() => ({
@@ -80,6 +80,8 @@ const currentSession = (): { role: string; organizationId: string; entityScope: 
 
 // `@/auth/current` is real; the harness drives the session through cookies.
 
+import { loadMessages } from "@/db/ai";
+import { toHistory } from "@/ai/service";
 import { sendMessageAction, confirmToolCallAction, newThreadAction, archiveThreadAction, listThreadsAction, loadThreadMessagesAction } from "./chat-actions";
 
 const current = () => currentSession();
@@ -204,7 +206,41 @@ describe("thread actions", () => {
     aiDb.threads.push({ id: "aith_1", organizationId: ORG, userId: "user_owner", title: "First", archived: false });
     const result = await loadThreadMessagesAction("aith_1");
     expect(result[0]).toMatchObject({ role: "user", content: "open matching" });
-  });});
+  });
+
+  const storedThread = [
+    { id: "aim_1", threadId: "aith_1", role: "user", content: "open /dashboard/reconciliation", provider: null, model: null, createdAt: new Date().toISOString() },
+    { id: "aim_2", threadId: "aith_1", role: "assistant", content: "Here: [Matching](/dashboard/reconciliation) and [Holdings](/dashboard/sources).", provider: null, model: null, createdAt: new Date().toISOString() },
+  ];
+
+  it("restores an individual's thread without links to sections it does not have", async () => {
+    signInLive("owner", { accountType: "individual" });
+    aiDb.threads.push({ id: "aith_1", organizationId: ORG, userId: "user_owner", title: "First", archived: false });
+    vi.mocked(loadMessages).mockResolvedValueOnce(storedThread as never);
+    const result = await loadThreadMessagesAction("aith_1");
+    expect(result[0]!.content).toBe("open /dashboard/reconciliation");
+    expect(result[1]!.content).not.toContain("reconciliation");
+    expect(result[1]!.content).toContain("[Holdings](/dashboard/sources)");
+  });
+
+  it("restores an organization's thread exactly as stored", async () => {
+    signInLive("owner");
+    aiDb.threads.push({ id: "aith_1", organizationId: ORG, userId: "user_owner", title: "First", archived: false });
+    vi.mocked(loadMessages).mockResolvedValueOnce(storedThread as never);
+    const result = await loadThreadMessagesAction("aith_1");
+    expect(result[1]!.content).toContain("[Matching](/dashboard/reconciliation)");
+  });
+
+  it("gives the model history the signed-in account type, so an individual's is scrubbed", async () => {
+    signInLive("owner", { accountType: "individual" });
+    await sendMessageAction(form({ message: "hello" }));
+    expect(vi.mocked(toHistory).mock.calls.at(-1)?.[1]).toBe("individual");
+    resetRequest();
+    signInLive("owner");
+    await sendMessageAction(form({ message: "hello" }));
+    expect(vi.mocked(toHistory).mock.calls.at(-1)?.[1]).toBe("organization");
+  });
+});
 
 void CROSS_SITE;
 void FORM_EXPIRED;

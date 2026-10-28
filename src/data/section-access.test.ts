@@ -74,6 +74,37 @@ describe("requireSectionAccess", () => {
     expect(await redirectOf(requireSectionAccess("/dashboard/settings"))).toBeNull();
   });
 
+  it.each([
+    "/dashboard/reconciliation",
+    "/dashboard/entities",
+    "/dashboard/approvals",
+    "/dashboard/consolidation",
+    "/dashboard/billing",
+    "/dashboard/treasury",
+    "/dashboard/payables",
+    "/dashboard/operations",
+    "/dashboard/onboarding",
+  ])("sends an individual home from %s, whatever their role", async (href) => {
+    vi.mocked(getSession).mockResolvedValue(session({ role: "owner", accountType: "individual" }));
+    expect(await redirectOf(requireSectionAccess(href))).toBe("/dashboard");
+    vi.mocked(getSession).mockResolvedValue(session({ role: "viewer", accountType: "individual" }));
+    expect(await redirectOf(requireSectionAccess(href))).toBe("/dashboard");
+  });
+
+  it.each(["/dashboard", "/dashboard/sources", "/dashboard/ledger", "/dashboard/reports", "/dashboard/guide", "/dashboard/audit", "/dashboard/settings"])(
+    "lets an individual into %s",
+    async (href) => {
+      vi.mocked(getSession).mockResolvedValue(session({ role: "owner", accountType: "individual" }));
+      expect(await redirectOf(requireSectionAccess(href))).toBeNull();
+    },
+  );
+
+  it("never narrows an organization by account type", async () => {
+    vi.mocked(getSession).mockResolvedValue(session({ role: "owner", accountType: "organization" }));
+    expect(await redirectOf(requireSectionAccess("/dashboard/reconciliation"))).toBeNull();
+    expect(await redirectOf(requireSectionAccess("/dashboard/entities"))).toBeNull();
+  });
+
   it("does nothing without a session or in demo mode", async () => {
     vi.mocked(getSession).mockResolvedValue(null);
     expect(await redirectOf(requireSectionAccess("/dashboard/ledger"))).toBeNull();

@@ -16,6 +16,7 @@ import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { auditSubjectTypes, filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
 import { paginate, parsePage } from "@/data/pagination";
 import { actionLabel, subjectLabel } from "@/data/present";
+import { isIndividualAccount } from "@/data/account-sections";
 import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "History" };
@@ -39,6 +40,8 @@ export default async function AuditPage({
   await requireSectionAccess("/dashboard/audit");
   const { session, books } = await loadAuthorizedBooks();
   const filter = parseAuditFilter(params);
+  // An individual has no Companies section, so the page does not name it.
+  const individual = isIndividualAccount(session.accountType);
   const events = filterAuditEvents(books.auditEvents, filter);
   const subjectTypes = auditSubjectTypes(books.auditEvents);
   const exportQuery = queryString(filter);
@@ -57,7 +60,7 @@ export default async function AuditPage({
       <PageHeader
         kicker="Who did what"
         title="History"
-        description="New companies, wallets and accounts, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. Filter by name, action, subject, or dates, then download the result."
+        description={`${individual ? "New wallets and accounts" : "New companies, wallets and accounts"}, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. Filter by name, action, subject, or dates, then download the result.`}
       />
       <FormCard className="mb-6 md:grid-cols-5" method="get">
         <Field label="Name">

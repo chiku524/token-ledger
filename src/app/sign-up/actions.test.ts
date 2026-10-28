@@ -89,7 +89,7 @@ describe("signUpAction", () => {
     expect(vi.mocked(registerOrganization).mock.calls[0]![0].accountType).toBe("organization");
   });
 
-  it("registers an individual with their own name, a default country, and the same landing page", async () => {
+  it("registers an individual with their own name and a default country, and opens Connect", async () => {
     const result = await signUp({
       name: "Amina Rahman",
       email: "amina@harbourline.example",
@@ -99,7 +99,8 @@ describe("signUpAction", () => {
       jurisdiction: "us",
       functionalCurrency: "USD",
     });
-    expect(result.pathname).toBe("/dashboard/settings");
+    expect(result.pathname).toBe("/dashboard/setup");
+    expect(result.params.get("saved")).toMatch(/Connect a wallet or an exchange/);
     expect(vi.mocked(registerOrganization).mock.calls[0]![0]).toMatchObject({
       accountType: "individual",
       ownerName: "Amina Rahman",
@@ -109,6 +110,25 @@ describe("signUpAction", () => {
       functionalCurrency: "USD",
       reportingFramework: "IFRS",
     });
+  });
+
+  it("ignores any wallet or exchange fields for an individual and still lands on Connect", async () => {
+    const result = await signUp({
+      name: "Amina Rahman",
+      email: "amina@harbourline.example",
+      password: PASSWORD,
+      confirm: PASSWORD,
+      accountType: "individual",
+      ...WALLET,
+      ...EXCHANGE,
+    });
+    expect(result.pathname).toBe("/dashboard/setup");
+    expect(vi.mocked(registerOrganization).mock.calls[0]![0].connections).toEqual([]);
+  });
+
+  it("keeps an organization on Settings", async () => {
+    const result = await signUp({ ...SIGNUP, accountType: "organization" });
+    expect(result.pathname).toBe("/dashboard/settings");
   });
 
   it("refuses an unknown account type", async () => {

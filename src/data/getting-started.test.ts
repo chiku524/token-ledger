@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { hiddenSectionsIn } from "@/test/hidden-sections";
 import {
   canTakeConnectionTour,
   gettingStartedPhases,
   gettingStartedStep,
   needsConnectionCheck,
+  phaseIndex,
   resolveGettingStartedPhase,
 } from "./getting-started";
 
@@ -74,6 +76,47 @@ describe("resolveGettingStartedPhase", () => {
   });
 });
 
+describe("the guide for an individual", () => {
+  const checked = {
+    connections: [{ status: "healthy" as const, lastSyncedAt: "2026-10-05T10:00:00.000Z" }],
+    observedBalanceCount: 3,
+  };
+
+  it("has five steps with no Match", () => {
+    expect(gettingStartedPhases("individual")).toEqual(["connect", "check", "holdings", "journal", "reports"]);
+    expect(phaseIndex("reports", "individual")).toBe(4);
+  });
+
+  it("keeps all six steps for an organization, with or without the type", () => {
+    const all = ["connect", "check", "holdings", "match", "journal", "reports"];
+    expect(gettingStartedPhases("organization")).toEqual(all);
+    expect(gettingStartedPhases()).toEqual(all);
+    expect(phaseIndex("reports")).toBe(5);
+  });
+
+  it("walks Holdings, Journal, Reports after Check", () => {
+    expect(resolveGettingStartedPhase(checked, 0, "individual")).toBe("holdings");
+    expect(resolveGettingStartedPhase(checked, 1, "individual")).toBe("journal");
+    expect(resolveGettingStartedPhase(checked, 2, "individual")).toBe("reports");
+    expect(resolveGettingStartedPhase(checked, 99, "individual")).toBe("reports");
+  });
+
+  it("still starts on connect and check", () => {
+    expect(resolveGettingStartedPhase({ connections: [], observedBalanceCount: 0 }, 3, "individual")).toBe("connect");
+  });
+
+  it("does not mention approvals or combined roll-ups", () => {
+    for (const phase of gettingStartedPhases("individual")) {
+      const step = gettingStartedStep(phase, checked, "individual");
+      expect(`${step.title} ${step.body}`).not.toMatch(/approv|combined|companies|matching/i);
+    }
+  });
+
+  it("leaves an organization's wording as it was", () => {
+    expect(gettingStartedStep("journal", checked).body).toBe(gettingStartedStep("journal", checked, "organization").body);
+  });
+});
+
 describe("needsConnectionCheck", () => {
   it("is true when any live connection has never synced", () => {
     expect(
@@ -109,5 +152,40 @@ describe("gettingStartedStep", () => {
     expect(gettingStartedStep("match", empty).href).toBe("/dashboard/reconciliation");
     expect(gettingStartedStep("journal", empty).href).toBe("/dashboard/ledger");
     expect(gettingStartedStep("reports", empty).href).toBe("/dashboard/reports");
+  });
+});
+
+describe("the Activity wording", () => {
+  const checked = { connections: [{ status: "healthy" as const, lastSyncedAt: "2026-01-01T00:00:00Z" }], observedBalanceCount: 2 };
+  const empty = { connections: [], observedBalanceCount: 0 };
+
+  it("calls the Journal step Activity for an individual", () => {
+    const step = gettingStartedStep("journal", empty, "individual");
+    expect(step).toMatchObject({ label: "Activity", cta: "Open Activity", href: "/dashboard/ledger" });
+    expect(step.title).toBe("Post entries deliberately");
+    expect(step.body).toContain("Use Activity");
+    expect(step.body).not.toMatch(/journal/i);
+  });
+
+  it("leaves the organization's Journal step as it was", () => {
+    const step = gettingStartedStep("journal", empty);
+    expect(step).toMatchObject({ label: "Journal", cta: "Open Journal", title: "Post journals deliberately" });
+    expect(gettingStartedStep("journal", empty, "organization")).toEqual(step);
+  });
+
+  it("uses no Journal or hidden-section wording on any step for an individual", () => {
+    for (const progress of [empty, checked]) {
+      for (const phase of gettingStartedPhases("individual")) {
+        const step = gettingStartedStep(phase, progress, "individual");
+        const text = [step.label, step.title, step.body, step.cta].join(" ");
+        expect(text).not.toMatch(/journal/i);
+        expect(hiddenSectionsIn(text)).toEqual([]);
+      }
+    }
+  });
+
+  it("still mentions the journal for an organization's Holdings step", () => {
+    expect(gettingStartedStep("holdings", checked).body).toContain("the journal");
+    expect(gettingStartedStep("holdings", checked, "individual").body).toContain("your Activity entries");
   });
 });

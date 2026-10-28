@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { OrganizationAccountType } from "@/data/account-type";
 import { useEffect, useState } from "react";
 import { completeConnectionTourAction } from "@/app/dashboard/tour-actions";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function ConnectionTourStep({
   phase,
   progress,
   error,
+  accountType = "organization",
   onContinue,
   onFinish,
   onMinimize,
@@ -28,13 +30,14 @@ export function ConnectionTourStep({
   phase: GettingStartedPhase;
   progress: GettingStartedProgress;
   error: string | null;
+  accountType?: OrganizationAccountType;
   onContinue: () => void;
   onFinish: () => void;
   onMinimize?: () => void;
 }) {
-  const current = gettingStartedStep(phase, progress);
-  const phases = gettingStartedPhases();
-  const index = phaseIndex(phase);
+  const current = gettingStartedStep(phase, progress, accountType);
+  const phases = gettingStartedPhases(accountType);
+  const index = phaseIndex(phase, accountType);
   const last = isLastGettingStartedPhase(phase);
   const canContinue = isSoftPhase(phase) && !last;
 
@@ -45,7 +48,7 @@ export function ConnectionTourStep({
       </p>
       <ol className="mt-3 flex flex-wrap gap-1.5" aria-label="Getting started progress">
         {phases.map((item) => {
-          const done = phaseIndex(item) < index;
+          const done = phaseIndex(item, accountType) < index;
           const active = item === phase;
           return (
             <li
@@ -57,7 +60,7 @@ export function ConnectionTourStep({
                 !active && !done && "bg-transparent text-muted-foreground/70",
               )}
             >
-              {gettingStartedStep(item, progress).label}
+              {gettingStartedStep(item, progress, accountType).label}
             </li>
           );
         })}
@@ -108,9 +111,11 @@ export function ConnectionTourStep({
 export function ConnectionTour({
   csrf,
   progress,
+  accountType = "organization",
 }: {
   csrf: string;
   progress: GettingStartedProgress;
+  accountType?: OrganizationAccountType;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -118,8 +123,8 @@ export function ConnectionTour({
   const [open, setOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const phase = resolveGettingStartedPhase(progress, softIndex);
-  const step = gettingStartedStep(phase, progress);
+  const phase = resolveGettingStartedPhase(progress, softIndex, accountType);
+  const step = gettingStartedStep(phase, progress, accountType);
 
   useEffect(() => {
     if (!open) return;
@@ -174,6 +179,7 @@ export function ConnectionTour({
         phase={phase}
         progress={progress}
         error={error}
+        accountType={accountType}
         onContinue={continuePhase}
         onFinish={() => void finish()}
         onMinimize={() => setOpen(false)}

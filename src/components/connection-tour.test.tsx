@@ -15,10 +15,11 @@ import type { GettingStartedPhase } from "@/data/getting-started";
 
 const emptyProgress = { connections: [], observedBalanceCount: 0 };
 
-function render(phase: GettingStartedPhase) {
+function render(phase: GettingStartedPhase, accountType?: "individual" | "organization") {
   return renderToStaticMarkup(
     <ConnectionTourStep
       phase={phase}
+      accountType={accountType}
       progress={emptyProgress}
       error={null}
       onContinue={() => undefined}
@@ -26,6 +27,27 @@ function render(phase: GettingStartedPhase) {
     />,
   );
 }
+
+describe("ConnectionTourStep for an individual", () => {
+  it("counts five steps from the first", () => {
+    const html = render("connect", "individual");
+    expect(html).toContain("1 of 5");
+    expect(html).not.toContain("of 6");
+  });
+
+  it("ends Reports on 5 of 5, and goes Holdings, Journal, Reports without Matching", () => {
+    expect(render("holdings", "individual")).toContain("3 of 5");
+    expect(render("journal", "individual")).toContain("4 of 5");
+    const reports = render("reports", "individual");
+    expect(reports).toContain("5 of 5");
+    expect(reports).not.toContain("Matching");
+  });
+
+  it("keeps an organization at six", () => {
+    expect(render("connect", "organization")).toContain("1 of 6");
+    expect(render("journal", "organization")).toContain("5 of 6");
+  });
+});
 
 describe("ConnectionTourStep", () => {
   it("opens on connect with getting started progress", () => {

@@ -1,5 +1,7 @@
 import type { LlmProvider } from "./provider";
 import type { EmbeddingProvider } from "./embeddings/provider";
+import type { OrganizationAccountType } from "@/data/account-type";
+import { filterMemoriesFor, scrubHiddenSectionLinks, scrubStoredMessages } from "./hidden-sections";
 import { formatMemories, retrieveRelevant } from "./retrieval";
 import { runAssistantTurn, type AssistantTurn, type RunTurnInput } from "./runtime";
 import type { ChatMessage } from "./types";
@@ -49,14 +51,15 @@ export async function assistantReply(input: RunAssistantInput): Promise<Assistan
           ? (candidate) => candidate.messageId !== deps.excludeMessageId
           : undefined,
       });
-      context = formatMemories(memories);
+      // An individual is never shown a memory that names or links a section it does not have.
+      context = formatMemories(filterMemoriesFor(memories, ctx.session.accountType));
     } catch {
       // No memory on a retrieval failure; never block the turn on RAG.
       context = "";
     }
   }
 
-  return runAssistantTurn({
+  const turn = await runAssistantTurn({
     provider: deps.provider,
     ctx,
     history: input.history,
@@ -66,11 +69,17 @@ export async function assistantReply(input: RunAssistantInput): Promise<Assistan
     temperature: deps.temperature ?? undefined,
     maxTokens: deps.maxTokens ?? undefined,
   });
+  // The reply is stored and later restored, so an individual's never carries a link to a hidden section.
+  return { ...turn, text: scrubHiddenSectionLinks(turn.text, ctx.session.accountType) };
 }
 
-/** Map stored messages to the neutral history the provider reads. */
-export function toHistory(messages: readonly { role: string; content: string }[]): ChatMessage[] {
-  return messages
+/**
+ * Map stored messages to the neutral history the provider reads. For an individual,
+ * links to sections its account does not have are removed from the assistant's old
+ * replies so the model does not repeat them.
+ */
+export function toHistory(messages: readonly { role: string; content: string }[], accountType?: OrganizationAccountType): ChatMessage[] {
+  return scrubStoredMessages(messages, accountType)
     .filter((message) => message.role !== "system")
     .map((message) => ({ role: message.role as ChatMessage["role"], content: message.content }));
 }

@@ -6,7 +6,7 @@ import { custodianDefinition } from "@/adapters/sources/custodian/registry";
 import { actorName, assertCsrf, AuthError, requirePermission, type SessionUser } from "@/auth/current";
 import { canAccessEntity, type Permission } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
-import { connectionReturnPath } from "@/data/connection-return";
+import { connectionReturnPathForSession } from "@/data/connection-return-session";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { draftFromForm, postFormJournal } from "@/data/journal-form";
 import { approveDraft, createDraft, submitDraft } from "@/db/drafts";
@@ -61,7 +61,7 @@ export async function createEntityAction(formData: FormData) {
 }
 
 export async function createConnectionAction(formData: FormData) {
-  const path = connectionReturnPath(formData.get("next"));
+  const path = await connectionReturnPathForSession(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   const parsed = connectionFormSchema.safeParse({
@@ -169,7 +169,7 @@ export async function postRevaluationAction(formData: FormData) {
 
 /** Fetch and store live asset prices and FX rates for this organization. */
 export async function refreshMarketDataAction(formData: FormData) {
-  const path = connectionReturnPath(formData.get("next"));
+  const path = await connectionReturnPathForSession(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   let message = "";
@@ -194,7 +194,7 @@ export async function refreshMarketDataAction(formData: FormData) {
 }
 
 export async function refreshConnectionAction(formData: FormData) {
-  const path = connectionReturnPath(formData.get("next"));
+  const path = await connectionReturnPathForSession(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   const connectionId = String(formData.get("connectionId") ?? "");
@@ -218,7 +218,7 @@ export async function refreshConnectionAction(formData: FormData) {
 }
 
 export async function revokeConnectionAction(formData: FormData) {
-  const path = connectionReturnPath(formData.get("next"));
+  const path = await connectionReturnPathForSession(formData.get("next"));
   const session = await guard(path, "source.write", formData);
   requireWritable(path, session);
   const connectionId = String(formData.get("connectionId") ?? "");

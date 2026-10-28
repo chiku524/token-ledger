@@ -24,6 +24,35 @@ function groupNames(html: string): string[] {
   return [...html.matchAll(/data-slot="sidebar-group-label"[^>]*><span>([^<]*)<\/span>/g)].map((match) => match[1]);
 }
 
+describe("NavMain for an individual", () => {
+  it("hides the institution-only sections and keeps the personal ones", () => {
+    const html = render({ accountType: "individual", role: "owner", showUsers: true, showOnboarding: true, showPlatform: false });
+    expect(labels(html)).toEqual(["Overview", "Holdings", "Activity", "Reports", "Guide", "History", "Users", "Settings"]);
+    expect(labels(html)).not.toContain("Journal");
+    for (const hidden of ["Matching", "Companies", "Approvals", "Combined", "Billing", "Treasury", "Payables", "Operations", "Onboarding"]) {
+      expect(labels(html)).not.toContain(hidden);
+    }
+  });
+
+  it("drops the groups that would be empty", () => {
+    expect(groupNames(render({ accountType: "individual", role: "owner" }))).toEqual(["Day to day", "Account"]);
+  });
+
+  it("does not offer Platform unless it is allowed", () => {
+    expect(labels(render({ accountType: "individual", role: "owner", showPlatform: false }))).not.toContain("Platform");
+  });
+
+  it("shows an organization everything, whether the type is given or not", () => {
+    const organization = labels(render({ accountType: "organization" }));
+    expect(organization).toEqual(labels(render()));
+    expect(organization).toContain("Matching");
+    expect(organization).toContain("Companies");
+    expect(organization).toContain("Operations");
+    expect(organization).toContain("Journal");
+    expect(organization).not.toContain("Activity");
+  });
+});
+
 describe("NavMain", () => {
   it("groups the sections around the day-to-day path and keeps every link", () => {
     const html = render();

@@ -67,6 +67,25 @@ describe("parseSignup", () => {
     expect(parseSignup(form({ ...account, accountType: "individual", jurisdiction: "Malaysia" })).ok).toBe(false);
   });
 
+  it("ignores connection fields for an individual", () => {
+    const parsed = parseSignup(
+      form({
+        name: account.name,
+        email: account.email,
+        password: account.password,
+        confirm: account.confirm,
+        accountType: "individual",
+        walletEnabled: "on",
+        walletName: "Main",
+        walletChain: "ethereum",
+        walletRole: "cold",
+        walletIdentifier: "0x0000000000000000000000000000000000000001",
+      }),
+    );
+    if (!parsed.ok) throw new Error(parsed.message);
+    expect(parsed.value.connections).toEqual([]);
+  });
+
   it("accepts an account with no connections", () => {
     const parsed = parseSignup(form(account));
     expect(parsed.ok).toBe(true);

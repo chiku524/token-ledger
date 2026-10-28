@@ -17,7 +17,7 @@ import {
 } from "@/auth/exchange-oauth";
 import { canAccessEntity } from "@/auth/roles";
 import { canWriteBooks } from "@/data/authorized-books";
-import { connectionReturnPath } from "@/data/connection-return";
+import { connectionReturnPathForSession } from "@/data/connection-return-session";
 import { venueDefinition } from "@/adapters";
 import { readAuthSecret } from "@/env";
 import { fail } from "./form-state";
@@ -26,7 +26,7 @@ const READ_ONLY = "Connect a database to save changes. This demo and the sample 
 
 /** Send the browser to the exchange Allow-access screen. The code comes back to the callback. */
 export async function startExchangeOauthAction(formData: FormData) {
-  const path = connectionReturnPath(formData.get("next"));
+  const path = await connectionReturnPathForSession(formData.get("next"));
   try {
     await assertCsrf(formData);
     const session = await requirePermission("source.write");

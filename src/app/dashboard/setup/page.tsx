@@ -18,6 +18,13 @@ import { reownProjectId } from "@/env";
 
 export const metadata = { title: "Connect" };
 
+const INDIVIDUAL_SETUP_STEP = {
+  title: "Connect your accounts",
+  lede: "Add a wallet or an exchange to see what you hold. Everything is read-only, and you can add more later from Settings.",
+  next: "/dashboard/sources",
+  skip: "Skip for now",
+} as const;
+
 export default async function SetupPage({
   searchParams,
 }: {
@@ -27,10 +34,14 @@ export default async function SetupPage({
   const { session, books } = await loadAuthorizedBooks();
   if (!can(session.role, "source.write")) redirect("/dashboard");
 
+  const individual = session.accountType === "individual";
   const current = setupStep(one(params.step));
   const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const csrf = writable ? await ensureCsrf() : "";
-  const step = current.id === "done" ? null : SETUP_FLOW[current.index];
+  const flowStep = current.id === "done" ? null : SETUP_FLOW[current.index];
+  // An individual gets one page with the Connect dialog (it already lists wallets,
+  // exchanges and custodians), not the three-step company walk-through.
+  const step = flowStep && individual ? INDIVIDUAL_SETUP_STEP : flowStep;
 
   return (
     <>
@@ -40,9 +51,11 @@ export default async function SetupPage({
         description="Open Connect, pick a wallet or an exchange, and approve read-only access. Nothing here can move funds."
       />
       <Flash error={one(params.error)} saved={one(params.saved)} />
-      <p className="eyebrow">
-        {current.id === "done" ? "Done" : `Step ${current.index + 1} of ${SETUP_FLOW.length}`}
-      </p>
+      {individual && current.id !== "done" ? null : (
+        <p className="eyebrow">
+          {current.id === "done" ? "Done" : `Step ${current.index + 1} of ${SETUP_FLOW.length}`}
+        </p>
+      )}
       {!writable ? (
         <div className="mt-4">
           <ReadOnlyNote demo={session.demo} />
@@ -61,7 +74,7 @@ export default async function SetupPage({
             custodians={Object.values(CUSTODIANS).map((item) => ({ key: item.key, label: item.label }))}
           />
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
-            {current.index > 0 ? (
+            {current.index > 0 && !individual ? (
               <Button asChild variant="secondary">
                 <Link href={`/dashboard/setup?step=${SETUP_FLOW[current.index - 1]?.id ?? "wallet"}`}>Back</Link>
               </Button>

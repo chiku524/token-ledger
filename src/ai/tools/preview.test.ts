@@ -57,8 +57,8 @@ const BOOKS = {
   auditEvents: [],
 } as unknown as Books;
 
-function ctx(): ToolContext {
-  return { session: session(), books: BOOKS, hiddenTabs: [], csrf: "csrf" };
+function ctx(accountType: "organization" | "individual" = "organization"): ToolContext {
+  return { session: { ...session(), accountType }, books: BOOKS, hiddenTabs: [], csrf: "csrf" };
 }
 
 describe("write tool previews", () => {
@@ -80,6 +80,22 @@ describe("write tool previews", () => {
     expect(preview.fields).toContainEqual({ label: "Company", value: "Harbourline MY" });
     expect(preview.lines).toHaveLength(2);
     expect(preview.balanced).toBe(true);
+  });
+
+  it("post_journal and reverse_journal previews use Activity wording for an individual", async () => {
+    const post = await postJournal.preview!(
+      { entityId: "ent_my", reference: "JE-1", entryDate: "2026-02-10", memo: "", lines: [] },
+      ctx("individual"),
+    );
+    expect(post.action).toBe("Post activity entry");
+    expect(post.fields).toContainEqual({ label: "Account", value: "Harbourline MY" });
+    expect(post.fields.map((field) => field.label)).not.toContain("Company");
+    const reverse = await reverseJournal.preview!(
+      { reference: "JE-1042", newReference: "JE-1043", entryDate: "2026-02-11", memo: "typo" },
+      ctx("individual"),
+    );
+    expect(reverse.action).toBe("Reverse activity entry");
+    expect(reverse.fields).toContainEqual({ label: "Account", value: "Harbourline MY" });
   });
 
   it("post_journal preview reports an unbalanced entry", async () => {

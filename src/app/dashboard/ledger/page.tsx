@@ -1,5 +1,5 @@
 import { BookOpen, Calendar } from "lucide-react";
-import { ensureCsrf } from "@/auth/current";
+import { ensureCsrf, getSession } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
 import { Pagination } from "@/components/app/pagination";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { JournalForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { journalName } from "@/data/account-sections";
 import { booksAreWritable } from "@/data/load-books";
 import { paginate, parsePage } from "@/data/pagination";
 import { parseDateRange } from "@/data/period";
@@ -17,7 +18,11 @@ import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, formatMoney, formatQuantity, movementLabel, sourceName } from "@/data/present";
 import { requireSectionAccess } from "@/data/section-access";
 
-export const metadata = { title: "Journal" };
+/** An individual's page is called Activity; an organization's stays Journal. */
+export async function generateMetadata() {
+  const session = await getSession();
+  return { title: journalName(session?.accountType) };
+}
 
 export default async function LedgerPage({
   searchParams,
@@ -34,6 +39,7 @@ export default async function LedgerPage({
   const writable = booksAreWritable() && !session.demo && !session.demoBooks;
   const canPost = can(session.role, "journal.post");
   const canReverse = can(session.role, "journal.reverse");
+  const title = journalName(session.accountType);
   const csrf = canPost || canReverse ? await ensureCsrf() : "";
   const reversed = new Set(books.journalEntries.map((entry) => entry.reversesEntryId).filter((id): id is string => Boolean(id)));
 
@@ -65,7 +71,7 @@ export default async function LedgerPage({
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Journal</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Posted entries · {range.from} – {range.to}
         </p>
@@ -92,7 +98,7 @@ export default async function LedgerPage({
               Post an entry
             </summary>
             <div className="mt-4">
-              <JournalForm books={books} csrf={csrf} />
+              <JournalForm books={books} csrf={csrf} accountType={session.accountType} />
             </div>
           </details>
         </>
@@ -102,9 +108,9 @@ export default async function LedgerPage({
       {visible.length === 0 ? (
         <EmptyState icon={BookOpen}>No entries in these dates. Widen the dates above to see more.</EmptyState>
       ) : (
-        <JournalEntryList entries={cards} csrf={csrf} />
+        <JournalEntryList entries={cards} csrf={csrf} label={`${title} entries`} />
       )}
-      <Pagination page={entries} base="/dashboard/ledger" query={{ from: range.from, to: range.to }} label="Journal pages" />
+      <Pagination page={entries} base="/dashboard/ledger" query={{ from: range.from, to: range.to }} label={`${title} pages`} />
     </>
   );
 }

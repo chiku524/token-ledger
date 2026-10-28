@@ -14,6 +14,8 @@ import { BooksWriteError } from "@/db/write";
 import { hasDatabase } from "@/db/availability";
 import { authSecretConfigured } from "@/env";
 
+const INDIVIDUAL_SIGNUP_SAVED = "Account created. Connect a wallet or an exchange to see your holdings, or skip this and do it later.";
+
 export async function signUpAction(formData: FormData) {
   try {
     await assertCsrf(formData);
@@ -60,6 +62,12 @@ export async function signUpAction(formData: FormData) {
     }
   } catch (error) {
     redirect(signUpPath(error instanceof BooksWriteError ? error.message : "The account could not be created."));
+  }
+
+  // An individual has no Connections step in the form. Send them to the Connect dialog
+  // (open on the setup page) so the first thing they do is bring in a wallet or exchange.
+  if (parsed.value.accountType === "individual") {
+    redirect(`/dashboard/setup?saved=${encodeURIComponent(INDIVIDUAL_SIGNUP_SAVED)}`);
   }
 
   const connected = parsed.value.connections.length;

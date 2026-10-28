@@ -91,7 +91,7 @@ export async function runAssistantTurn(input: RunTurnInput): Promise<AssistantTu
     };
   }
 
-  const refusal = refusalFor(input.userText);
+  const refusal = refusalFor(input.userText, ctx.session.accountType);
   if (refusal) {
     return { text: refusal, status: "refused", readResults: [], refusal };
   }

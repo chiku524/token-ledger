@@ -18,6 +18,8 @@
  */
 import type { ChatModelAdapter, ThreadMessageLike } from "@assistant-ui/react";
 import type { ThreadAssistantMessagePart } from "@assistant-ui/react";
+import { INDIVIDUAL_TOOL_LABELS, isIndividualAccount } from "@/data/account-sections";
+import type { OrganizationAccountType } from "@/data/account-type";
 
 /** One NDJSON event emitted by the route. Mirrors `src/app/api/chat/route.ts`. */
 type ChatEvent =
@@ -79,7 +81,9 @@ const TOOL_LABELS: Record<string, string> = {
   prepare_treasury_execute: "Prepare treasury execution",
 };
 
-export function toolLabel(name: string): string {
+export function toolLabel(name: string, accountType?: OrganizationAccountType): string {
+  // The sidebar calls the Journal page "Activity" for an individual, so its tool cards do too.
+  if (isIndividualAccount(accountType) && INDIVIDUAL_TOOL_LABELS[name]) return INDIVIDUAL_TOOL_LABELS[name];
   return TOOL_LABELS[name] ?? name.replace(/_/g, " ");
 }
 

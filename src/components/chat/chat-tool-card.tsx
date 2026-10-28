@@ -7,6 +7,7 @@ import type { ToolCallMessagePartProps } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toolLabel, type ToolPreview } from "./chat-adapter";
+import { useChatAccountType } from "./chat-account-type";
 
 interface ToolResult {
   summary?: string;
@@ -160,6 +161,7 @@ function AuditLink({ filter }: { filter?: string }) {
  */
 export function ChatToolCard({ toolName, args, result, approval, respondToApproval, status }: ToolCallMessagePartProps) {
   const router = useRouter();
+  const accountType = useChatAccountType();
   const [error, setError] = useState<string | null>(null);
   const output = (result ?? {}) as ToolResult;
   const preview = previewFrom(args);
@@ -172,7 +174,7 @@ export function ChatToolCard({ toolName, args, result, approval, respondToApprov
       <div className="my-2 rounded-xl border border-border bg-card p-3 text-sm">
         <div className="flex items-center gap-2">
           <ShieldAlert className="size-4 text-[color:var(--chart-4)]" aria-hidden />
-          <span className="font-medium">{preview?.action ?? toolLabel(toolName)}</span>
+          <span className="font-medium">{preview?.action ?? toolLabel(toolName, accountType)}</span>
           <span className="label-caps text-muted-foreground">needs your confirmation</span>
         </div>
         {preview ? (
@@ -247,7 +249,7 @@ export function ChatToolCard({ toolName, args, result, approval, respondToApprov
     return (
       <div className="my-2 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" aria-hidden />
-        {toolLabel(toolName)}…
+        {toolLabel(toolName, accountType)}…
       </div>
     );
   }
@@ -257,7 +259,7 @@ export function ChatToolCard({ toolName, args, result, approval, respondToApprov
     <div className="my-2 rounded-xl border border-border bg-card p-3 text-sm">
       <div className="flex items-center gap-2">
         <Check className="size-4 text-[color:var(--chart-2)]" aria-hidden />
-        <span className="font-medium">{toolLabel(toolName)}</span>
+        <span className="font-medium">{toolLabel(toolName, accountType)}</span>
       </div>
       {output.summary ? <p className="mt-1.5 text-muted-foreground">{output.summary}</p> : null}
       {output.route ? (
