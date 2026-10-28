@@ -54,6 +54,7 @@ afterEach(() => vi.resetAllMocks());
 describe("an individual's report and activity pages", () => {
   it.each<[string, Page, Record<string, string>]>([
     ["Overview", OverviewPage as Page, {}],
+    ["Holdings", SourcesPage as Page, {}],
     ["Activity", LedgerPage as Page, {}],
     ["Reports: Portfolio summary", ReportsPage as Page, {}],
     ["Reports: Portfolio summary tab", ReportsPage as Page, { tab: "portfolio" }],
@@ -66,6 +67,17 @@ describe("an individual's report and activity pages", () => {
     expect(bannedTermsIn(words)).toEqual([]);
     expect(words).not.toMatch(ENTRY_WORDING_PATTERN);
     expect(hiddenSectionsIn(words)).toEqual([]);
+  });
+
+  it("shows Gain / loss in plain words on Overview and Holdings", async () => {
+    individual();
+    for (const page of [OverviewPage as Page, SourcesPage as Page]) {
+      const words = visibleText(await renderHtml(page));
+      expect(words).toContain("Gain / loss");
+      expect(words).toContain("Value now");
+      expect(words).toContain("Put in");
+      expect(words).not.toMatch(/unrealized|cost basis|profit|P&L/i);
+    }
   });
 
   it("names the three reports and the downloads in plain words", async () => {

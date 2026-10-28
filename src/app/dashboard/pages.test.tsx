@@ -193,6 +193,27 @@ describe("role gating", () => {
     expect(sgd).not.toContain("No price");
   });
 
+  it("shows Holdings gain / loss on Holdings and Overview, in the chosen currency, with what is left out", async () => {
+    signInDemo("owner");
+    for (const page of [SourcesPage as Page, OverviewPage as Page]) {
+      const content = await pageText(page, { currency: "MYR" });
+      expect(content).toContain("Holdings gain / loss");
+      expect(content).toContain("Unrealized gain / loss");
+      expect(content).toContain("not included: no cost data");
+    }
+    const holdings = await pageText(SourcesPage as Page, { currency: "SGD" });
+    expect(holdings).toContain("Holdings gain / loss \u00b7 SGD");
+    expect(holdings).toMatch(/Gain|Loss|No change/);
+  });
+
+  it("explains an empty gain / loss instead of drawing nothing", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    vi.mocked(loadBooks).mockResolvedValue({ ...exampleBooks, journalEntries: [], assetPrices: [] });
+    signInLive("owner");
+    const content = await pageText(SourcesPage as Page, { currency: "USD" });
+    expect(content).toContain("No gain or loss to show yet");
+  });
+
   it("values SGD on Observed balances for USD-only Harbourline books (preview DB shape)", async () => {
     const { exampleBooks } = await import("@/data/example-books");
     vi.mocked(loadBooks).mockResolvedValue({

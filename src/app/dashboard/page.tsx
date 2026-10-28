@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { ActivityBars, MoneyBars, MoneyLine, StatusDonut } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
+import { GainLossPanel } from "@/components/app/gain-loss-panel";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
 import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
@@ -20,6 +21,8 @@ import {
 } from "@/data/charts";
 import { journalName, journalNameLower } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { isHoldingsDisplayCurrency, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
+import { holdingsGainLoss } from "@/data/gain-loss";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { financialStatements, trialBalance } from "@/ledger";
@@ -49,6 +52,9 @@ export default async function DashboardPage() {
   const composition = compositionPanels(books);
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
+  const functionalCurrency = books.entities[0]?.functionalCurrency ?? "";
+  const gainLossCurrency = resolveHoldingsDisplayCurrency(undefined, isHoldingsDisplayCurrency(functionalCurrency) ? functionalCurrency : undefined);
+  const gainLoss = holdingsGainLoss(books, { individual: false, currency: gainLossCurrency });
   const currencyNote = individual
     ? "Each chart stays in your reporting currency."
     : booksAreWritable() && !session.demo && !session.demoBooks
@@ -108,6 +114,16 @@ export default async function DashboardPage() {
           </AlertDescription>
         </Alert>
       ) : null}
+
+      <GainLossPanel
+        gainLoss={gainLoss}
+        className="mt-10"
+        action={
+          <Link href={`/dashboard/sources?currency=${gainLossCurrency}#gain-loss`} className="text-sm text-link underline">
+            Open holdings
+          </Link>
+        }
+      />
 
       <section className="mt-10">
         <SectionHeader

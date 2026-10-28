@@ -4,6 +4,7 @@ import { Wallet } from "lucide-react";
 import { ChartFrame } from "@/components/charts/frame";
 import { MoneyBars, MoneyLine } from "@/components/charts/lazy";
 import { EmptyState } from "@/components/app/empty-state";
+import { GainLossPanel } from "@/components/app/gain-loss-panel";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
 import { EmptyRow, NumberCell, NumberHead } from "@/components/app/table-cells";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Books } from "@/data/books";
 import type { LinePanel, MoneyRow } from "@/data/charts";
+import { holdingsGainLoss } from "@/data/gain-loss";
 import { activityHistory, individualCurrency, portfolioSummary, valueOverTime } from "@/data/individual-reports";
 import { minorToNumber } from "@/ledger";
 
@@ -35,6 +37,7 @@ export function IndividualOverview({ books }: { books: Books }) {
     .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
     .slice(0, RECENT_ROWS);
   const series = valueOverTime(books, { range: { from: "1970-01-01", to: today }, currency });
+  const gainLoss = holdingsGainLoss(books, { individual: true, currency });
   const hasHoldings = summary.rows.length > 0 || summary.unpriced.length > 0;
   const bars: MoneyRow[] = summary.rows.map((row) => ({
     id: row.assetCode,
@@ -105,6 +108,18 @@ export function IndividualOverview({ books }: { books: Books }) {
           No holdings yet. Connect a wallet or exchange and press Check to see what you hold and what it is worth.
         </EmptyState>
       )}
+
+      {hasHoldings ? (
+        <GainLossPanel
+          gainLoss={gainLoss}
+          className="mt-10"
+          action={
+            <Link href={mePath(`/dashboard/sources?currency=${currency}#gain-loss`)} className="text-sm text-link underline">
+              Open holdings
+            </Link>
+          }
+        />
+      ) : null}
 
       <section className="mt-10">
         <SectionHeader

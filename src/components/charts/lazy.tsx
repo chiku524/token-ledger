@@ -21,9 +21,13 @@ const moneyLineLoading = skeleton("h-52 w-full");
 const statusDonutLoading = skeleton("h-48 w-full");
 const statusBarsLoading = skeleton("h-45 w-full");
 const activityBarsLoading = skeleton("h-56 w-full");
+const gainLossLineLoading = skeleton("h-56 w-full");
+const gainLossBarsLoading = skeleton("h-42 w-full");
 
 export const MoneyBars = dynamic(() => import("./charts").then((mod) => mod.MoneyBars), { ssr: false, loading: moneyBarsLoading });
 export const MoneyLine = dynamic(() => import("./charts").then((mod) => mod.MoneyLine), { ssr: false, loading: moneyLineLoading });
 export const StatusDonut = dynamic(() => import("./charts").then((mod) => mod.StatusDonut), { ssr: false, loading: statusDonutLoading });
 export const StatusBars = dynamic(() => import("./charts").then((mod) => mod.StatusBars), { ssr: false, loading: statusBarsLoading });
 export const ActivityBars = dynamic(() => import("./charts").then((mod) => mod.ActivityBars), { ssr: false, loading: activityBarsLoading });
+export const GainLossLine = dynamic(() => import("./charts").then((mod) => mod.GainLossLine), { ssr: false, loading: gainLossLineLoading });
+export const GainLossBars = dynamic(() => import("./charts").then((mod) => mod.GainLossBars), { ssr: false, loading: gainLossBarsLoading });
