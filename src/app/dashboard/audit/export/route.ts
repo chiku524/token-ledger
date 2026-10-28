@@ -8,6 +8,8 @@ import { can } from "@/auth/roles";
 import { auditCsv } from "@/ledger";
 import { filterAuditEvents, parseAuditFilter } from "@/data/audit-filter";
 import { booksForSession } from "@/data/authorized-books";
+import { isIndividualAccount } from "@/data/account-sections";
+import { individualActionLabel, individualAuditEvents, individualSubjectLabel } from "@/data/individual-audit";
 
 export const runtime = "nodejs";
 
@@ -25,7 +27,16 @@ export async function GET(request: Request) {
     to: url.searchParams.get("to") ?? undefined,
   });
   const books = await booksForSession(session);
-  const rows = filterAuditEvents(books.auditEvents, filter);
+  // An individual downloads only their own kind of events, in plain words.
+  const individual = isIndividualAccount(session.accountType);
+  const filtered = filterAuditEvents(individual ? individualAuditEvents(books.auditEvents) : books.auditEvents, filter);
+  const rows = individual
+    ? filtered.map((event) => ({
+        ...event,
+        action: individualActionLabel(event.action),
+        subjectType: individualSubjectLabel(event.subjectType),
+      }))
+    : filtered;
   return new Response(auditCsv(rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

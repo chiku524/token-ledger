@@ -16,7 +16,7 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { booksAreWritable } from "@/data/load-books";
 import { paginate, parsePage } from "@/data/pagination";
-import { parseDateRange } from "@/data/period";
+import { defaultActivityRange, parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, formatMoney, formatQuantity, movementLabel, sourceName } from "@/data/present";
@@ -36,8 +36,12 @@ export default async function LedgerPage({
   const params = await searchParams;
   await requireSectionAccess("/dashboard/ledger");
   const { session, books } = await loadAuthorizedBooks();
-  const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, { from: books.period.start, to: books.period.end });
-  const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
+  // An individual opens on the latest month of activity; an organization on its books period.
+  const defaultRange = isIndividualAccount(session.accountType)
+    ? defaultActivityRange(books)
+    : { from: books.period.start, to: books.period.end };
+  const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, defaultRange);
+  const range = parsed.ok ? parsed.range : defaultRange;
   if (isIndividualAccount(session.accountType)) {
     return (
       <IndividualActivity

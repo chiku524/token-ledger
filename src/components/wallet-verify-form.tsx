@@ -6,7 +6,9 @@ import { Loader2 } from "lucide-react";
 import { issueOwnershipChallenge, verifyWalletOwnershipAction } from "@/app/dashboard/wallet-actions";
 import { connectEvm, signEvm, signSolana, type Eip1193Provider, type SolanaSigner } from "@/auth/wallet-signer";
 import type { OwnershipChain } from "@/auth/wallet-ownership";
+import { EntityField } from "@/components/app/entity-field";
 import { Field } from "@/components/app/field";
+import { isIndividualAccount } from "@/data/account-sections";
 import { FormCard } from "@/components/app/form-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,7 @@ export function WalletVerifyForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [chain, setChain] = useState<OwnershipChain>("ethereum");
+  const individual = isIndividualAccount(books.organization.accountType);
 
   async function prove(address: string, sign: (message: string) => Promise<string>) {
     const form = document.getElementById("verify-wallet") as HTMLFormElement | null;
@@ -59,20 +62,12 @@ export function WalletVerifyForm({
   return (
     <FormCard
       id="verify-wallet"
-      description="The wallet signs a message that names this site, this organization, and this address. The message says it does not authorize a transfer."
+      description={`The wallet signs a message that names this site, ${individual ? "your account" : "this organization"}, and this address. The message says it does not authorize a transfer.`}
       className="scroll-mt-6 border-0 bg-transparent p-0 md:grid-cols-2"
     >
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="next" value={next} />
-      <Field label="Company">
-        <NativeSelect name="entityId" required defaultValue={books.entities[0]?.id}>
-          {books.entities.map((entity) => (
-            <Option key={entity.id} value={entity.id}>
-              {entity.name}
-            </Option>
-          ))}
-        </NativeSelect>
-      </Field>
+      <EntityField entities={books.entities} individual={individual} />
       <Field label="Name">
         <Input name="name" required maxLength={200} />
       </Field>

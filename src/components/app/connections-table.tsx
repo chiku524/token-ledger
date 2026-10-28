@@ -8,9 +8,12 @@ import { connectionModeLabel, connectionStatusLabel, entityName, ownershipLabel,
 export function ConnectionsTable({
   books,
   controls,
+  showCompany = true,
 }: {
   books: Pick<Books, "connections" | "sources" | "entities">;
   controls?: { csrf: string; next?: string };
+  /** An individual has one set of accounts, so there is no company to name. */
+  showCompany?: boolean;
 }) {
   return (
     <TableCard>
@@ -18,7 +21,7 @@ export function ConnectionsTable({
         <caption className="sr-only">{controls ? "Connections and their actions" : "Read-only connections"}</caption>
         <TableHeader>
           <TableRow>
-            <TableHead scope="col">Company</TableHead>
+            {showCompany ? <TableHead scope="col">Company</TableHead> : null}
             <TableHead scope="col">Connection</TableHead>
             <TableHead scope="col">Access</TableHead>
             <TableHead scope="col">Ownership</TableHead>
@@ -32,7 +35,7 @@ export function ConnectionsTable({
             const accounts = books.sources.filter((source) => source.connectionId === connection.id);
             return (
               <TableRow key={connection.id}>
-                <TableCell className="min-w-36">{entityName(connection.entityId, books.entities)}</TableCell>
+                {showCompany ? <TableCell className="min-w-36">{entityName(connection.entityId, books.entities)}</TableCell> : null}
                 <TableCell className="min-w-44">
                   <span className="block">{connection.name}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">

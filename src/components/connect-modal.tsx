@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 import { ChevronLeft, Search } from "lucide-react";
 import { createConnectionAction } from "@/app/dashboard/actions";
 import { startExchangeOauthAction } from "@/app/dashboard/exchange-oauth-actions";
+import { EntityField } from "@/components/app/entity-field";
 import { Field } from "@/components/app/field";
 import { SubmitButton } from "@/components/submit-button";
 import { VenueMark } from "@/components/venue-mark";
@@ -12,8 +13,8 @@ import { WatchWalletFields } from "@/components/track-wallet-fields";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { isIndividualAccount } from "@/data/account-sections";
 import type { Books } from "@/data/books";
 
 export interface ConnectExchange {
@@ -57,6 +58,8 @@ export function ConnectModal({
   defaultOpen?: boolean;
 }) {
   const titleId = useId();
+  // One person has one set of accounts, so the form does not ask them to pick a company.
+  const individual = isIndividualAccount(books.organization.accountType);
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<Panel>({ kind: "list" });
@@ -165,11 +168,12 @@ export function ConnectModal({
             method={panel.method}
             setMethod={(method) => setPanel({ kind: "exchange", exchange: panel.exchange, method })}
             entities={books.entities}
+            individual={individual}
             csrf={csrf}
             next={next}
           />
         ) : (
-          <CustodianPanel custodian={panel.custodian} entities={books.entities} csrf={csrf} next={next} />
+          <CustodianPanel custodian={panel.custodian} entities={books.entities} individual={individual} csrf={csrf} next={next} />
         )}
       </DialogContent>
     </Dialog>
@@ -207,18 +211,8 @@ function Choice({ mark, title, detail, onClick }: { mark: string; title: string;
   );
 }
 
-function CompanyField({ entities }: { entities: Books["entities"] }) {
-  return (
-    <Field label="Company">
-      <NativeSelect name="entityId" required defaultValue={entities[0]?.id}>
-        {entities.map((entity) => (
-          <NativeSelectOption key={entity.id} value={entity.id}>
-            {entity.name}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </Field>
-  );
+function CompanyField({ entities, individual }: { entities: Books["entities"]; individual: boolean }) {
+  return <EntityField entities={entities} individual={individual} />;
 }
 
 function MethodTabs({
@@ -295,6 +289,7 @@ function ExchangePanel({
   method,
   setMethod,
   entities,
+  individual,
   csrf,
   next,
 }: {
@@ -302,6 +297,7 @@ function ExchangePanel({
   method: "oauth" | "api";
   setMethod: (method: "oauth" | "api") => void;
   entities: Books["entities"];
+  individual: boolean;
   csrf: string;
   next: string;
 }) {
@@ -325,7 +321,7 @@ function ExchangePanel({
           <p className="text-sm leading-relaxed text-muted-foreground">
             You will be sent to {exchange.label} to allow read-only access. Token Ledger cannot trade or withdraw, and you can revoke access at the exchange.
           </p>
-          <CompanyField entities={entities} />
+          <CompanyField entities={entities} individual={individual} />
           {exchange.oauthReady ? (
             <SubmitButton>Connect</SubmitButton>
           ) : (
@@ -349,7 +345,7 @@ function ExchangePanel({
               ? "From the CDP portal Secret API Keys tab: paste the key name (organizations/…/apiKeys/…) and the secret (Ed25519 base64 or ECDSA PEM). You can also paste the downloaded JSON key file into either field. Leave IP allowlist empty or include Vercel egress. The key is checked, then sealed."
               : `Create a read-only key with ${exchange.scopes.join(", ")}. Leave trading and withdrawal off. The key is checked, then sealed.`}
           </p>
-          <CompanyField entities={entities} />
+          <CompanyField entities={entities} individual={individual} />
           <Field label={exchange.key === "coinbase" ? "API key name" : "API key"}>
             <Input
               name="apiKey"
@@ -384,11 +380,13 @@ function ExchangePanel({
 function CustodianPanel({
   custodian,
   entities,
+  individual,
   csrf,
   next,
 }: {
   custodian: ConnectCustodian;
   entities: Books["entities"];
+  individual: boolean;
   csrf: string;
   next: string;
 }) {
@@ -406,7 +404,7 @@ function CustodianPanel({
           ? "Paste a BitGo view-only access token. It cannot sign or send."
           : "A Fireblocks Viewer API user id, and its RSA private key. It cannot sign or move funds."}
       </p>
-      <CompanyField entities={entities} />
+      <CompanyField entities={entities} individual={individual} />
       <Field label={bitgo ? "Wallet id" : "Vault account id"}>
         <Input name="identifier" required maxLength={200} className="font-mono" />
       </Field>

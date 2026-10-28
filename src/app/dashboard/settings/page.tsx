@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Flash } from "@/components/flash";
 import { ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { isIndividualAccount } from "@/data/account-sections";
 import { booksAreWritable } from "@/data/load-books";
 import { one } from "@/data/query";
 import { reownProjectId } from "@/env";
@@ -84,7 +85,11 @@ export default async function SettingsPage({
             No connections yet.
           </EmptyState>
         ) : (
-          <ConnectionsTable books={books} controls={canSource && writable ? { csrf } : undefined} />
+          <ConnectionsTable
+            books={books}
+            controls={canSource && writable ? { csrf } : undefined}
+            showCompany={!isIndividualAccount(session.accountType)}
+          />
         )}
       </section>
 

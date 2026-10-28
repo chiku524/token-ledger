@@ -167,6 +167,8 @@ const ACTION_LABELS: Record<string, string> = {
   "user.signed_up": "Account created",
   "user.seeded": "Sample person added",
   "user.verification_resent": "Confirmation email resent",
+  "wallet.bound": "Wallet confirmed as yours",
+  "wallet.revoked": "Wallet disconnected",
 };
 
 export function actionLabel(action: string): string {

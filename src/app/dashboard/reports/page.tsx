@@ -18,7 +18,7 @@ import { can } from "@/auth/roles";
 import { isIndividualAccount } from "@/data/account-sections";
 import { canRevalue, entityReport } from "@/data/entity-report";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
-import { parseDateRange } from "@/data/period";
+import { defaultActivityRange, parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { formatMoney, formatQuantity, valuationLabel } from "@/data/present";
 import { netBalanceMinor } from "@/ledger";
@@ -50,11 +50,10 @@ export default async function ReportsPage({
   const individual = isIndividualAccount(session.accountType);
   const requested = one(params.entity);
   const entity = books.entities.find((item) => item.id === requested) ?? books.entities[0];
-  const parsed = parseDateRange(
-    { from: one(params.from), to: one(params.to) },
-    { from: books.period.start, to: books.period.end },
-  );
-  const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
+  // An individual opens on the latest month of activity; an organization on its books period.
+  const defaultRange = individual ? defaultActivityRange(books) : { from: books.period.start, to: books.period.end };
+  const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, defaultRange);
+  const range = parsed.ok ? parsed.range : defaultRange;
 
   if (individual) {
     return (

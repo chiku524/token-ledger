@@ -3,7 +3,7 @@ import { isExportKindAllowed, isIndividualAccount } from "@/data/account-section
 import { can, canAccessEntity } from "@/auth/roles";
 import { formatMinor, journalCsv, netBalanceMinor, reconciliationCsv, trialBalance, trialBalanceCsv } from "@/ledger";
 import { booksForSession } from "@/data/authorized-books";
-import { parseDateRange } from "@/data/period";
+import { defaultActivityRange, parseDateRange } from "@/data/period";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, sourceName } from "@/data/present";
 import { canRevalue, entityReport } from "@/data/entity-report";
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   }
   const parsed = parseDateRange(
     { from: url.searchParams.get("from") ?? undefined, to: url.searchParams.get("to") ?? undefined },
-    { from: books.period.start, to: books.period.end },
+    isIndividualAccount(session.accountType) ? defaultActivityRange(books) : { from: books.period.start, to: books.period.end },
   );
   if (!parsed.ok) return new Response(parsed.message, { status: 400 });
   if (isIndividualAccount(session.accountType)) {

@@ -17,6 +17,7 @@ import { auditSubjectTypes, filterAuditEvents, parseAuditFilter } from "@/data/a
 import { paginate, parsePage } from "@/data/pagination";
 import { actionLabel, subjectLabel } from "@/data/present";
 import { isIndividualAccount } from "@/data/account-sections";
+import { individualActionLabel, individualAuditEvents, individualSubjectLabel } from "@/data/individual-audit";
 import { requireSectionAccess } from "@/data/section-access";
 
 export const metadata = { title: "History" };
@@ -42,8 +43,12 @@ export default async function AuditPage({
   const filter = parseAuditFilter(params);
   // An individual has no Companies section, so the page does not name it.
   const individual = isIndividualAccount(session.accountType);
-  const events = filterAuditEvents(books.auditEvents, filter);
-  const subjectTypes = auditSubjectTypes(books.auditEvents);
+  // An individual's History leaves out the events that only an organization's books produce.
+  const logged = individual ? individualAuditEvents(books.auditEvents) : books.auditEvents;
+  const events = filterAuditEvents(logged, filter);
+  const subjectTypes = auditSubjectTypes(logged);
+  const actionText = individual ? individualActionLabel : actionLabel;
+  const subjectText = individual ? individualSubjectLabel : subjectLabel;
   const exportQuery = queryString(filter);
   const canExport = can(session.role, "books.export");
   const page = paginate(events, parsePage(params.page));
@@ -60,21 +65,25 @@ export default async function AuditPage({
       <PageHeader
         kicker="Who did what"
         title="History"
-        description={`${individual ? "New wallets and accounts" : "New companies, wallets and accounts"}, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. Filter by name, action, subject, or dates, then download the result.`}
+        description={
+          individual
+            ? "New wallets and accounts, imports, sign-ins, and changes to who has access are listed here. Nothing in this list is edited. Filter by name, what happened, or dates, then download the result."
+            : "New companies, wallets and accounts, imports, posted entries, sign-ins, and user changes are listed here. Entries are not edited. Filter by name, action, subject, or dates, then download the result."
+        }
       />
       <FormCard className="mb-6 md:grid-cols-5" method="get">
         <Field label="Name">
           <Input name="actor" defaultValue={filter.actor} placeholder="Who" />
         </Field>
         <Field label="Action">
-          <Input name="action" defaultValue={filter.action} placeholder="journal.posted" />
+          <Input name="action" defaultValue={filter.action} placeholder={individual ? "connection" : "journal.posted"} />
         </Field>
         <Field label="Subject">
           <NativeSelect name="subjectType" defaultValue={filter.subjectType}>
             <NativeSelectOption value="">Any</NativeSelectOption>
             {subjectTypes.map((type) => (
               <NativeSelectOption key={type} value={type}>
-                {subjectLabel(type)}
+                {subjectText(type)}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -118,9 +127,9 @@ export default async function AuditPage({
                 <TableRow key={event.id}>
                   <NumberCell align="left">{event.occurredAt.slice(0, 16).replace("T", " ")}</NumberCell>
                   <TableCell>{event.actor}</TableCell>
-                  <TableCell className="min-w-40">{actionLabel(event.action)}</TableCell>
+                  <TableCell className="min-w-40">{actionText(event.action)}</TableCell>
                   <TableCell>
-                    {subjectLabel(event.subjectType)}
+                    {subjectText(event.subjectType)}
                     <span className="mt-1 block text-xs text-muted-foreground">{event.subjectId}</span>
                   </TableCell>
                   <TableCell className="min-w-56">{event.detail}</TableCell>
