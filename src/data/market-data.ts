@@ -7,14 +7,30 @@
 import { booksAreWritable, loadBooksForJob } from "./load-books";
 import { HOLDINGS_DISPLAY_CURRENCIES } from "./display-currency";
 import { insertAssetPrices, insertFxRate } from "@/db/write";
-import { CoinGeckoPriceProvider, type NormalizedPrice } from "@/adapters/market/prices";
+import {
+  CoinbaseSpotPriceProvider,
+  CoinGeckoPriceProvider,
+  FallbackPriceProvider,
+  type NormalizedPrice,
+  type PriceProvider,
+} from "@/adapters/market/prices";
 import { EcbFxProvider } from "@/adapters/market/fx";
 import { findAppliedRate, HOLDINGS_DISPLAY_FX_FALLBACKS, translateWithRate, type FxRate } from "@/ledger";
 import type { StoredFxRate } from "./books";
 
-/** CoinGecko quote currencies Holdings can toggle (USD, SGD, MYR). */
-function holdingsPriceProvider(provider?: CoinGeckoPriceProvider): CoinGeckoPriceProvider {
-  return provider ?? new CoinGeckoPriceProvider({ quoteCurrencies: HOLDINGS_DISPLAY_CURRENCIES });
+/**
+ * CoinGecko for USD/SGD/MYR (the currencies Holdings can toggle), with Coinbase
+ * spot as a USD fallback so a CoinGecko rate limit or outage does not leave
+ * every holding on "No price". SGD/MYR for fallback rows are derived from USD.
+ */
+function holdingsPriceProvider(provider?: PriceProvider): PriceProvider {
+  return (
+    provider ??
+    new FallbackPriceProvider(
+      new CoinGeckoPriceProvider({ quoteCurrencies: HOLDINGS_DISPLAY_CURRENCIES }),
+      new CoinbaseSpotPriceProvider(),
+    )
+  );
 }
 
 /**
@@ -72,7 +88,7 @@ function trackedAssetCodes(books: { assets: readonly { code: string }[]; balance
 
 export async function refreshAssetPrices(
   organizationId: string,
-  provider?: CoinGeckoPriceProvider,
+  provider?: PriceProvider,
 ): Promise<MarketRefreshOutcome> {
   const priceProvider = holdingsPriceProvider(provider);
   const books = await loadBooksForJob(organizationId);
@@ -112,7 +128,7 @@ export async function refreshAssetPrices(
 
 /** Refresh prices for every organization with a database. */
 export async function refreshAllAssetPrices(
-  provider?: CoinGeckoPriceProvider,
+  provider?: PriceProvider,
 ): Promise<MarketRefreshOutcome[]> {
   if (!booksAreWritable()) return [];
   const { listOrganizationIds } = await import("@/db/read");

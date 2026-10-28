@@ -174,11 +174,21 @@ export async function refreshMarketDataAction(formData: FormData) {
   requireWritable(path, session);
   let message = "";
   await save(path, async () => {
+    // FX is best-effort: built-in display rates cover SGD/MYR, so an FX failure
+    // must never stop prices from being fetched and stored.
     // FX first so price backfill can convert USD → SGD/MYR when CoinGecko omits a quote.
-    const fx = await refreshFxRates(session.organizationId);
+    let fxMessage = "";
+    try {
+      fxMessage = (await refreshFxRates(session.organizationId)).message;
+    } catch (error) {
+      console.error("market.fx_refresh_failed", error instanceof Error ? error.message : error);
+      fxMessage = "FX rates could not be refreshed.";
+    }
     const prices = await refreshAssetPrices(session.organizationId);
-    message = `${prices.message} ${fx.message}`.trim();
-    if (prices.skipped && fx.skipped) throw new BooksWriteError(prices.message);
+    // Holdings values come from prices, so a price refresh that stored nothing is a
+    // failure even when FX rates saved. Reporting it as success hid "No price".
+    if (prices.skipped || prices.stored === 0) throw new BooksWriteError(prices.message);
+    message = `${prices.message} ${fxMessage}`.trim();
   });
   finish(path, message || "Market data refreshed.");
 }
