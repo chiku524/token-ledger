@@ -19,6 +19,7 @@ import { Link2, Wallet } from "lucide-react";
 import { SegmentedLinks } from "@/components/app/segmented-links";
 import { CsvImportForm, MarketDataControls, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/charts";
+import { isIndividualAccount } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
 import { latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "@/data/valuation";
@@ -137,6 +138,8 @@ export default async function SourcesPage({
   await requireSectionAccess("/dashboard/sources");
   const { session, books } = await loadAuthorizedBooks();
   const writable = booksAreWritable() && !session.demo && !session.demoBooks;
+  // An individual's Journal is called Activity, and posting is described as entries.
+  const individual = isIndividualAccount(session.accountType);
   const canSource = can(session.role, "source.write");
   const canImport = can(session.role, "source.import");
   const csrf = canSource || canImport ? await ensureCsrf() : "";
@@ -167,7 +170,7 @@ export default async function SourcesPage({
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Holdings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Observed balances from read-only wallets, exchanges, and custodians — not market prices or journal book value.
+          Observed balances from read-only wallets, exchanges, and custodians — not market prices or {individual ? "booked value" : "journal book value"}.
         </p>
       </header>
       <Flash error={one(params.error)} saved={one(params.saved)} />
@@ -180,7 +183,7 @@ export default async function SourcesPage({
       <section id="observed-balances" className="scroll-mt-6">
         <SectionHeader
           title="Observed balances"
-          description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}. Activity that has not been journaled still appears here.`}
+          description={`The latest quantity per venue and asset, with market value in ${quoteCurrency}. Activity that has not been ${individual ? "posted" : "journaled"} still appears here.`}
           action={
             canSource ? (
               <Link href="/dashboard/settings#connections" className="text-sm text-link underline">
@@ -191,7 +194,7 @@ export default async function SourcesPage({
         />
         {canSource && writable ? (
           <div className="mt-4">
-            <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} />
+            <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} accountType={session.accountType} />
           </div>
         ) : null}
         {books.balanceSnapshots.length === 0 ? (
@@ -282,11 +285,11 @@ export default async function SourcesPage({
           <section id="market-value" className="scroll-mt-6">
             <SectionHeader
               title="Market value"
-              description={`Observed holdings valued at the latest saved price in ${valuation.quoteCurrency}. A price never posts to the journal.`}
+              description={`Observed holdings valued at the latest saved price in ${valuation.quoteCurrency}. A price never posts ${individual ? "an entry" : "to the journal"}.`}
             />
             {canSource && writable ? (
               <div className="mt-4">
-                <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} />
+                <MarketDataControls csrf={csrf} next={`/dashboard/sources?currency=${quoteCurrency}`} accountType={session.accountType} />
               </div>
             ) : null}
             {valuation.stale ? (
@@ -355,7 +358,7 @@ export default async function SourcesPage({
           </section>
 
           <section>
-            <SectionHeader title="Booked value" description="What the journal says — separate from observed balances." />
+            <SectionHeader title="Booked value" description={individual ? "What your posted entries say — separate from observed balances." : "What the journal says — separate from observed balances."} />
             {panels.length === 0 ? (
               <EmptyState className="mt-4">No booked value to chart yet.</EmptyState>
             ) : (
@@ -385,7 +388,7 @@ export default async function SourcesPage({
                 <RoleNote>You can view holdings. Connect and sign your own wallet in Settings. Adding an exchange or custodian, and importing activity, are for an owner or an admin.</RoleNote>
               </div>
             )}
-            {canImport ? <CsvImportForm books={books} csrf={csrf} /> : null}
+            {canImport ? <CsvImportForm books={books} csrf={csrf} accountType={session.accountType} /> : null}
           </div>
 
           <section>
@@ -447,7 +450,7 @@ export default async function SourcesPage({
           <section>
             <SectionHeader
               title="Connectors"
-              description="Live readers are read-only. Checking records an observation and does not post a journal."
+              description={`Live readers are read-only. Checking records an observation and does not post ${individual ? "an entry" : "a journal"}.`}
             />
             <ul className="mt-4 grid gap-3 md:grid-cols-2">
               {liveConnectors.map((connector) => (

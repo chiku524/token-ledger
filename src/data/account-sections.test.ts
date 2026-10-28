@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INDIVIDUAL_SECTIONS, isSectionAllowed } from "./account-sections";
+import { INDIVIDUAL_SECTIONS, isIndividualAccount, isSectionAllowed, journalName, journalNameLower, sectionLabelFor } from "./account-sections";
 
 const INSTITUTION_ONLY = [
   "/dashboard/reconciliation",
@@ -47,5 +47,33 @@ describe("isSectionAllowed", () => {
     expect(isSectionAllowed("individual", "/dashboard/sourcesx")).toBe(false);
     expect(isSectionAllowed("individual", "/dashboard/anything-new")).toBe(false);
     expect(isSectionAllowed("individual", "/other")).toBe(false);
+  });
+});
+
+describe("the Activity name", () => {
+  it("calls an individual's Journal page Activity", () => {
+    expect(journalName("individual")).toBe("Activity");
+    expect(journalNameLower("individual")).toBe("activity");
+    expect(sectionLabelFor("individual", "/dashboard/ledger", "Journal")).toBe("Activity");
+    expect(sectionLabelFor("individual", "/dashboard/ledger?from=2026-01-01", "Journal")).toBe("Activity");
+  });
+
+  it("leaves an organization's Journal alone, whether the type is given or not", () => {
+    for (const accountType of ["organization", undefined] as const) {
+      expect(journalName(accountType)).toBe("Journal");
+      expect(journalNameLower(accountType)).toBe("journal");
+      expect(sectionLabelFor(accountType, "/dashboard/ledger", "Journal")).toBe("Journal");
+    }
+  });
+
+  it("does not relabel any other section", () => {
+    expect(sectionLabelFor("individual", "/dashboard/reports", "Reports")).toBe("Reports");
+    expect(sectionLabelFor("individual", "/dashboard/sources", "Holdings")).toBe("Holdings");
+  });
+
+  it("knows which account types are individuals", () => {
+    expect(isIndividualAccount("individual")).toBe(true);
+    expect(isIndividualAccount("organization")).toBe(false);
+    expect(isIndividualAccount(undefined)).toBe(false);
   });
 });

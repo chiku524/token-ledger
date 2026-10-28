@@ -14,12 +14,15 @@ import { SubmitButton } from "@/components/submit-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { reopenConnectionTourAction } from "@/app/dashboard/tour-actions";
 import { cn } from "@/lib/utils";
+import { isIndividualAccount } from "@/data/account-sections";
+import type { OrganizationAccountType } from "@/data/account-type";
 import {
-  CAPABILITY_GROUPS,
-  EXAMPLE_PROMPTS,
-  FIRST_RUN_STEPS,
-  GUIDE_SECTIONS,
-  REFUSALS,
+  capabilityGroupsFor,
+  examplePromptsFor,
+  firstRunStepsFor,
+  guideSectionsFor,
+  refusalsFor,
+  tourPathFor,
   type GuideSectionId,
 } from "@/data/ai-chatbot-guide";
 
@@ -57,7 +60,7 @@ function FlowDiagram({ steps }: { steps: readonly { emoji: string; title: string
   );
 }
 
-function DoctrinePanel() {
+function DoctrinePanel({ individual }: { individual: boolean }) {
   return (
     <div className="grid gap-6">
       <FlowDiagram
@@ -78,7 +81,9 @@ function DoctrinePanel() {
           {
             icon: ShieldAlert,
             title: "Session stays the boss",
-            body: "Role, entity scope, and Approvals apply to every tool call. No privilege escalation.",
+            body: individual
+              ? "Your role applies to every tool call. No privilege escalation."
+              : "Role, entity scope, and Approvals apply to every tool call. No privilege escalation.",
           },
         ].map(({ icon: Icon, title, body }, index) => (
           <m.div
@@ -102,19 +107,20 @@ function DoctrinePanel() {
           <span className="font-medium text-foreground">🔒 Sources are read-only.</span> No exchange or custodian spending.
         </li>
         <li>
-          <span className="font-medium text-foreground">✍️ Posts are deliberate.</span> Matching, close, and revaluation stay intentional.
+          <span className="font-medium text-foreground">✍️ Posts are deliberate.</span> {individual ? "Entries and revaluation stay intentional." : "Matching, close, and revaluation stay intentional."}
         </li>
       </ul>
     </div>
   );
 }
 
-function FirstRunPanel() {
+function FirstRunPanel({ accountType }: { accountType?: OrganizationAccountType }) {
+  const steps = firstRunStepsFor(accountType);
   return (
     <div className="grid gap-6">
-      <FlowDiagram steps={FIRST_RUN_STEPS.map(({ emoji, title }) => ({ emoji, title }))} />
+      <FlowDiagram steps={steps.map(({ emoji, title }) => ({ emoji, title }))} />
       <ol className="grid gap-3">
-        {FIRST_RUN_STEPS.map((step, index) => (
+        {steps.map((step, index) => (
           <m.li
             key={step.title}
             className="rounded-xl border border-border bg-card px-4 py-3"
@@ -140,10 +146,10 @@ function FirstRunPanel() {
   );
 }
 
-function CapabilitiesPanel() {
+function CapabilitiesPanel({ accountType }: { accountType?: OrganizationAccountType }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {CAPABILITY_GROUPS.map((group, index) => (
+      {capabilityGroupsFor(accountType).map((group, index) => (
         <m.div
           key={group.title}
           className="rounded-xl border border-border bg-card p-4"
@@ -171,10 +177,10 @@ function CapabilitiesPanel() {
   );
 }
 
-function PromptsPanel() {
+function PromptsPanel({ accountType }: { accountType?: OrganizationAccountType }) {
   return (
     <ul className="grid gap-3">
-      {EXAMPLE_PROMPTS.map((prompt, index) => (
+      {examplePromptsFor(accountType).map((prompt, index) => (
         <m.li
           key={prompt.text}
           className="rounded-xl border border-border bg-card px-4 py-3"
@@ -190,10 +196,10 @@ function PromptsPanel() {
   );
 }
 
-function RefusalsPanel() {
+function RefusalsPanel({ accountType }: { accountType?: OrganizationAccountType }) {
   return (
     <ul className="grid gap-3">
-      {REFUSALS.map((item, index) => (
+      {refusalsFor(accountType).map((item, index) => (
         <m.li
           key={item.title}
           className="rounded-xl border border-border bg-card px-4 py-3"
@@ -214,12 +220,12 @@ function RefusalsPanel() {
   );
 }
 
-function ConnectionsPanel() {
+function ConnectionsPanel({ individual }: { individual: boolean }) {
   return (
     <div className="grid gap-8">
       <FlowDiagram
         steps={[
-          { emoji: "🏢", title: "Company" },
+          { emoji: "🏢", title: individual ? "Your books" : "Company" },
           { emoji: "🔌", title: "Connection" },
           { emoji: "👛", title: "Account" },
           { emoji: "👀", title: "Observation" },
@@ -283,31 +289,41 @@ function ConnectionsPanel() {
   );
 }
 
-function SectionBody({ id }: { id: GuideSectionId }) {
+function SectionBody({ id, accountType }: { id: GuideSectionId; accountType?: OrganizationAccountType }) {
   switch (id) {
     case "doctrine":
-      return <DoctrinePanel />;
+      return <DoctrinePanel individual={isIndividualAccount(accountType)} />;
     case "first-run":
-      return <FirstRunPanel />;
+      return <FirstRunPanel accountType={accountType} />;
     case "capabilities":
-      return <CapabilitiesPanel />;
+      return <CapabilitiesPanel accountType={accountType} />;
     case "prompts":
-      return <PromptsPanel />;
+      return <PromptsPanel accountType={accountType} />;
     case "refusals":
-      return <RefusalsPanel />;
+      return <RefusalsPanel accountType={accountType} />;
     case "connections":
-      return <ConnectionsPanel />;
+      return <ConnectionsPanel individual={isIndividualAccount(accountType)} />;
   }
 }
 
-export function AiChatbotGuide({ csrf, canRestartTour }: { csrf: string; canRestartTour: boolean }) {
+export function AiChatbotGuide({
+  csrf,
+  canRestartTour,
+  accountType,
+}: {
+  csrf: string;
+  canRestartTour: boolean;
+  /** An individual's guide leaves out the pages and features an individual does not have. */
+  accountType?: OrganizationAccountType;
+}) {
   const [active, setActive] = useState<GuideSectionId>("doctrine");
-  const section = GUIDE_SECTIONS.find((item) => item.id === active)!;
+  const sections = guideSectionsFor(accountType);
+  const section = sections.find((item) => item.id === active)!;
 
   return (
     <div className="grid max-w-5xl gap-8">
       <nav aria-label="Guide sections" className="relative flex flex-wrap gap-1 border-b border-border pb-1">
-        {GUIDE_SECTIONS.map((item) => {
+        {sections.map((item) => {
           const selected = item.id === active;
           return (
             <button
@@ -357,7 +373,7 @@ export function AiChatbotGuide({ csrf, canRestartTour }: { csrf: string; canRest
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{section.blurb}</p>
           </div>
-          <SectionBody id={active} />
+          <SectionBody id={active} accountType={accountType} />
         </m.section>
       </Presence>
 
@@ -366,7 +382,7 @@ export function AiChatbotGuide({ csrf, canRestartTour }: { csrf: string; canRest
           <input type="hidden" name="csrf" value={csrf} />
           <SubmitButton>Restart getting-started tour</SubmitButton>
           <p className="text-sm text-muted-foreground">
-            Opens the coach again for Connect → Check → Balances → Match → Journal → Reports.
+            Opens the coach again for {tourPathFor(accountType)}.
           </p>
         </form>
       ) : null}

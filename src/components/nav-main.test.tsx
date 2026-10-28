@@ -27,7 +27,8 @@ function groupNames(html: string): string[] {
 describe("NavMain for an individual", () => {
   it("hides the institution-only sections and keeps the personal ones", () => {
     const html = render({ accountType: "individual", role: "owner", showUsers: true, showOnboarding: true, showPlatform: false });
-    expect(labels(html)).toEqual(["Overview", "Holdings", "Journal", "Reports", "Guide", "History", "Users", "Settings"]);
+    expect(labels(html)).toEqual(["Overview", "Holdings", "Activity", "Reports", "Guide", "History", "Users", "Settings"]);
+    expect(labels(html)).not.toContain("Journal");
     for (const hidden of ["Matching", "Companies", "Approvals", "Combined", "Billing", "Treasury", "Payables", "Operations", "Onboarding"]) {
       expect(labels(html)).not.toContain(hidden);
     }
@@ -47,6 +48,8 @@ describe("NavMain for an individual", () => {
     expect(organization).toContain("Matching");
     expect(organization).toContain("Companies");
     expect(organization).toContain("Operations");
+    expect(organization).toContain("Journal");
+    expect(organization).not.toContain("Activity");
   });
 });
 

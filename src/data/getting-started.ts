@@ -81,12 +81,18 @@ const STEPS: Record<GettingStartedPhase, GettingStartedStep> = {
  * Steps whose wording differs for an individual: there is no second reviewer, no
  * multi-company roll-up, and (see `phasesFor`) no Matching step at all.
  */
-const INDIVIDUAL_STEPS: Partial<Record<GettingStartedPhase, Pick<GettingStartedStep, "body">>> = {
+const INDIVIDUAL_STEPS: Partial<Record<GettingStartedPhase, Partial<Pick<GettingStartedStep, "label" | "title" | "body" | "cta">>>> = {
+  holdings: {
+    body: "Open Holdings and scroll to Observed balances. That list is what the venue reported, including activity you have not posted yet. Accounts under each connection are listed further down the same page.",
+  },
   journal: {
-    body: "Observations stay observed until you post. Use Journal to prepare or post entries for what you hold and what you move. A Check never creates a journal line.",
+    label: "Activity",
+    title: "Post entries deliberately",
+    body: "Observations stay observed until you post. Use Activity to prepare or post entries for what you hold and what you move. A Check never creates an entry.",
+    cta: "Open Activity",
   },
   reports: {
-    body: "Once journals exist, Reports shows trial balance and statements, with CSV or PDF export. You can reopen this guide anytime from Guide.",
+    body: "Once you have posted entries, Reports shows trial balance and statements, with CSV or PDF export. You can reopen this guide anytime from Guide.",
   },
 };
 
@@ -157,6 +163,8 @@ export function gettingStartedStep(
   const step = accountType === "individual" ? { ...STEPS[phase], ...INDIVIDUAL_STEPS[phase] } : STEPS[phase];
   if (phase !== "holdings") return step;
 
+  const individual = accountType === "individual";
+
   if (progress.observedBalanceCount === 0) {
     return {
       ...step,
@@ -168,7 +176,7 @@ export function gettingStartedStep(
   return {
     ...step,
     title: "Here are the coins you hold",
-    body: `Observed balances lists ${progress.observedBalanceCount === 1 ? "1 quantity" : `${progress.observedBalanceCount} quantities`} read from your connections. That is the source of truth for what the venue holds — not market value and not the journal.`,
+    body: `Observed balances lists ${progress.observedBalanceCount === 1 ? "1 quantity" : `${progress.observedBalanceCount} quantities`} read from your connections. That is the source of truth for what the venue holds — not market value and not ${individual ? "your Activity entries" : "the journal"}.`,
   };
 }
 

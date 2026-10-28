@@ -22,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOptGroup as OptGroup, NativeSelectOption as Option } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { isIndividualAccount, journalName } from "@/data/account-sections";
+import type { OrganizationAccountType } from "@/data/account-type";
 import type { Books } from "@/data/books";
 
 export function ReadOnlyNote({ demo = false }: { demo?: boolean }) {
@@ -227,25 +229,41 @@ export function RevaluationForm({ entityId, asOf, csrf }: { entityId: string; as
   );
 }
 
-export function MarketDataControls({ csrf, next = "/dashboard/sources" }: { csrf: string; next?: string }) {
+export function MarketDataControls({
+  csrf,
+  next = "/dashboard/sources",
+  accountType,
+}: {
+  csrf: string;
+  next?: string;
+  accountType?: OrganizationAccountType;
+}) {
   return (
     <form action={refreshMarketDataAction} className="flex flex-wrap items-center gap-3">
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="next" value={next} />
       <SubmitButton variant="secondary">Refresh prices and rates</SubmitButton>
       <span className="text-sm text-muted-foreground">
-        Fetches live CoinGecko prices (USD, SGD, MYR) and FX rates, stored with their source and date. Never posts a journal.
+        Fetches live CoinGecko prices (USD, SGD, MYR) and FX rates, stored with their source and date. Never posts {isIndividualAccount(accountType) ? "an entry" : "a journal"}.
       </span>
     </form>
   );
 }
 
-export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
+export function CsvImportForm({
+  books,
+  csrf,
+  accountType,
+}: {
+  books: Books;
+  csrf: string;
+  accountType?: OrganizationAccountType;
+}) {
   return (
     <FormCard
       action={importCsvAction}
       title="Import activity"
-      description="Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian. It does not create a journal entry."
+      description={`Columns: external_id, occurred_on, asset_code, direction (in or out), quantity, description. Quantity is the amount people see, such as 0.1 ETH. This records what moved at that wallet, exchange, or custodian. It does not create ${isIndividualAccount(accountType) ? "an entry" : "a journal entry"}.`}
     >
       <input type="hidden" name="csrf" value={csrf} />
       <Field label="Held at">
@@ -270,7 +288,15 @@ export function CsvImportForm({ books, csrf }: { books: Books; csrf: string }) {
   );
 }
 
-export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
+export function JournalForm({
+  books,
+  csrf,
+  accountType,
+}: {
+  books: Books;
+  csrf: string;
+  accountType?: OrganizationAccountType;
+}) {
   const accounts = books.accounts;
   return (
     <FormCard
@@ -302,7 +328,7 @@ export function JournalForm({ books, csrf }: { books: Books; csrf: string }) {
       </div>
       <div className="rounded-lg border border-border">
         <Table>
-          <caption className="sr-only">Journal lines</caption>
+          <caption className="sr-only">{journalName(accountType)} lines</caption>
           <TableHeader>
             <TableRow>
               <TableHead scope="col">Account</TableHead>

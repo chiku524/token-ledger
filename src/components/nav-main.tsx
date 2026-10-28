@@ -27,7 +27,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isSectionAllowed } from "@/data/account-sections";
+import { isSectionAllowed, sectionLabelFor } from "@/data/account-sections";
 import type { OrganizationAccountType } from "@/data/account-type";
 import { isHiddenForRole } from "@/data/onboarding-sections";
 import type { Role } from "@/auth/roles";
@@ -46,7 +46,7 @@ export type NavLink = { href: string; label: string; icon: LucideIcon };
 export type NavGroup = { label: string | null; links: NavLink[]; defaultOpen?: boolean };
 
 /**
- * Day-to-day path first (Connect → Check → Balances → Match → Journal → Reports),
+ * Day-to-day path first (Connect → Check → Balances → Match → Journal → Reports; an individual sees Activity for Journal),
  * then quieter secondary groups. Billing starts collapsed so vaults do not compete
  * with the core ledger walk.
  */
@@ -101,6 +101,8 @@ export type NavAccess = {
 
 export function navGroups({ showUsers, showOnboarding, showPlatform, role, hiddenTabs = [], accountType }: NavAccess): NavGroup[] {
   const visibleLink = (link: NavLink) => isSectionAllowed(accountType, link.href) && !isHiddenForRole(role, link.href, hiddenTabs);
+  // An individual sees "Activity" where an organization sees "Journal"; the breadcrumbs read from here too.
+  const named = (link: NavLink): NavLink => ({ ...link, label: sectionLabelFor(accountType, link.href, link.label) });
   const accountLinks: NavLink[] = [
     { href: "/dashboard/guide", label: "Guide", icon: BookOpen },
     { href: "/dashboard/operations", label: "Operations", icon: Activity },
@@ -111,8 +113,8 @@ export function navGroups({ showUsers, showOnboarding, showPlatform, role, hidde
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
   return [
-    ...groups.map((group) => ({ ...group, links: group.links.filter(visibleLink) })),
-    { label: "Account", links: accountLinks.filter(visibleLink) },
+    ...groups.map((group) => ({ ...group, links: group.links.filter(visibleLink).map(named) })),
+    { label: "Account", links: accountLinks.filter(visibleLink).map(named) },
   ].filter((group) => group.links.length > 0);
 }
 

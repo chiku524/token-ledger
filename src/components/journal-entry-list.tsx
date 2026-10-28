@@ -80,13 +80,22 @@ export function JournalEntryDetail({ entry, csrf }: { entry: JournalEntryView; c
   );
 }
 
-export function JournalEntryList({ entries, csrf }: { entries: readonly JournalEntryView[]; csrf: string }) {
+export function JournalEntryList({
+  entries,
+  csrf,
+  label = "Journal entries",
+}: {
+  entries: readonly JournalEntryView[];
+  csrf: string;
+  /** Screen-reader name for the list; an individual's page is called Activity. */
+  label?: string;
+}) {
   const [openId, setOpenId] = useState<string | null>(null);
   const selected = entries.find((entry) => entry.id === openId) ?? null;
 
   return (
     <>
-      <ul className="space-y-2" aria-label="Journal entries">
+      <ul className="space-y-2" aria-label={label}>
         {entries.map((entry) => (
           <li key={entry.id}>
             <button

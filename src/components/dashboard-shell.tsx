@@ -118,7 +118,14 @@ export function DashboardShell({
           </main>
           {showConnectionTour ? <ConnectionTour csrf={csrf} progress={tourProgress} accountType={session.accountType} /> : null}
         </SidebarInset>
-        <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} speech={assistantSpeech} canManageAi={assistantManage} />
+        <ChatPanel
+          csrf={csrf}
+          enabled={assistantEnabled}
+          memory={assistantMemory}
+          speech={assistantSpeech}
+          canManageAi={assistantManage}
+          accountType={session.accountType}
+        />
       </SidebarProvider>
     </TooltipProvider>
   );

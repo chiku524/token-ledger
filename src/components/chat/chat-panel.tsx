@@ -14,6 +14,8 @@ import {
 } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { OrganizationAccountType } from "@/data/account-type";
+import { starterPromptsFor } from "@/data/chat-starters";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatRuntimeProvider } from "./chat-runtime-provider";
 import { ChatMarkdown } from "./chat-markdown";
@@ -29,14 +31,6 @@ import {
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-/** Starter prompts, matching docs/ai-chatbot.md §6. */
-const STARTERS = [
-  "Open matching",
-  "Summarize the books this month",
-  "Show unmatched movements this week",
-  "Why is this connection still Waiting?",
-] as const;
-
 /** Register our one tool renderer under the fallback slot. */
 const toolComponents = { Fallback: ChatToolCard as ToolCallMessagePartComponent };
 
@@ -48,7 +42,7 @@ function AssistantMark() {
   );
 }
 
-function ChatThread({ speech }: { speech: boolean }) {
+function ChatThread({ speech, accountType }: { speech: boolean; accountType?: OrganizationAccountType }) {
   return (
     <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
       <ThreadPrimitive.Viewport className="relative flex-1 overflow-y-auto px-4 py-4">
@@ -61,7 +55,7 @@ function ChatThread({ speech }: { speech: boolean }) {
               confirmation.
             </p>
             <div className="mt-1 flex flex-wrap justify-center gap-2">
-              {STARTERS.map((prompt) => (
+              {starterPromptsFor(accountType).map((prompt) => (
                 <ThreadPrimitive.Suggestion
                   key={prompt}
                   prompt={prompt}
@@ -222,6 +216,8 @@ export interface ChatPanelProps {
   speech?: boolean;
   /** Whether this session may switch provider/model (owner or admin). */
   canManageAi?: boolean;
+  /** An individual is offered suggestions for the pages it has. Defaults to an organization. */
+  accountType?: OrganizationAccountType;
 }
 
 /** Shown when no provider is configured, so the launcher never errors. */
@@ -248,7 +244,7 @@ function AssistantOff() {
  * thread list and a new conversation. Switching threads remounts the runtime via
  * a key so a conversation swaps cleanly.
  */
-export function ChatPanel({ csrf, enabled = true, memory = true, speech = false, canManageAi = false }: ChatPanelProps) {
+export function ChatPanel({ csrf, enabled = true, memory = true, speech = false, canManageAi = false, accountType }: ChatPanelProps) {
   const [open, setOpen] = useState(false);
   const { voiceId, setVoiceId } = useVoicePreference();
   const [showHistory, setShowHistory] = useState(false);
@@ -402,7 +398,7 @@ export function ChatPanel({ csrf, enabled = true, memory = true, speech = false,
           initialThreadId={activeThreadId}
           initialMessages={initialMessages}
         >
-          <ChatThread speech={speech} />
+          <ChatThread speech={speech} accountType={accountType} />
         </ChatRuntimeProvider>
       )}
     </m.aside>

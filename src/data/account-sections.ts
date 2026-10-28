@@ -27,12 +27,43 @@ export const INDIVIDUAL_SECTIONS: readonly string[] = [
   "/dashboard/platform",
 ];
 
+/**
+ * Sections an individual sees under a different name. The URL stays the same;
+ * only the label changes, so "Journal" reads as "Activity" for a person who has
+ * never kept books. Organizations keep every original name.
+ */
+const INDIVIDUAL_LABELS: Readonly<Record<string, string>> = {
+  "/dashboard/ledger": "Activity",
+};
+
+/** Whether this is an individual account. A missing type is an organization. */
+export function isIndividualAccount(accountType: OrganizationAccountType | undefined): boolean {
+  return (accountType ?? DEFAULT_ORGANIZATION_ACCOUNT_TYPE) === "individual";
+}
+
+/** The label a section shows for this account type, falling back to `label`. */
+export function sectionLabelFor(accountType: OrganizationAccountType | undefined, href: string, label: string): string {
+  if (!isIndividualAccount(accountType)) return label;
+  const path = href.split(/[?#]/)[0] ?? "";
+  return INDIVIDUAL_LABELS[path] ?? label;
+}
+
+/** The name of the journal page: "Activity" for an individual, "Journal" otherwise. */
+export function journalName(accountType: OrganizationAccountType | undefined): string {
+  return sectionLabelFor(accountType, "/dashboard/ledger", "Journal");
+}
+
+/** Lower-case `journalName`, for use inside a sentence. */
+export function journalNameLower(accountType: OrganizationAccountType | undefined): string {
+  return journalName(accountType).toLowerCase();
+}
+
 /** Where someone is sent when they open a section their account type does not have. */
 export const SECTION_REDIRECT = "/dashboard";
 
 /** Whether an account of this type may open `href` (a path, a sub-path, or one with a query). */
 export function isSectionAllowed(accountType: OrganizationAccountType | undefined, href: string): boolean {
-  if ((accountType ?? DEFAULT_ORGANIZATION_ACCOUNT_TYPE) !== "individual") return true;
+  if (!isIndividualAccount(accountType)) return true;
   const path = href.split(/[?#]/)[0] ?? "";
   return INDIVIDUAL_SECTIONS.some((section) => (section === "/dashboard" ? path === section : path === section || path.startsWith(section + "/")));
 }

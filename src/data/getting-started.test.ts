@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { hiddenSectionsIn } from "@/test/hidden-sections";
 import {
   canTakeConnectionTour,
   gettingStartedPhases,
@@ -151,5 +152,40 @@ describe("gettingStartedStep", () => {
     expect(gettingStartedStep("match", empty).href).toBe("/dashboard/reconciliation");
     expect(gettingStartedStep("journal", empty).href).toBe("/dashboard/ledger");
     expect(gettingStartedStep("reports", empty).href).toBe("/dashboard/reports");
+  });
+});
+
+describe("the Activity wording", () => {
+  const checked = { connections: [{ status: "healthy" as const, lastSyncedAt: "2026-01-01T00:00:00Z" }], observedBalanceCount: 2 };
+  const empty = { connections: [], observedBalanceCount: 0 };
+
+  it("calls the Journal step Activity for an individual", () => {
+    const step = gettingStartedStep("journal", empty, "individual");
+    expect(step).toMatchObject({ label: "Activity", cta: "Open Activity", href: "/dashboard/ledger" });
+    expect(step.title).toBe("Post entries deliberately");
+    expect(step.body).toContain("Use Activity");
+    expect(step.body).not.toMatch(/journal/i);
+  });
+
+  it("leaves the organization's Journal step as it was", () => {
+    const step = gettingStartedStep("journal", empty);
+    expect(step).toMatchObject({ label: "Journal", cta: "Open Journal", title: "Post journals deliberately" });
+    expect(gettingStartedStep("journal", empty, "organization")).toEqual(step);
+  });
+
+  it("uses no Journal or hidden-section wording on any step for an individual", () => {
+    for (const progress of [empty, checked]) {
+      for (const phase of gettingStartedPhases("individual")) {
+        const step = gettingStartedStep(phase, progress, "individual");
+        const text = [step.label, step.title, step.body, step.cta].join(" ");
+        expect(text).not.toMatch(/journal/i);
+        expect(hiddenSectionsIn(text)).toEqual([]);
+      }
+    }
+  });
+
+  it("still mentions the journal for an organization's Holdings step", () => {
+    expect(gettingStartedStep("holdings", checked).body).toContain("the journal");
+    expect(gettingStartedStep("holdings", checked, "individual").body).toContain("your Activity entries");
   });
 });

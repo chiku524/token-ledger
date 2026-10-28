@@ -18,6 +18,7 @@ import {
   journalActivityChart,
   reconciliationStatus,
 } from "@/data/charts";
+import { journalName, journalNameLower } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
@@ -30,6 +31,9 @@ export default async function DashboardPage() {
   const { session, books } = await loadAuthorizedBooks();
   // An individual has no Matching, Companies or Combined, so the overview leaves them out.
   const individual = session.accountType === "individual";
+  // An individual's Journal is called Activity.
+  const book = journalName(session.accountType);
+  const bookLower = journalNameLower(session.accountType);
   const exceptions = individual ? [] : books.reconciliations.filter((record) => record.status === "exception");
   const balances = books.entities.map((entity) => ({
     entity,
@@ -80,7 +84,7 @@ export default async function DashboardPage() {
           </Link>
         )}
         <Link href="/dashboard/ledger" className="text-link underline">
-          Journal
+          {book}
         </Link>
         <Link href="/dashboard/reports" className="text-link underline">
           Reports
@@ -108,13 +112,13 @@ export default async function DashboardPage() {
           title="Recent entries"
           action={
             <Link href="/dashboard/ledger" className="text-sm text-link underline">
-              Open journal
+              Open {bookLower}
             </Link>
           }
         />
         <TableCard>
           <Table>
-            <caption className="sr-only">Recent journal entries</caption>
+            <caption className="sr-only">Recent {bookLower} entries</caption>
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">Date</TableHead>
