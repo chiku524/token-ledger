@@ -24,6 +24,7 @@ import { journalName, journalNameLower } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { isHoldingsDisplayCurrency, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
 import { holdingsGainLoss } from "@/data/gain-loss";
+import { holdingsRealizedGainLoss } from "@/data/realized-gain-loss";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { financialStatements, trialBalance } from "@/ledger";
@@ -61,6 +62,7 @@ export default async function DashboardPage({
   const functionalCurrency = books.entities[0]?.functionalCurrency ?? "";
   const gainLossCurrency = resolveHoldingsDisplayCurrency(one(params.currency), isHoldingsDisplayCurrency(functionalCurrency) ? functionalCurrency : undefined);
   const gainLoss = holdingsGainLoss(books, { individual: false, currency: gainLossCurrency });
+  const realized = holdingsRealizedGainLoss(books, { currency: gainLossCurrency });
   const currencyNote = individual
     ? "Each chart stays in your reporting currency."
     : booksAreWritable() && !session.demo && !session.demoBooks
@@ -123,6 +125,7 @@ export default async function DashboardPage({
 
       <GainLossPanel
         gainLoss={gainLoss}
+        realized={realized}
         id="gain-loss"
         className="mt-10 scroll-mt-6"
         currencyHref={(code) => `/dashboard?currency=${code}#gain-loss`}

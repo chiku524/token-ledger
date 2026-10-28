@@ -11,6 +11,7 @@ import { Stagger } from "@/components/motion/stagger";
 import { Alert } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HOLDINGS_DISPLAY_CURRENCIES } from "@/data/display-currency";
+import { REALIZED_COPY, realizedNotIncludedText, type RealizedGainLoss } from "@/data/realized-gain-loss";
 import {
   directionOf,
   directionWord,
@@ -35,6 +36,7 @@ export function GainLossPanel({
   action,
   className,
   currencyHref,
+  realized,
 }: {
   gainLoss: GainLoss;
   id?: string;
@@ -42,6 +44,8 @@ export function GainLossPanel({
   className?: string;
   /** When set, a MYR / SGD / USD switcher is shown; each link goes to this address. */
   currencyHref?: (currency: string) => string;
+  /** Organizations only: sales already made, shown after the unrealized figures. */
+  realized?: RealizedGainLoss;
 }) {
   const copy = gainLossCopy(gainLoss.basis);
   const { currency, totals } = gainLoss;
@@ -164,6 +168,8 @@ export function GainLossPanel({
         </EmptyState>
       )}
 
+      {realized ? <RealizedBlock realized={realized} /> : null}
+
       {gainLoss.notIncluded.length > 0 ? (
         <div className="mt-4 max-w-2xl text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Left out of the totals</p>
@@ -177,5 +183,84 @@ export function GainLossPanel({
         </div>
       ) : null}
     </section>
+  );
+}
+function RealizedBlock({ realized }: { realized: RealizedGainLoss }) {
+  const { currency, totals } = realized;
+  const direction = directionOf(totals.gainMinor);
+  const hasRows = realized.rows.length > 0;
+  const hint = !hasRows
+    ? REALIZED_COPY.emptyMessage
+    : totals.percent === null
+      ? `${directionWord(totals.gainMinor)}, nothing to compare against`
+      : `${directionWord(totals.gainMinor)}, ${signedPercent(totals.percent)} of cost of units sold`;
+
+  return (
+    <div className="mt-8" role="group" aria-label={REALIZED_COPY.title}>
+      <h3 className="text-base font-semibold text-foreground">
+        {REALIZED_COPY.title} {"\u00b7"} {currency}
+      </h3>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.description}</p>
+
+      <Stagger className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+        <StatCard label={REALIZED_COPY.proceedsLabel} value={moneyText(totals.proceedsMinor, currency)} />
+        <StatCard label={REALIZED_COPY.costLabel} value={moneyText(totals.costMinor, currency)} />
+        <StatCard
+          label={REALIZED_COPY.gainLabel}
+          value={signedMoney(totals.gainMinor, currency)}
+          tone={hasRows ? (direction === "gain" ? "success" : direction === "loss" ? "danger" : undefined) : undefined}
+          hint={hint}
+        />
+      </Stagger>
+
+      {hasRows ? (
+        <TableCard className="mt-4">
+          <Table>
+            <caption className="sr-only">{REALIZED_COPY.gainLabel} by asset</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Asset</TableHead>
+                <NumberHead scope="col">Sales</NumberHead>
+                <NumberHead scope="col">{REALIZED_COPY.proceedsLabel}</NumberHead>
+                <NumberHead scope="col">{REALIZED_COPY.costLabel}</NumberHead>
+                <NumberHead scope="col">{REALIZED_COPY.gainLabel}</NumberHead>
+                <NumberHead scope="col">Change</NumberHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {realized.rows.map((row) => {
+                const rowDirection = directionOf(row.gainMinor);
+                return (
+                  <TableRow key={row.assetCode}>
+                    <TableCell>{row.assetCode}</TableCell>
+                    <NumberCell>{row.sales}</NumberCell>
+                    <NumberCell>{moneyText(row.proceedsMinor, currency)}</NumberCell>
+                    <NumberCell>{moneyText(row.costMinor, currency)}</NumberCell>
+                    <NumberCell className={rowDirection === "gain" ? "text-success" : rowDirection === "loss" ? "text-danger" : undefined}>
+                      <span className="sr-only">{directionWord(row.gainMinor)} </span>
+                      {signedMoney(row.gainMinor, currency)}
+                    </NumberCell>
+                    <NumberCell>{signedPercent(row.percent)}</NumberCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableCard>
+      ) : null}
+
+      {realized.notIncluded.length > 0 ? (
+        <div className="mt-4 max-w-2xl text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">{REALIZED_COPY.leftOutTitle}</p>
+          <ul className="mt-1 grid gap-1">
+            {realized.notIncluded.map((item) => (
+              <li key={`${item.assetCode}-${item.reason}`}>
+                <span className="font-mono text-foreground">{item.assetCode}</span> {realizedNotIncludedText(item.reason, item.sales)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }

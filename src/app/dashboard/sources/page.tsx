@@ -23,6 +23,7 @@ import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/char
 import { isIndividualAccount } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { holdingsGainLoss } from "@/data/gain-loss";
+import { holdingsRealizedGainLoss } from "@/data/realized-gain-loss";
 import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
 import { latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
@@ -161,6 +162,7 @@ export default async function SourcesPage({
     rates: books.fxRates,
   });
   const gainLoss = holdingsGainLoss(books, { individual, currency: quoteCurrency, now: new Date(asOf) });
+  const realized = individual ? undefined : holdingsRealizedGainLoss(books, { currency: quoteCurrency, now: new Date(asOf) });
   // Accounting-system exports are an organization feature; an individual only connects wallets and exchanges.
   const shownConnector = (connector: { category: string }) => !individual || connector.category !== "accounting";
   const connectors = listStubAdapters().filter(shownConnector);
@@ -259,7 +261,7 @@ export default async function SourcesPage({
         )}
       </section>
 
-      <GainLossPanel gainLoss={gainLoss} id="gain-loss" className="mt-10 scroll-mt-6" />
+      <GainLossPanel gainLoss={gainLoss} realized={realized} id="gain-loss" className="mt-10 scroll-mt-6" />
 
       <section id="connections" className="mt-10 scroll-mt-6">
         <SectionHeader

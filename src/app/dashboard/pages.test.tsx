@@ -250,6 +250,55 @@ describe("role gating", () => {
     expect(content).toContain("No gain or loss to show yet");
   });
 
+  it("shows Realized gain / loss with the Holdings and Overview gain / loss, from sales in the books", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    const { postJournalEntry, toMinor } = await import("@/ledger");
+    const entityId = exampleBooks.entities[0].id;
+    const sourceId = exampleBooks.sources[0].id;
+    const post = (id: string, entryDate: string, lines: Parameters<typeof postJournalEntry>[0]["lines"]) => ({
+      ...postJournalEntry({ id, entityId, reference: id, entryDate, memo: id, lines }),
+      postedBy: "test",
+      postedAt: `${entryDate}T00:00:00.000Z`,
+      reversesEntryId: null,
+    });
+    // Buy 10 BUIDL for 1,000.00, then sell 4 of them for 480.00: average cost 100 each, cost 400, gain 80.
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      journalEntries: [
+        post("rg-buy", "2026-01-05", [
+          { accountCode: "1330", side: "debit", amountMinor: toMinor("1000.00", 2), currency: "USD", assetCode: "BUIDL", quantityMinor: 10_000_000n, quantityDirection: "in", sourceId },
+          { accountCode: "1000", side: "credit", amountMinor: toMinor("1000.00", 2), currency: "USD" },
+        ]),
+        post("rg-sell", "2026-01-12", [
+          { accountCode: "1000", side: "debit", amountMinor: toMinor("480.00", 2), currency: "USD" },
+          { accountCode: "1330", side: "credit", amountMinor: toMinor("480.00", 2), currency: "USD", assetCode: "BUIDL", quantityMinor: 4_000_000n, quantityDirection: "out", sourceId },
+        ]),
+      ],
+    });
+    signInLive("owner");
+    for (const page of [SourcesPage as Page, OverviewPage as Page]) {
+      const usd = await pageText(page, { currency: "USD" });
+      expect(usd).toContain("Realized gain / loss \u00b7 USD");
+      expect(usd).toContain("Sale proceeds");
+      expect(usd).toContain("Cost of units sold");
+      expect(usd).toContain("480.00");
+      expect(usd).toContain("400.00");
+      expect(usd).toContain("80.00");
+      expect(usd).toContain("BUIDL");
+      expect(usd).toContain("Not tax advice");
+      const myr = await pageText(page, { currency: "MYR" });
+      expect(myr).toContain("Realized gain / loss \u00b7 MYR");
+      expect(myr).not.toContain("Realized gain / loss \u00b7 USD");
+    }
+  });
+
+  it("says when there are no sales to count, and lists a payment with no proceeds instead of guessing", async () => {
+    signInDemo("owner");
+    const content = await pageText(SourcesPage as Page, { currency: "USD" });
+    expect(content).toContain("Realized gain / loss \u00b7 USD");
+    expect(content).toContain("No sales with proceeds recorded yet.");
+  });
+
   it("values SGD on Observed balances for USD-only Harbourline books (preview DB shape)", async () => {
     const { exampleBooks } = await import("@/data/example-books");
     vi.mocked(loadBooks).mockResolvedValue({

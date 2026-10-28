@@ -43,6 +43,29 @@ export interface GainLossEvent {
   costMinor: bigint;
 }
 
+/**
+ * Why a sale could not be counted as realized gain / loss. Only for organizations.
+ * `no-cost-history`: the asset was left out of the cost figures, so its cost cannot be trusted.
+ */
+export type DisposalReason = "no-proceeds" | "unclear-proceeds" | "no-sale-rate" | "no-cost-history";
+
+/** One posted entry in which more of an asset left than came in, with its cost and (if booked) proceeds. */
+export interface Disposal {
+  assetCode: string;
+  entityId: string;
+  reference: string;
+  /** YYYY-MM-DD */
+  day: string;
+  /** Units that left, positive, in the asset's minor units. */
+  quantityMinor: bigint;
+  /** Average cost of those units, in the reporting currency. */
+  costMinor: bigint;
+  /** What the entry booked as received, in the reporting currency at the sale date's rate. Null when not counted. */
+  proceedsMinor: bigint | null;
+  /** Why proceeds are null. */
+  reason: DisposalReason | null;
+}
+
 export interface GainLossNotIncluded {
   assetCode: string;
   reason: NotIncludedReason;
@@ -259,7 +282,7 @@ export function computeGainLoss(input: {
 
 // ----------------------------------------------------- Organizations: cost
 
-function convertToCurrency(
+export function convertToCurrency(
   amountMinor: bigint,
   from: string,
   to: string,
@@ -286,17 +309,27 @@ function convertToCurrency(
 export function costBasisInputs(
   books: Books,
   currency: string,
-): { events: GainLossEvent[]; notIncluded: GainLossNotIncluded[] } {
+): {
+  events: GainLossEvent[];
+  notIncluded: GainLossNotIncluded[];
+  disposals: Disposal[];
+  /** Assets whose cost history could not be followed, with the reason. */
+  leftAssets: ReadonlyMap<string, NotIncludedReason>;
+} {
   const carrying = new Set(
     books.accounts.filter((account) => account.measurementBasis !== null).map((account) => `${account.entityId}|${account.code}`),
   );
   const normalBalance = new Map(books.accounts.map((account) => [`${account.entityId}|${account.code}`, account.normalBalance]));
+  const assetAccounts = new Set(
+    books.accounts.filter((account) => account.type === "asset").map((account) => `${account.entityId}|${account.code}`),
+  );
   const entries = [...books.journalEntries].sort(
     (a, b) => a.entryDate.localeCompare(b.entryDate) || a.reference.localeCompare(b.reference) || a.id.localeCompare(b.id),
   );
 
   const running = new Map<string, { quantityMinor: bigint; costMinor: bigint }>();
   const events: GainLossEvent[] = [];
+  const disposals: Disposal[] = [];
   const left = new Map<string, NotIncludedReason>();
 
   for (const entry of entries) {
@@ -322,8 +355,31 @@ export function costBasisInputs(
       perAsset.set(line.assetCode, group);
     }
 
+    const decreasing = [...perAsset.values()].filter((group) => group.inQty - group.outQty < 0n).length;
+    /** What an entry booked as received for something that left: a debit on an asset account that is not the one sold. */
+    const proceedsFor = (assetCode: string): bigint => {
+      let total = 0n;
+      for (const line of entry.lines) {
+        const key = `${entry.entityId}|${line.accountCode}`;
+        if (line.side !== "debit" || !assetAccounts.has(key)) continue;
+        if (carrying.has(key)) {
+          // Another asset coming in (a swap). Same asset, or no quantity (a revaluation), is not a sale price.
+          if (!line.assetCode || line.assetCode === assetCode || line.quantityDirection !== "in") continue;
+        }
+        total += line.amountMinor;
+      }
+      return total;
+    };
+
+    /** A sale of an asset whose cost cannot be followed: kept only so it can be listed as left out. */
+    const untrustedSale = (assetCode: string, quantityMinor: bigint) =>
+      disposals.push({ assetCode, entityId: entry.entityId, reference: entry.reference, day: entry.entryDate, quantityMinor, costMinor: 0n, proceedsMinor: null, reason: "no-cost-history" });
+
     for (const [assetCode, group] of perAsset) {
-      if (left.has(assetCode)) continue;
+      if (left.has(assetCode)) {
+        if (group.inQty - group.outQty < 0n) untrustedSale(assetCode, group.outQty - group.inQty);
+        continue;
+      }
       const net = group.inQty - group.outQty;
       if (net === 0n) continue; // a move between wallets
       const runKey = `${entry.entityId}|${assetCode}`;
@@ -345,12 +401,27 @@ export function costBasisInputs(
         const out = -net;
         if (state.quantityMinor <= 0n || out > state.quantityMinor) {
           left.set(assetCode, "incomplete-history");
+          untrustedSale(assetCode, out);
           continue;
         }
         const removed = out === state.quantityMinor ? state.costMinor : divideRounded(state.costMinor * out, state.quantityMinor);
         state.quantityMinor -= out;
         state.costMinor -= removed;
         events.push({ assetCode, day: entry.entryDate, quantityMinor: -out, costMinor: -removed });
+
+        let proceedsMinor: bigint | null = null;
+        let reason: DisposalReason | null = null;
+        const booked = proceedsFor(assetCode);
+        if (decreasing > 1) {
+          reason = "unclear-proceeds";
+        } else if (booked <= 0n) {
+          reason = "no-proceeds";
+        } else {
+          const converted = convertToCurrency(booked, entry.currency, currency, entry.entryDate, books.fxRates);
+          if (converted === null) reason = "no-sale-rate";
+          else proceedsMinor = converted;
+        }
+        disposals.push({ assetCode, entityId: entry.entityId, reference: entry.reference, day: entry.entryDate, quantityMinor: out, costMinor: removed, proceedsMinor, reason });
       }
       running.set(runKey, state);
     }
@@ -374,7 +445,7 @@ export function costBasisInputs(
     if (uncovered > 0n) notIncluded.push({ assetCode, reason: "no-cost", quantityMinor: uncovered });
   }
   notIncluded.sort((a, b) => a.assetCode.localeCompare(b.assetCode));
-  return { events: kept, notIncluded };
+  return { events: kept, notIncluded, disposals, leftAssets: left };
 }
 
 // ------------------------------------------------- Individuals: tracked
