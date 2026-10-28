@@ -1,4 +1,5 @@
 import { Calendar, GitCompare } from "lucide-react";
+import { PageHeading } from "@/components/app/page-heading";
 import { EmptyState } from "@/components/app/empty-state";
 import { Pagination } from "@/components/app/pagination";
 import { SectionHeader } from "@/components/app/section-header";
@@ -15,7 +16,6 @@ import { MatchControls, PeriodCloseForm, ReadOnlyNote, RoleNote, UnmatchControls
 import { reopenPeriodAction } from "@/app/dashboard/actions";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
-import { PageHeader } from "@/components/page-header";
 import { reconciliationBySource, reconciliationStatus } from "@/data/charts";
 import { candidateJournalLines } from "@/data/reconciliation";
 import { paginate, parsePage } from "@/data/pagination";
@@ -64,12 +64,9 @@ export default async function ReconciliationPage({
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Matching</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title="Matching">
           Wallet activity vs. journal · {range.from} – {range.to}
-        </p>
-      </header>
+        </PageHeading>
 
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
 

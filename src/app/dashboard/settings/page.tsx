@@ -4,6 +4,7 @@ import { can, roleLabel } from "@/auth/roles";
 import { changeNameAction } from "@/app/dashboard/user-actions";
 import { createConnectionAction } from "@/app/dashboard/actions";
 import { CUSTODIANS } from "@/adapters/sources/custodian/registry";
+import { PageHeading } from "@/components/app/page-heading";
 import { ConnectModal } from "@/components/connect-modal";
 import { WatchWalletFields } from "@/components/track-wallet-fields";
 import { connectExchanges } from "@/data/connect-catalog";
@@ -43,12 +44,9 @@ export default async function SettingsPage({
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title="Settings">
           Connect venues, press Check, and manage your account. Connections are read-only — they cannot withdraw, trade, or sign.
-        </p>
-      </header>
+        </PageHeading>
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
       <section id="connections" className="scroll-mt-6">

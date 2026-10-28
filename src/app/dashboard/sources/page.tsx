@@ -1,4 +1,5 @@
 import { listLiveAdapters, listStubAdapters } from "@/adapters";
+import { PageHeading } from "@/components/app/page-heading";
 import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { ensureCsrf } from "@/auth/current";
@@ -190,14 +191,11 @@ export default async function SourcesPage({
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Holdings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title="Holdings">
           {individual
             ? "What your connected wallets, exchanges, and custodians report holding, with market value alongside."
             : "Observed balances from read-only wallets, exchanges, and custodians — not market prices or journal book value."}
-        </p>
-      </header>
+        </PageHeading>
       <Flash error={one(params.error)} saved={one(params.saved)} />
 
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">

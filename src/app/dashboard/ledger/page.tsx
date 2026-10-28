@@ -1,6 +1,7 @@
 import { BookOpen, Calendar } from "lucide-react";
 import { ensureCsrf, getSession } from "@/auth/current";
 import { can } from "@/auth/roles";
+import { PageHeading } from "@/components/app/page-heading";
 import { EmptyState } from "@/components/app/empty-state";
 import { Pagination } from "@/components/app/pagination";
 import { Flash } from "@/components/flash";
@@ -90,12 +91,9 @@ export default async function LedgerPage({
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title={title}>
           Posted entries · {range.from} – {range.to}
-        </p>
-      </header>
+        </PageHeading>
 
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
 
@@ -155,12 +153,9 @@ function IndividualActivity({
 }) {
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title="Activity">
           Read from your wallets and exchanges · {range.from} – {range.to}
-        </p>
-      </header>
+        </PageHeading>
 
       <Flash error={error} saved={saved} />
 
