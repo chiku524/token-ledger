@@ -78,26 +78,23 @@ const STEPS: Record<GettingStartedPhase, GettingStartedStep> = {
 };
 
 /**
- * Steps whose wording differs for an individual: there is no second reviewer, no
- * multi-company roll-up, and (see `phasesFor`) no Matching step at all.
+ * Steps whose wording differs for an individual. An individual's path is four
+ * steps: Connect, Check, Holdings, Reports. There is no entry to post and nothing
+ * to match (see `INDIVIDUAL_SKIPPED`), so the copy never mentions either.
  */
 const INDIVIDUAL_STEPS: Partial<Record<GettingStartedPhase, Partial<Pick<GettingStartedStep, "label" | "title" | "body" | "cta">>>> = {
   holdings: {
-    body: "Open Holdings and scroll to Observed balances. That list is what the venue reported, including activity you have not posted yet. Accounts under each connection are listed further down the same page.",
-  },
-  journal: {
-    label: "Activity",
-    title: "Post entries deliberately",
-    body: "Observations stay observed until you post. Use Activity to prepare or post entries for what you hold and what you move. A Check never creates an entry.",
-    cta: "Open Activity",
+    label: "Holdings",
+    body: "Open Holdings and scroll to Observed balances. That list is what your wallets and exchanges report, with market value alongside. Accounts under each connection are listed further down the same page.",
   },
   reports: {
-    body: "Once you have posted entries, Reports shows trial balance and statements, with CSV or PDF export. You can reopen this guide anytime from Guide.",
+    title: "See your reports",
+    body: "Reports shows your portfolio summary, your activity history, and your value over time, with CSV or PDF download. You can reopen this guide anytime from Guide.",
   },
 };
 
-/** Matching is an institution feature, so an individual's guide skips it. */
-const INDIVIDUAL_SKIPPED: readonly GettingStartedPhase[] = ["match"];
+/** Matching and journals are organization features, so an individual's guide skips them. */
+const INDIVIDUAL_SKIPPED: readonly GettingStartedPhase[] = ["match", "journal"];
 
 const ALL_PHASES: readonly GettingStartedPhase[] = ["connect", "check", "holdings", "match", "journal", "reports"];
 
@@ -176,7 +173,7 @@ export function gettingStartedStep(
   return {
     ...step,
     title: "Here are the coins you hold",
-    body: `Observed balances lists ${progress.observedBalanceCount === 1 ? "1 quantity" : `${progress.observedBalanceCount} quantities`} read from your connections. That is the source of truth for what the venue holds — not market value and not ${individual ? "your Activity entries" : "the journal"}.`,
+    body: `Observed balances lists ${progress.observedBalanceCount === 1 ? "1 quantity" : `${progress.observedBalanceCount} quantities`} read from your connections. ${individual ? "That is what your wallets and exchanges report holding. Market value sits next to it on Holdings." : "That is the source of truth for what the venue holds — not market value and not the journal."}`,
   };
 }
 

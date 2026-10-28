@@ -5,6 +5,13 @@ import type { MoneyRow } from "./charts";
 import type { EntityReport } from "./entity-report";
 import type { DateRange } from "./period";
 import { formatMoney, formatQuantity, valuationLabel } from "./present";
+import {
+  INDIVIDUAL_REPORT_NAMES,
+  INDIVIDUAL_REPORT_NOTICE,
+  activityHistory,
+  portfolioSummary,
+  valueOverTime,
+} from "./individual-reports";
 
 export interface ReportColumn {
   label: string;
@@ -157,6 +164,105 @@ export function entityReportDocument(input: {
     ],
     tables,
     notice: books.notice,
+  };
+}
+
+/** Rows of activity the PDF lists. The CSV download holds every row. */
+const PDF_ACTIVITY_ROWS = 150;
+
+/**
+ * The PDF an individual downloads: what they hold, what moved, and what it was
+ * worth. Plain words only, built from the same loaders as the Reports page.
+ */
+export function individualReportDocument(input: {
+  books: Books;
+  range: DateRange;
+  currency: string;
+  generatedAt: Date;
+}): ReportDocument {
+  const { books, range, currency } = input;
+  const summary = portfolioSummary(books, { asOf: range.to, currency, now: input.generatedAt });
+  const history = activityHistory(books, range);
+  const series = valueOverTime(books, { range, currency, now: input.generatedAt });
+  const activity = [...history.transactions, ...history.balanceChanges].sort(
+    (a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id),
+  );
+
+  const portfolioNotes: string[] = [];
+  if (summary.partial) portfolioNotes.push("Some holdings have no price or an old one, so treat the total as an estimate.");
+  if (summary.unpriced.length > 0) {
+    portfolioNotes.push(`No price, so left out of the total: ${summary.unpriced.map((row) => row.assetCode).join(", ")}.`);
+  }
+  const activityNotes: string[] = [];
+  if (activity.length > PDF_ACTIVITY_ROWS) {
+    activityNotes.push(`Showing the latest ${PDF_ACTIVITY_ROWS} of ${activity.length}. Download the activity history to get every row.`);
+  }
+  const skippedNotes =
+    series.skipped > 0
+      ? [`${series.skipped} ${series.skipped === 1 ? "day was" : "days were"} left out because a holding had no saved price yet.`]
+      : [];
+
+  return {
+    title: "Portfolio report",
+    details: [
+      `${range.from} - ${range.to} \u00b7 Values in ${currency}`,
+      `${books.organization.name} \u00b7 Generated ${input.generatedAt.toISOString().replace("T", " ").slice(0, 16)} UTC`,
+    ],
+    charts: [
+      {
+        title: `Allocation \u00b7 ${currency}`,
+        rows: summary.rows.map((row) => ({
+          id: row.assetCode,
+          label: row.assetCode,
+          value: Number(row.valueMinor) / 100,
+          formatted: `${row.value} \u00b7 ${row.shareLabel}`,
+        })),
+        empty: "No holdings in these dates.",
+      },
+    ],
+    tables: [
+      {
+        title: INDIVIDUAL_REPORT_NAMES.portfolio,
+        status: `As of ${range.to}`,
+        columns: [
+          { label: "Asset", width: 90 },
+          { label: "Amount", width: 150, align: "right" },
+          { label: "Value", width: 150, align: "right" },
+          { label: "Share", width: CONTENT_WIDTH - 390, align: "right" },
+        ],
+        rows: summary.rows.map((row) => [row.assetCode, row.amount, row.value, row.shareLabel]),
+        footer: summary.rows.length > 0 ? ["Total", "", summary.total, ""] : undefined,
+        empty: "No holdings yet.",
+        notes: portfolioNotes,
+      },
+      {
+        title: INDIVIDUAL_REPORT_NAMES.activity,
+        status: `${range.from} - ${range.to}`,
+        columns: [
+          { label: "Date", width: 58 },
+          { label: "Type", width: 66 },
+          { label: "Asset", width: 46 },
+          { label: "Amount", width: 100, align: "right" },
+          { label: "Account/Source", width: 110 },
+          { label: "Note", width: CONTENT_WIDTH - 380 },
+        ],
+        rows: activity.slice(0, PDF_ACTIVITY_ROWS).map((row) => [row.date, row.type, row.assetCode, row.amount, row.source, row.note]),
+        empty: "No activity in these dates.",
+        notes: activityNotes,
+      },
+      {
+        title: INDIVIDUAL_REPORT_NAMES.valueOverTime,
+        status: currency,
+        columns: [
+          { label: "Date", width: 120 },
+          { label: "Value", width: CONTENT_WIDTH - 120, align: "right" },
+        ],
+        rows: [...series.points].reverse().map((point) => [point.date, point.value]),
+        empty: "Not enough history yet.",
+        notes: skippedNotes,
+      },
+    ],
+    notice: INDIVIDUAL_REPORT_NOTICE,
   };
 }
 

@@ -9,7 +9,11 @@ import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { JournalForm, ReadOnlyNote, RoleNote } from "@/components/record-forms";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
-import { journalName } from "@/data/account-sections";
+import { isIndividualAccount, journalName } from "@/data/account-sections";
+import { activityHistory, type ActivityHistory } from "@/data/individual-reports";
+import { IndividualActivityTables } from "@/components/app/individual-activity";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { booksAreWritable } from "@/data/load-books";
 import { paginate, parsePage } from "@/data/pagination";
 import { parseDateRange } from "@/data/period";
@@ -34,6 +38,17 @@ export default async function LedgerPage({
   const { session, books } = await loadAuthorizedBooks();
   const parsed = parseDateRange({ from: one(params.from), to: one(params.to) }, { from: books.period.start, to: books.period.end });
   const range = parsed.ok ? parsed.range : { from: books.period.start, to: books.period.end };
+  if (isIndividualAccount(session.accountType)) {
+    return (
+      <IndividualActivity
+        range={range}
+        history={activityHistory(books, range)}
+        canExport={can(session.role, "books.export")}
+        error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)}
+        saved={one(params.saved)}
+      />
+    );
+  }
   const visible = sliceBooks(books, range).journalEntries;
   const entries = paginate(visible, parsePage(one(params.page)));
   const writable = booksAreWritable() && !session.demo && !session.demoBooks;
@@ -111,6 +126,67 @@ export default async function LedgerPage({
         <JournalEntryList entries={cards} csrf={csrf} label={`${title} entries`} />
       )}
       <Pagination page={entries} base="/dashboard/ledger" query={{ from: range.from, to: range.to }} label={`${title} pages`} />
+    </>
+  );
+}
+
+/**
+ * An individual's Activity: a read-only view of what moved in their connected
+ * wallets and exchanges, and how balances changed. There is nothing to record,
+ * post, or correct here, so there are no forms.
+ */
+function IndividualActivity({
+  range,
+  history,
+  canExport,
+  error,
+  saved,
+}: {
+  range: { from: string; to: string };
+  history: ActivityHistory;
+  canExport: boolean;
+  error?: string;
+  saved?: string;
+}) {
+  return (
+    <>
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Read from your wallets and exchanges · {range.from} – {range.to}
+        </p>
+      </header>
+
+      <Flash error={error} saved={saved} />
+
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm">
+        <form method="get" action="/dashboard/ledger" className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="size-3.5 shrink-0" />
+            <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+            <span className="text-muted-foreground/60">—</span>
+            <Input type="date" name="to" aria-label="To date" defaultValue={range.to} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
+          </div>
+          <SubmitButton variant="ghost" size="sm">Update</SubmitButton>
+        </form>
+        {canExport ? (
+          <Button asChild variant="outline" size="sm">
+            <a href={`/dashboard/reports/export?kind=activity&from=${range.from}&to=${range.to}`} className="gap-1.5">
+              <Download className="size-3.5" />
+              Download CSV
+            </a>
+          </Button>
+        ) : null}
+      </div>
+
+      <p className="mb-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        This page shows what your connected wallets and exchanges report. It updates when you press Check on Holdings, and there is nothing to enter by hand.
+      </p>
+
+      <IndividualActivityTables
+        history={history}
+        emptyHint="No transactions in these dates. Widen the dates above, or press Check on a connection to read new activity."
+      />
     </>
   );
 }

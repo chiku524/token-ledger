@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { bannedTermsIn } from "@/test/banned-terms";
 import { hiddenSectionsIn } from "@/test/hidden-sections";
 import {
   CAPABILITY_GROUPS,
@@ -52,10 +53,27 @@ describe("guide content for an individual", () => {
     expect(everything).not.toMatch(/period close|quorum|Journal/);
   });
 
-  it("calls the Journal Activity", () => {
-    expect(JSON.stringify(firstRunStepsFor(individual))).toContain("Activity");
+  it("walks Connect, Check, Holdings, Reports", () => {
+    expect(firstRunStepsFor(individual)).toHaveLength(5);
+    expect(JSON.stringify(firstRunStepsFor(individual))).toContain("Reports");
     expect(capabilityGroupsFor(individual).map((group) => group.title)).toContain("Activity");
-    expect(tourPathFor(individual)).toBe("Connect \u2192 Check \u2192 Balances \u2192 Activity \u2192 Reports");
+    expect(capabilityGroupsFor(individual).map((group) => group.title)).toContain("Reports");
+    expect(tourPathFor(individual)).toBe("Connect \u2192 Check \u2192 Holdings \u2192 Reports");
+  });
+
+  it("uses plain report names and no accounting terms or entry wording", () => {
+    const everything = JSON.stringify([
+      guideSectionsFor(individual),
+      firstRunStepsFor(individual),
+      capabilityGroupsFor(individual),
+      examplePromptsFor(individual),
+      refusalsFor(individual),
+      guideDescriptionFor(individual),
+      tourPathFor(individual),
+    ]);
+    expect(bannedTermsIn(everything)).toEqual([]);
+    expect(everything).not.toMatch(/posted|post a|unposted/i);
+    for (const name of ["Portfolio summary", "Activity history", "Value over time"]) expect(everything).toContain(name);
   });
 
   it("keeps the same sections to read", () => {

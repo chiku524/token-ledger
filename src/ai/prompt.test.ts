@@ -44,6 +44,14 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Never mention, suggest or link to any other page or feature");
   });
 
+  it("tells an individual the assistant only reads, in plain words with no entries", () => {
+    const ctx = session("individual");
+    const prompt = buildSystemPrompt(ctx, toolDefinitionsFor(ctx));
+    expect(prompt).not.toMatch(/journal|posting|post an|post a |reverse|entries|trial balance/i);
+    expect(prompt).toMatch(/read-only|only read/i);
+    expect(prompt).toContain("portfolio summary");
+  });
+
   it("does not announce hidden sections to an individual", () => {
     expect(buildSystemPrompt(session("individual"), [])).not.toContain("Sections hidden");
   });

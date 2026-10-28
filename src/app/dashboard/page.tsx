@@ -24,6 +24,7 @@ import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { financialStatements, trialBalance } from "@/ledger";
 import { FinancialStatementsCards } from "@/components/app/financial-statements";
+import { IndividualOverview } from "./individual-overview";
 
 export const metadata = { title: "Overview" };
 
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
   const { session, books } = await loadAuthorizedBooks();
   // An individual has no Matching, Companies or Combined, so the overview leaves them out.
   const individual = session.accountType === "individual";
+  if (individual) return <IndividualOverview books={books} />;
   // An individual's Journal is called Activity.
   const book = journalName(session.accountType);
   const bookLower = journalNameLower(session.accountType);

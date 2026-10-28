@@ -173,6 +173,17 @@ describe("confirmToolCallAction", () => {
     expect(db.resolveToolCall).toHaveBeenCalledWith(expect.objectContaining({ status: "rejected" }));
   });
 
+  it("will not run a post proposal for an individual, even one saved before the tools were narrowed", async () => {
+    aiDb.toolCalls.push({ id: "aitc_1", threadId: "aith_1", toolName: "post_journal", arguments: {}, status: "proposed", requiresConfirm: true });
+    signInLive("owner", { accountType: "individual" });
+    const result = await confirmToolCallAction(form({ toolCallId: "aitc_1", decision: "confirm" }));
+    expect(result.status).toBe("error");
+    expect(result.text).toBe("That action is not available on this account.");
+    const db = await import("@/db/ai");
+    expect(db.resolveToolCall).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
+    expect(db.auditToolRun).not.toHaveBeenCalled();
+  });
+
   it("refuses to resolve a call that is not proposed", async () => {
     aiDb.toolCalls.push({ id: "aitc_1", threadId: "aith_1", toolName: "post_journal", arguments: {}, status: "ran", requiresConfirm: true });
     signInLive("accountant");
