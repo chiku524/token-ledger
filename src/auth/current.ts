@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { hasDatabase } from "@/db/availability";
 import { userForSessionToken, type AccountUser } from "@/db/auth-store";
 import { DEFAULT_ORGANIZATION_ACCOUNT_TYPE, type OrganizationAccountType } from "@/data/account-type";
+import { pathFor } from "@/data/me-paths";
 import { isPlatformAdminEmail } from "@/env";
 import { CSRF_COOKIE, csrfMatches, newCsrfToken, originAllowed } from "./csrf";
 import { DEMO_COOKIE, DEMO_DATA_COOKIE, SESSION_COOKIE } from "./cookies";
@@ -106,7 +107,7 @@ export function isPlatformAdmin(session: SessionUser | null): boolean {
  */
 export async function requirePlatformAdmin(): Promise<SessionUser> {
   const session = await requireSession();
-  if (!isPlatformAdmin(session)) redirect("/dashboard");
+  if (!isPlatformAdmin(session)) redirect(pathFor(session.accountType, "/dashboard"));
   return session;
 }
 

@@ -33,7 +33,7 @@ export default async function SetupPage({
 }) {
   const params = await searchParams;
   const { session, books } = await loadAuthorizedBooks();
-  if (!can(session.role, "source.write")) redirect("/dashboard");
+  if (!can(session.role, "source.write")) redirect(pathFor(session.accountType, "/dashboard"));
 
   const individual = session.accountType === "individual";
   const current = setupStep(one(params.step));
@@ -67,7 +67,7 @@ export default async function SetupPage({
           <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{step.lede}</p>
           <ConnectModal
             csrf={csrf}
-            next={step.next}
+            next={pathFor(session.accountType, step.next)}
             books={books}
             projectId={reownProjectId()}
             defaultOpen

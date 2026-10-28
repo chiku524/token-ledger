@@ -5,7 +5,9 @@ import { Check, ExternalLink, Loader2, ShieldAlert, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ToolCallMessagePartProps } from "@assistant-ui/react";
 import { Button } from "@/components/ui/button";
+import { pathFor } from "@/data/me-paths";
 import { cn } from "@/lib/utils";
+import type { OrganizationAccountType } from "@/data/account-type";
 import { toolLabel, type ToolPreview } from "./chat-adapter";
 import { useChatAccountType } from "./chat-account-type";
 
@@ -85,6 +87,7 @@ function PreviewLines({ preview }: { preview: ToolPreview }) {
 /** The on-chain transaction the user will sign, and the signing handoff. */
 function PreviewPlan({ preview, route }: { preview: ToolPreview; route?: string }) {
   const router = useRouter();
+  const accountType = useChatAccountType();
   if (!preview.plan) return null;
   const plan = preview.plan;
   return (
@@ -114,7 +117,7 @@ function PreviewPlan({ preview, route }: { preview: ToolPreview; route?: string 
             {": "}
             <button
               type="button"
-              onClick={() => router.push(route)}
+              onClick={() => router.push(pathFor(accountType, route))}
               className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
             >
               Open {route.includes("treasury") ? "Treasury" : "Billing"}
@@ -130,13 +133,13 @@ function PreviewPlan({ preview, route }: { preview: ToolPreview; route?: string 
 }
 
 /** A link to the History page, filtered to the recorded action, after a write. */
-function AuditLink({ filter }: { filter?: string }) {
+function AuditLink({ filter, accountType }: { filter?: string; accountType?: OrganizationAccountType }) {
   const router = useRouter();
   if (!filter) return null;
   return (
     <button
       type="button"
-      onClick={() => router.push(`/dashboard/audit?action=${encodeURIComponent(filter)}`)}
+      onClick={() => router.push(pathFor(accountType, `/dashboard/audit?action=${encodeURIComponent(filter)}`))}
       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
     >
       View in History
@@ -226,11 +229,11 @@ export function ChatToolCard({ toolName, args, result, approval, respondToApprov
             </p>
             {approval.approved ? (
               <span className="flex items-center gap-3">
-                <AuditLink filter={auditHint.tool ? `assistant.${auditHint.tool}` : undefined} />
+                <AuditLink filter={auditHint.tool ? `assistant.${auditHint.tool}` : undefined} accountType={accountType} />
                 {output.route ? (
                   <button
                     type="button"
-                    onClick={() => router.push(output.route as string)}
+                    onClick={() => router.push(pathFor(accountType, output.route as string))}
                     className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                   >
                     View
@@ -265,7 +268,7 @@ export function ChatToolCard({ toolName, args, result, approval, respondToApprov
       {output.route ? (
         <button
           type="button"
-          onClick={() => router.push(output.route as string)}
+          onClick={() => router.push(pathFor(accountType, output.route as string))}
           className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
           Open page

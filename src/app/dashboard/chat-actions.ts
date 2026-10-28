@@ -11,6 +11,7 @@
  * `solanaDeployment()`.
  */
 import { actorName, assertCsrf, AuthError, requireSession } from "@/auth/current";
+import { ownPath } from "@/data/own-path";
 import { configuredEmbedder } from "@/ai/embeddings/config";
 import { providerForOrganization } from "@/ai/settings";
 import { indexMessageEmbedding } from "@/ai/embeddings/index-message";
@@ -227,7 +228,7 @@ export async function archiveThreadAction(formData: FormData): Promise<void> {
   try {
     await assertCsrf(formData);
   } catch (error) {
-    fail("/dashboard", error instanceof AuthError ? error.message : "The form expired. Refresh and try again.");
+    fail(await ownPath("/dashboard"), error instanceof AuthError ? error.message : "The form expired. Refresh and try again.");
   }
   const session = await requireSession();
   const threadId = String(formData.get("threadId") ?? "");

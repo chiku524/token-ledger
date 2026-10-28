@@ -116,11 +116,12 @@ describe("where a sign-in or a form may send the person", () => {
     for (const value of ["/memo", "//evil.test", "https://evil.test/me", "/me\\x", "", null]) expect(safeNextPath(value)).toBe("/dashboard");
   });
 
-  it("reads a connection return by either address and answers with the dashboard one", () => {
-    expect(connectionReturnPath("/me/setup?step=exchange", "individual")).toBe("/dashboard/setup?step=exchange");
-    expect(connectionReturnPath("/me/holdings?currency=MYR", "individual")).toBe("/dashboard/sources?currency=MYR");
-    expect(connectionReturnPath("/me/operations", "individual")).toBe("/dashboard/settings");
-    expect(connectionReturnPath("/me/anything", "individual")).toBe("/dashboard/settings");
+  it("reads a connection return by either address and answers at the person's own address", () => {
+    expect(connectionReturnPath("/me/setup?step=exchange", "individual")).toBe("/me/setup?step=exchange");
+    expect(connectionReturnPath("/me/holdings?currency=MYR", "individual")).toBe("/me/holdings?currency=MYR");
+    expect(connectionReturnPath("/me/operations", "individual")).toBe("/me/settings");
+    expect(connectionReturnPath("/me/anything", "individual")).toBe("/me/settings");
+    expect(connectionReturnPath("/me/setup?step=exchange", "organization")).toBe("/dashboard/setup?step=exchange");
   });
 });
 

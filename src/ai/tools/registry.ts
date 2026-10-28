@@ -1,6 +1,7 @@
 import { can } from "@/auth/roles";
 import { isIndividualAccount } from "@/data/account-sections";
 import type { OrganizationAccountType } from "@/data/account-type";
+import { pathFor } from "@/data/me-paths";
 import { onChainTools } from "./chain";
 import { navigateSpec, navigationTools } from "./navigate";
 import { readTools } from "./read";
@@ -44,9 +45,21 @@ const INDIVIDUAL_DESCRIPTIONS: Readonly<Record<string, string>> = {
 /** The tool as this account type sees it: same behavior, account-appropriate wording. */
 function adaptTool(tool: AgentTool, accountType: OrganizationAccountType | undefined): AgentTool {
   if (!isIndividualAccount(accountType)) return tool;
-  if (tool.name === "navigate") return { ...tool, ...navigateSpec(accountType) };
+  const adapted = tool.name === "navigate" ? { ...tool, ...navigateSpec(accountType) } : tool;
   const description = INDIVIDUAL_DESCRIPTIONS[tool.name];
-  return description ? { ...tool, description } : tool;
+  return { ...adapted, ...(description ? { description } : {}), execute: withOwnAddress(adapted, accountType) };
+}
+
+/**
+ * Run the tool and give its deep link in the account's own address. The tools name
+ * a page once, as `/dashboard/...`; an individual's link is the same page under
+ * `/me`, so following it does not cost a redirect.
+ */
+function withOwnAddress(tool: AgentTool, accountType: OrganizationAccountType | undefined): AgentTool["execute"] {
+  return async (input, ctx) => {
+    const result = await tool.execute(input, ctx);
+    return result.route ? { ...result, route: pathFor(accountType, result.route) } : result;
+  };
 }
 
 /**

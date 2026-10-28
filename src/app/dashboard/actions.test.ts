@@ -523,9 +523,9 @@ describe("entries on an individual account", () => {
     await expectSaved(postJournalAction(form(JOURNAL)), "/dashboard/ledger", specs.find((spec) => spec.name === "postJournalAction")!.saved);
   });
 
-  it("imports activity for an individual without mentioning Matching", async () => {
+  it("imports activity for an individual without mentioning Matching, and returns to their own Holdings", async () => {
     signInLive("owner", { accountType: "individual" });
-    await expectSaved(importCsvAction(form({ sourceId: "src_buidl_eth", csv: CSV })), "/dashboard/sources", "Activity imported.");
+    await expectSaved(importCsvAction(form({ sourceId: "src_buidl_eth", csv: CSV })), "/me/holdings", "Activity imported.");
   });
 });
 

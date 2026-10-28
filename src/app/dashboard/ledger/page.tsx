@@ -20,6 +20,7 @@ import { defaultActivityRange, parseDateRange } from "@/data/period";
 import { one } from "@/data/query";
 import { sliceBooks } from "@/data/slice-books";
 import { accountLabel, entityName, formatMoney, formatQuantity, movementLabel, sourceName } from "@/data/present";
+import { mePath } from "@/data/me-paths";
 import { requireSectionAccess } from "@/data/section-access";
 
 /** An individual's page is called Activity; an organization's stays Journal. */
@@ -164,7 +165,7 @@ function IndividualActivity({
       <Flash error={error} saved={saved} />
 
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/50 p-4 backdrop-blur-sm">
-        <form method="get" action="/dashboard/ledger" className="flex flex-wrap items-center gap-2">
+        <form method="get" action={mePath("/dashboard/ledger")} className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Calendar className="size-3.5 shrink-0" />
             <Input type="date" name="from" aria-label="From date" defaultValue={range.from} required className="h-8 w-28 min-w-0 text-xs sm:w-[130px]" />
@@ -175,7 +176,7 @@ function IndividualActivity({
         </form>
         {canExport ? (
           <Button asChild variant="outline" size="sm">
-            <a href={`/dashboard/reports/export?kind=activity&from=${range.from}&to=${range.to}`} className="gap-1.5">
+            <a href={mePath(`/dashboard/reports/export?kind=activity&from=${range.from}&to=${range.to}`)} className="gap-1.5">
               <Download className="size-3.5" />
               Download CSV
             </a>

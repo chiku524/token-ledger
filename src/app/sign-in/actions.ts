@@ -25,6 +25,8 @@ import { absoluteLink, deliver } from "@/email/links";
 import { resetEmail } from "@/email/messages";
 import { hasDatabase } from "@/db/availability";
 import { authSecretConfigured } from "@/env";
+import { pathFor } from "@/data/me-paths";
+import { ownPath } from "@/data/own-path";
 import { passwordFormSchema, firstIssue } from "@/data/validate";
 
 export async function signInAction(formData: FormData) {
@@ -42,7 +44,8 @@ export async function signInAction(formData: FormData) {
   const jar = await cookies();
   jar.set(SESSION_COOKIE, result.token, sessionCookieOptions(cookieSecure()));
   jar.delete(DEMO_COOKIE);
-  redirect(next);
+  // An individual lands in their own area, so there is no hop through /dashboard.
+  redirect(await landingFor(result.token, next));
 }
 
 export async function demoSignInAction(formData: FormData) {
@@ -99,14 +102,20 @@ export async function acceptInviteAction(formData: FormData) {
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, sessionCookieOptions(cookieSecure()));
   jar.delete(DEMO_COOKIE);
-  redirect(can(user.role, "source.write") ? "/dashboard/setup" : "/dashboard");
+  redirect(pathFor(user.accountType, can(user.role, "source.write") ? "/dashboard/setup" : "/dashboard"));
+}
+
+/** The address of `next` in the area of the account the session belongs to. */
+async function landingFor(token: string, next: string): Promise<string> {
+  const user = await userForSessionToken(token);
+  return user ? pathFor(user.accountType, next) : next;
 }
 
 export async function signOutAction(formData: FormData) {
   try {
     await assertCsrf(formData);
   } catch (error) {
-    redirect(`/dashboard?error=${encodeURIComponent(messageOf(error))}`);
+    redirect(`${await ownPath("/dashboard")}?error=${encodeURIComponent(messageOf(error))}`);
   }
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;

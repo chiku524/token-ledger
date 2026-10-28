@@ -30,6 +30,20 @@ export function parseAuditFilter(params: Record<string, string | string[] | unde
   };
 }
 
+/**
+ * Open on a date range when the address did not choose one. A `from` or `to` in the
+ * address, even an empty one from clearing the boxes, is the person's own choice and
+ * always wins.
+ */
+export function withDefaultAuditRange(
+  filter: AuditFilter,
+  params: Record<string, string | string[] | undefined>,
+  range: { from: string; to: string },
+): AuditFilter {
+  if ("from" in params || "to" in params) return filter;
+  return { ...filter, from: range.from, to: range.to };
+}
+
 export function hasAuditFilter(filter: AuditFilter): boolean {
   return Boolean(filter.actor || filter.action || filter.subjectType || filter.from || filter.to);
 }

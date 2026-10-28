@@ -401,3 +401,34 @@ describe("verifyEmailAction", () => {
     expect(result.params.get("error")).toBe(FORM_EXPIRED);
   });
 });
+
+describe("where an individual lands", () => {
+  beforeEach(withDatabase);
+  const individual = () => accountUser("owner", { passwordHash, accountType: "individual" });
+
+  it("signs an individual in straight to their own area, with no hop through /dashboard", async () => {
+    vi.mocked(findUserByEmail).mockResolvedValue(individual());
+    vi.mocked(userForSessionToken).mockResolvedValue(individual());
+    const home = await redirectOf(signInAction(form({ email: "owner@harbourline.example", password: PASSWORD, next: "/dashboard" })));
+    expect(home.url).toBe("/me");
+    const page = await redirectOf(signInAction(form({ email: "owner@harbourline.example", password: PASSWORD, next: "/dashboard/reports?entity=x" })));
+    expect(page.url).toBe("/me/reports?entity=x");
+  });
+
+  it("keeps an organization on /dashboard", async () => {
+    vi.mocked(findUserByEmail).mockResolvedValue(accountUser("owner", { passwordHash }));
+    vi.mocked(userForSessionToken).mockResolvedValue(accountUser("owner", { passwordHash }));
+    const result = await redirectOf(signInAction(form({ email: "owner@harbourline.example", password: PASSWORD, next: "/dashboard/sources" })));
+    expect(result.url).toBe("/dashboard/sources");
+  });
+
+  it.each([
+    ["admin", "/me/setup"],
+    ["viewer", "/me"],
+  ] as const)("lands an invited individual (%s) on %s", async (role, landing) => {
+    const user = accountUser(role, { status: "active", accountType: "individual" });
+    vi.mocked(consumeInvite).mockResolvedValue(user);
+    const result = await redirectOf(acceptInviteAction(form({ invite: "invite-token", password: PASSWORD, confirm: PASSWORD })));
+    expect(result.url).toBe(landing);
+  });
+});

@@ -8,6 +8,7 @@ import { canAccessEntity, type Permission } from "@/auth/roles";
 import { isIndividualAccount } from "@/data/account-sections";
 import { canWriteBooks } from "@/data/authorized-books";
 import { connectionReturnPathForSession } from "@/data/connection-return-session";
+import { ownPath } from "@/data/own-path";
 import { connectionFromForm, sourcesForConnection } from "@/data/connections";
 import { draftFromForm, postFormJournal } from "@/data/journal-form";
 import { approveDraft, createDraft, submitDraft } from "@/db/drafts";
@@ -233,7 +234,7 @@ export async function revokeConnectionAction(formData: FormData) {
 }
 
 export async function importCsvAction(formData: FormData) {
-  const path = "/dashboard/sources";
+  const path = await ownPath("/dashboard/sources");
   const session = await guard(path, "source.import", formData);
   requireWritable(path, session);
   const sourceId = String(formData.get("sourceId") ?? "");

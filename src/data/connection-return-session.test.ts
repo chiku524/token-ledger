@@ -19,8 +19,8 @@ describe("connectionReturnPathForSession", () => {
 
   it("returns an individual to Settings instead of Operations, and keeps its other paths", async () => {
     signInLive("owner", { accountType: "individual" });
-    expect(await connectionReturnPathForSession("/dashboard/operations")).toBe("/dashboard/settings");
-    expect(await connectionReturnPathForSession("/dashboard/setup?step=exchange")).toBe("/dashboard/setup?step=exchange");
+    expect(await connectionReturnPathForSession("/dashboard/operations")).toBe("/me/settings");
+    expect(await connectionReturnPathForSession("/dashboard/setup?step=exchange")).toBe("/me/setup?step=exchange");
   });
 
   it("falls back to Settings for an unknown path or no session", async () => {
