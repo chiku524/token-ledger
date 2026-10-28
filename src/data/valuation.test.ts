@@ -146,3 +146,84 @@ describe("valueObservedSnapshot", () => {
     expect(priced).toMatchObject({ quoteCurrency: "SGD", valueMinor: 2025000n, source: "example+fx-fallback" });
   });
 });
+
+describe("valueObservedSnapshot zero and tiny balances", () => {
+  const solPrice: StoredAssetPrice = {
+    id: "p_sol_usd",
+    organizationId: "org_1",
+    assetCode: "SOL",
+    quoteCurrency: "USD",
+    priceMinor: 10150n,
+    quoteScale: 2,
+    asOf: "2026-06-14T00:00:00Z",
+    origin: "live",
+    source: "coingecko",
+  };
+  const assets = [
+    { code: "SOL", decimals: 9 },
+    { code: "ETH", decimals: 18 },
+  ];
+
+  it("values a zero balance at 0 instead of leaving it unpriced", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "SOL", quantityMinor: 0n },
+      prices: [solPrice],
+      assets,
+      quoteCurrency: "SGD",
+      asOf: "2026-06-14T12:00:00Z",
+    });
+    expect(priced).not.toBeNull();
+    expect(priced?.valueMinor).toBe(0n);
+    expect(priced?.quoteCurrency).toBe("SGD");
+  });
+
+  it("values a zero balance at 0 even when the asset has no price at all", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "ETH", quantityMinor: 0n },
+      prices: [],
+      assets,
+      quoteCurrency: "USD",
+      asOf: "2026-06-14T12:00:00Z",
+    });
+    expect(priced?.valueMinor).toBe(0n);
+    expect(priced?.quoteCurrency).toBe("USD");
+  });
+
+  it("still reports a non-zero balance with no price as unpriced", () => {
+    expect(
+      valueObservedSnapshot({
+        snapshot: { assetCode: "ETH", quantityMinor: 1n },
+        prices: [],
+        assets,
+        quoteCurrency: "USD",
+        asOf: "2026-06-14T12:00:00Z",
+      }),
+    ).toBeNull();
+  });
+
+  it("prices a dust SOL balance (0.000295453 SOL) from a stored USD price", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "SOL", quantityMinor: 295453n },
+      prices: [solPrice],
+      assets,
+      quoteCurrency: "USD",
+      asOf: "2026-06-14T12:00:00Z",
+    });
+    // 0.000295453 * 101.50 = 0.02998 -> USD 0.03
+    expect(priced?.valueMinor).toBe(3n);
+  });
+
+  it("converts a USD price into SGD with the built-in display rate when no SGD price or FX is stored", () => {
+    const priced = valueObservedSnapshot({
+      snapshot: { assetCode: "SOL", quantityMinor: 1_000000000n },
+      prices: [solPrice],
+      assets,
+      quoteCurrency: "SGD",
+      asOf: "2026-06-14T12:00:00Z",
+      rates: [],
+    });
+    // 1 SOL = 101.50 USD * 1.35 = 137.025 -> 137.03 (half-up)
+    expect(priced?.valueMinor).toBe(13703n);
+    expect(priced?.source).toBe("coingecko+fx-fallback");
+  });
+});

@@ -208,6 +208,22 @@ describe("role gating", () => {
     expect(sgd).toContain("Total");
   });
 
+  it("shows a zero balance as a 0 value, not No price, even before any price is stored", async () => {
+    const { exampleBooks } = await import("@/data/example-books");
+    const emptyAsset = exampleBooks.balanceSnapshots[0].assetCode;
+    vi.mocked(loadBooks).mockResolvedValue({
+      ...exampleBooks,
+      balanceSnapshots: exampleBooks.balanceSnapshots.map((snapshot) =>
+        snapshot.assetCode === emptyAsset ? { ...snapshot, quantityMinor: 0n } : snapshot,
+      ),
+      assetPrices: exampleBooks.assetPrices.filter((price) => price.assetCode !== emptyAsset),
+    });
+    signInLive("owner");
+    const usd = await pageText(SourcesPage as Page, { currency: "USD" });
+    expect(usd).not.toContain("No price");
+    expect(usd).toContain("USD 0.00");
+  });
+
   it("hides the manual re-run on Operations from a viewer", async () => {
     signInDemo("viewer");
     expect(await pageText(OperationsPage as Page)).toContain("You can view connector health. A manual re-run is for an owner or an admin.");

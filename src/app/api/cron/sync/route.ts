@@ -32,6 +32,8 @@ export async function GET(request: Request) {
   try {
     const outcomes = await refreshAllAssetPrices();
     pricesStored = outcomes.reduce((sum, outcome) => sum + outcome.stored, 0);
+    // A skipped org (source down, rate-limited) is not a throw; surface it so it is not silent.
+    priceError = outcomes.find((outcome) => outcome.skipped)?.message ?? null;
   } catch (error) {
     priceError = error instanceof Error ? error.message : "Price refresh failed.";
   }

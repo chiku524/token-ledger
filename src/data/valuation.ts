@@ -64,6 +64,9 @@ export function valueBooksHoldings(input: {
 
 /**
  * Market value for one observed snapshot row in the display currency.
+ * A zero balance is a real observation worth exactly zero in any currency, so it
+ * is valued at 0 (using the latest price for provenance when there is one)
+ * rather than shown as "No price".
  * Prefers a native quote-currency price; falls back to USD × FX when needed.
  */
 export function valueObservedSnapshot(input: {
@@ -75,9 +78,8 @@ export function valueObservedSnapshot(input: {
   rates?: readonly StoredFxRate[];
   stalenessMs?: number;
 }): PricedValue | null {
-  if (input.snapshot.quantityMinor === 0n) return null;
   const decimals = input.assets.find((asset) => asset.code === input.snapshot.assetCode)?.decimals ?? 0;
-  return valueHolding({
+  const priced = valueHolding({
     prices: input.prices as readonly AssetPrice[],
     assetCode: input.snapshot.assetCode,
     quantityMinor: input.snapshot.quantityMinor,
@@ -87,6 +89,20 @@ export function valueObservedSnapshot(input: {
     rates: input.rates as readonly FxRate[] | undefined,
     stalenessMs: input.stalenessMs,
   });
+  if (priced || input.snapshot.quantityMinor !== 0n) return priced;
+  return {
+    assetCode: input.snapshot.assetCode,
+    quoteCurrency: input.quoteCurrency,
+    quantityMinor: 0n,
+    quantityScale: decimals,
+    priceMinor: 0n,
+    quoteScale: 2,
+    valueMinor: 0n,
+    asOf: input.asOf,
+    origin: "live",
+    source: "none",
+    age: "fresh",
+  };
 }
 
 /**

@@ -694,6 +694,25 @@ describe("refreshMarketDataAction", () => {
     await expectSaved(refreshMarketDataAction(form({})), "/dashboard/settings", "Saved 1 price. No FX provider.");
     expect(refreshAssetPrices).toHaveBeenCalledWith(ORG);
   });
+
+  it("fails when prices could not be fetched even though FX rates saved", async () => {
+    signInLive("admin");
+    vi.mocked(refreshAssetPrices).mockResolvedValueOnce({ organizationId: ORG, assets: ["SOL"], stored: 0, source: "coingecko", skipped: true, message: "Price source returned HTTP 429." });
+    await expectError(refreshMarketDataAction(form({})), "/dashboard/settings", "Price source returned HTTP 429.");
+  });
+
+  it("fails when the source answered but returned no prices", async () => {
+    signInLive("admin");
+    vi.mocked(refreshAssetPrices).mockResolvedValueOnce({ organizationId: ORG, assets: ["SOL"], stored: 0, source: "coingecko", skipped: false, message: "No prices were returned." });
+    await expectError(refreshMarketDataAction(form({})), "/dashboard/settings", "No prices were returned.");
+  });
+
+  it("still stores prices when the FX refresh throws", async () => {
+    signInLive("admin");
+    vi.mocked(refreshFxRates).mockRejectedValueOnce(new Error("db down"));
+    await expectSaved(refreshMarketDataAction(form({})), "/dashboard/settings", "Saved 1 price. FX rates could not be refreshed.");
+    expect(refreshAssetPrices).toHaveBeenCalledWith(ORG);
+  });
 });
 
 describe("refreshConnectionAction", () => {

@@ -21,7 +21,8 @@ export class PriceProviderError extends Error {
 export const COINGECKO_IDS: Record<string, string> = {
   ETH: "ethereum",
   SOL: "solana",
-  POL: "matic-network",
+  // `matic-network` is the legacy MATIC listing and returns a stale, different price.
+  POL: "polygon-ecosystem-token",
   MON: "monad",
   BTC: "bitcoin",
   SUI: "sui",
@@ -140,5 +141,108 @@ export class CoinGeckoPriceProvider {
       }
     }
     return prices;
+  }
+}
+
+/** The minimal surface `refreshAssetPrices` needs, so providers can be composed or faked. */
+export interface PriceProvider {
+  readonly source: string;
+  fetchPrices(assetCodes: readonly string[]): Promise<NormalizedPrice[]>;
+}
+
+export interface CoinbaseSpotOptions {
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  now?: () => Date;
+}
+
+/**
+ * Keyless USD spot prices from Coinbase's public price endpoint. Used only as a
+ * fallback when CoinGecko is rate-limited, down, or omits an asset: CoinGecko's
+ * keyless tier is throttled hard for shared cloud IPs, and one failed refresh
+ * would otherwise leave Holdings stuck on "No price". Read-only GETs, USD only
+ * (SGD and MYR are derived from USD with FX by the caller).
+ */
+export class CoinbaseSpotPriceProvider implements PriceProvider {
+  readonly source = "coinbase";
+  private readonly baseUrl: string;
+  private readonly fetchImpl: typeof fetch;
+  private readonly timeoutMs: number;
+  private readonly now: () => Date;
+
+  constructor(options: CoinbaseSpotOptions = {}) {
+    this.baseUrl = (options.baseUrl ?? "https://api.coinbase.com/v2").replace(/\/+$/, "");
+    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.now = options.now ?? (() => new Date());
+  }
+
+  async fetchPrices(assetCodes: readonly string[]): Promise<NormalizedPrice[]> {
+    const codes = [...new Set(assetCodes.filter((code) => code in COINGECKO_IDS))];
+    const asOf = this.now().toISOString();
+    const settled = await Promise.all(codes.map((code) => this.fetchOne(code, asOf)));
+    return settled.flatMap((price) => (price ? [price] : []));
+  }
+
+  private async fetchOne(code: string, asOf: string): Promise<NormalizedPrice | null> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/prices/${encodeURIComponent(code)}-USD/spot`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const payload = (await response.json()) as { data?: { amount?: unknown } };
+      const value = Number(payload.data?.amount);
+      if (!Number.isFinite(value) || value <= 0) return null;
+      const priceMinor = toMinorRounded(value.toFixed(8), 2);
+      if (priceMinor <= 0n) return null;
+      return { assetCode: code, quoteCurrency: "USD", priceMinor, quoteScale: 2, asOf, source: this.source };
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+/**
+ * Try the primary provider, then fill anything it failed to price from the
+ * fallback. Throws the primary's error only when neither source priced anything,
+ * so a CoinGecko outage degrades to Coinbase instead of leaving holdings unpriced.
+ */
+export class FallbackPriceProvider implements PriceProvider {
+  constructor(
+    private readonly primary: PriceProvider,
+    private readonly fallback: PriceProvider,
+  ) {}
+
+  get source(): string {
+    return this.primary.source;
+  }
+
+  async fetchPrices(assetCodes: readonly string[]): Promise<NormalizedPrice[]> {
+    let primaryPrices: NormalizedPrice[] = [];
+    let primaryError: unknown = null;
+    try {
+      primaryPrices = await this.primary.fetchPrices(assetCodes);
+    } catch (error) {
+      primaryError = error;
+    }
+    const priced = new Set(primaryPrices.filter((price) => price.quoteCurrency === "USD").map((price) => price.assetCode));
+    const missing = assetCodes.filter((code) => !priced.has(code));
+    let fallbackPrices: NormalizedPrice[] = [];
+    if (missing.length > 0) {
+      try {
+        fallbackPrices = await this.fallback.fetchPrices(missing);
+      } catch {
+        fallbackPrices = [];
+      }
+    }
+    if (primaryError && primaryPrices.length === 0 && fallbackPrices.length === 0) throw primaryError;
+    return [...primaryPrices, ...fallbackPrices];
   }
 }
