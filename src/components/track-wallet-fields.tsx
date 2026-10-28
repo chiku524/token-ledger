@@ -1,5 +1,7 @@
 import { createConnectionAction } from "@/app/dashboard/actions";
+import { EntityField } from "@/components/app/entity-field";
 import { Field } from "@/components/app/field";
+import { isIndividualAccount } from "@/data/account-sections";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -27,15 +29,7 @@ export function WatchWalletFields({
       <input type="hidden" name="csrf" value={csrf} />
       <input type="hidden" name="mode" value="watch" />
       <input type="hidden" name="next" value={next} />
-      <Field label="Company">
-        <NativeSelect name="entityId" required defaultValue={books.entities[0]?.id}>
-          {books.entities.map((entity) => (
-            <NativeSelectOption key={entity.id} value={entity.id}>
-              {entity.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
+      <EntityField entities={books.entities} individual={isIndividualAccount(books.organization.accountType)} />
       <Field label="Name">
         <Input name="name" required maxLength={200} />
       </Field>

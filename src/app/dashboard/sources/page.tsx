@@ -282,7 +282,7 @@ export default async function SourcesPage({
             No connections yet. Connect a venue first, then Check it so balances can appear above.
           </EmptyState>
         ) : (
-          <ConnectionsTable books={books} />
+          <ConnectionsTable books={books} showCompany={!individual} />
         )}
       </section>
 
