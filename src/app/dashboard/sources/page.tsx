@@ -23,6 +23,7 @@ import { chainPanels, sourceCarryingPanels, sourceKindPanels } from "@/data/char
 import { isIndividualAccount } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { holdingsGainLoss } from "@/data/gain-loss";
+import { holdingsRealizedGainLoss, realizedRangeQuery, resolveRealizedRange } from "@/data/realized-gain-loss";
 import { HOLDINGS_DISPLAY_CURRENCIES, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
 import { latestSnapshots, valueBooksHoldings, valueObservedSnapshot } from "@/data/valuation";
 import type { Books, BooksBalanceSnapshot } from "@/data/books";
@@ -138,7 +139,14 @@ function SnapshotTable({
 export default async function SourcesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ currency?: string | string[]; error?: string | string[]; saved?: string | string[] }>;
+  searchParams: Promise<{
+    currency?: string | string[];
+    range?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+    error?: string | string[];
+    saved?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   await requireSectionAccess("/dashboard/sources");
@@ -161,6 +169,11 @@ export default async function SourcesPage({
     rates: books.fxRates,
   });
   const gainLoss = holdingsGainLoss(books, { individual, currency: quoteCurrency, now: new Date(asOf) });
+  // Dates for Realized gain / loss are an organization feature; an individual's address and page are unchanged.
+  const resolvedRange = individual ? undefined : resolveRealizedRange({ range: one(params.range), from: one(params.from), to: one(params.to) }, new Date(asOf));
+  const realized = resolvedRange ? holdingsRealizedGainLoss(books, { currency: quoteCurrency, now: new Date(asOf), range: resolvedRange.range }) : undefined;
+  const rangeQuery = resolvedRange ? realizedRangeQuery(resolvedRange.range) : "";
+  const withRange = rangeQuery ? `&${rangeQuery}` : "";
   // Accounting-system exports are an organization feature; an individual only connects wallets and exchanges.
   const shownConnector = (connector: { category: string }) => !individual || connector.category !== "accounting";
   const connectors = listStubAdapters().filter(shownConnector);
@@ -170,7 +183,7 @@ export default async function SourcesPage({
   const panels = individual ? [] : [...sourceCarryingPanels(books), ...sourceKindPanels(books), ...chainPanels(books)];
   const currencyLinks = HOLDINGS_DISPLAY_CURRENCIES.map((currency) => ({
     key: currency,
-    href: to(`/dashboard/sources?currency=${currency}`),
+    href: to(`/dashboard/sources?currency=${currency}${withRange}`),
     label: currency,
     current: currency === quoteCurrency,
   }));
@@ -206,7 +219,7 @@ export default async function SourcesPage({
         />
         {canSource && writable ? (
           <div className="mt-4">
-            <MarketDataControls csrf={csrf} next={to(`/dashboard/sources?currency=${quoteCurrency}`)} accountType={session.accountType} />
+            <MarketDataControls csrf={csrf} next={to(`/dashboard/sources?currency=${quoteCurrency}${withRange}`)} accountType={session.accountType} />
           </div>
         ) : null}
         {books.balanceSnapshots.length === 0 ? (
@@ -259,7 +272,21 @@ export default async function SourcesPage({
         )}
       </section>
 
-      <GainLossPanel gainLoss={gainLoss} id="gain-loss" className="mt-10 scroll-mt-6" />
+      <GainLossPanel
+        gainLoss={gainLoss}
+        realized={realized}
+        realizedRange={
+          resolvedRange
+            ? {
+                presetHref: (key) => to(`/dashboard/sources?currency=${quoteCurrency}${key === "all" ? "" : `&range=${key}`}#gain-loss`),
+                formPath: to("/dashboard/sources#gain-loss"),
+                error: resolvedRange.error,
+              }
+            : undefined
+        }
+        id="gain-loss"
+        className="mt-10 scroll-mt-6"
+      />
 
       <section id="connections" className="mt-10 scroll-mt-6">
         <SectionHeader
@@ -305,7 +332,7 @@ export default async function SourcesPage({
             />
             {canSource && writable ? (
               <div className="mt-4">
-                <MarketDataControls csrf={csrf} next={to(`/dashboard/sources?currency=${quoteCurrency}`)} accountType={session.accountType} />
+                <MarketDataControls csrf={csrf} next={to(`/dashboard/sources?currency=${quoteCurrency}${withRange}`)} accountType={session.accountType} />
               </div>
             ) : null}
             {valuation.stale ? (

@@ -11,6 +11,15 @@ import { Stagger } from "@/components/motion/stagger";
 import { Alert } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HOLDINGS_DISPLAY_CURRENCIES } from "@/data/display-currency";
+import { PeriodForm } from "@/components/period-form";
+import {
+  describeRealizedRange,
+  REALIZED_COPY,
+  REALIZED_PRESETS,
+  realizedNotIncludedText,
+  type RealizedGainLoss,
+  type RealizedPreset,
+} from "@/data/realized-gain-loss";
 import {
   directionOf,
   directionWord,
@@ -35,6 +44,8 @@ export function GainLossPanel({
   action,
   className,
   currencyHref,
+  realized,
+  realizedRange,
 }: {
   gainLoss: GainLoss;
   id?: string;
@@ -42,6 +53,10 @@ export function GainLossPanel({
   className?: string;
   /** When set, a MYR / SGD / USD switcher is shown; each link goes to this address. */
   currencyHref?: (currency: string) => string;
+  /** Organizations only: sales already made, shown after the unrealized figures. */
+  realized?: RealizedGainLoss;
+  /** Organizations only: how to change the dates the realized figures cover. */
+  realizedRange?: RealizedRangeControls;
 }) {
   const copy = gainLossCopy(gainLoss.basis);
   const { currency, totals } = gainLoss;
@@ -164,6 +179,8 @@ export function GainLossPanel({
         </EmptyState>
       )}
 
+      {realized ? <RealizedBlock realized={realized} controls={realizedRange} /> : null}
+
       {gainLoss.notIncluded.length > 0 ? (
         <div className="mt-4 max-w-2xl text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Left out of the totals</p>
@@ -177,5 +194,127 @@ export function GainLossPanel({
         </div>
       ) : null}
     </section>
+  );
+}
+export interface RealizedRangeControls {
+  /** Where a preset leads. Keeps the currency. */
+  presetHref: (key: RealizedPreset) => string;
+  /** Where the From / To form goes (with the section anchor). The currency is sent along. */
+  formPath: string;
+  /** Why the dates in the address were not used, if so. */
+  error?: string | null;
+}
+
+function RealizedBlock({ realized, controls }: { realized: RealizedGainLoss; controls?: RealizedRangeControls }) {
+  const { currency, totals } = realized;
+  const direction = directionOf(totals.gainMinor);
+  const hasRows = realized.rows.length > 0;
+  const inRange = realized.range.key !== "all";
+  const hint = !hasRows
+    ? inRange
+      ? REALIZED_COPY.emptyInRangeMessage
+      : REALIZED_COPY.emptyMessage
+    : totals.percent === null
+      ? `${directionWord(totals.gainMinor)}, nothing to compare against`
+      : `${directionWord(totals.gainMinor)}, ${signedPercent(totals.percent)} of cost of units sold`;
+
+  return (
+    <div className="mt-8" role="group" aria-label={REALIZED_COPY.title}>
+      <h3 className="text-base font-semibold text-foreground">
+        {REALIZED_COPY.title} {"\u00b7"} {currency}
+      </h3>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.description}</p>
+      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.rangeNote}</p>
+
+      {controls ? (
+        <div className="mt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <p className="text-sm text-muted-foreground">Dates</p>
+            <SegmentedLinks
+              label={REALIZED_COPY.rangeLabel}
+              items={REALIZED_PRESETS.map((preset) => ({
+                key: preset.key,
+                href: controls.presetHref(preset.key),
+                label: preset.label,
+                current: preset.key === realized.range.key,
+              }))}
+            />
+          </div>
+          {controls.error ? (
+            <Alert variant="warning" className="mt-3 max-w-2xl">
+              {controls.error} Showing all time instead.
+            </Alert>
+          ) : null}
+          <div className="mt-4">
+            <PeriodForm
+              path={controls.formPath}
+              range={{ from: realized.range.from ?? realized.earliestSaleDay ?? realized.range.to, to: realized.range.to }}
+              hidden={{ currency }}
+            />
+          </div>
+        </div>
+      ) : null}
+      <p className="mt-3 text-sm font-medium text-foreground">{describeRealizedRange(realized.range)}</p>
+
+      <Stagger className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+        <StatCard label={REALIZED_COPY.proceedsLabel} value={moneyText(totals.proceedsMinor, currency)} />
+        <StatCard label={REALIZED_COPY.costLabel} value={moneyText(totals.costMinor, currency)} />
+        <StatCard
+          label={REALIZED_COPY.gainLabel}
+          value={signedMoney(totals.gainMinor, currency)}
+          tone={hasRows ? (direction === "gain" ? "success" : direction === "loss" ? "danger" : undefined) : undefined}
+          hint={hint}
+        />
+      </Stagger>
+
+      {hasRows ? (
+        <TableCard className="mt-4">
+          <Table>
+            <caption className="sr-only">{REALIZED_COPY.gainLabel} by asset</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Asset</TableHead>
+                <NumberHead scope="col">Sales</NumberHead>
+                <NumberHead scope="col">{REALIZED_COPY.proceedsLabel}</NumberHead>
+                <NumberHead scope="col">{REALIZED_COPY.costLabel}</NumberHead>
+                <NumberHead scope="col">{REALIZED_COPY.gainLabel}</NumberHead>
+                <NumberHead scope="col">Change</NumberHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {realized.rows.map((row) => {
+                const rowDirection = directionOf(row.gainMinor);
+                return (
+                  <TableRow key={row.assetCode}>
+                    <TableCell>{row.assetCode}</TableCell>
+                    <NumberCell>{row.sales}</NumberCell>
+                    <NumberCell>{moneyText(row.proceedsMinor, currency)}</NumberCell>
+                    <NumberCell>{moneyText(row.costMinor, currency)}</NumberCell>
+                    <NumberCell className={rowDirection === "gain" ? "text-success" : rowDirection === "loss" ? "text-danger" : undefined}>
+                      <span className="sr-only">{directionWord(row.gainMinor)} </span>
+                      {signedMoney(row.gainMinor, currency)}
+                    </NumberCell>
+                    <NumberCell>{signedPercent(row.percent)}</NumberCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableCard>
+      ) : null}
+
+      {realized.notIncluded.length > 0 ? (
+        <div className="mt-4 max-w-2xl text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">{REALIZED_COPY.leftOutTitle}</p>
+          <ul className="mt-1 grid gap-1">
+            {realized.notIncluded.map((item) => (
+              <li key={`${item.assetCode}-${item.reason}`}>
+                <span className="font-mono text-foreground">{item.assetCode}</span> {realizedNotIncludedText(item.reason, item.sales)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }

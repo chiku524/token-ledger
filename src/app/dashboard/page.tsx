@@ -24,6 +24,7 @@ import { journalName, journalNameLower } from "@/data/account-sections";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
 import { isHoldingsDisplayCurrency, resolveHoldingsDisplayCurrency } from "@/data/display-currency";
 import { holdingsGainLoss } from "@/data/gain-loss";
+import { holdingsRealizedGainLoss, realizedRangeQuery, resolveRealizedRange } from "@/data/realized-gain-loss";
 import { booksAreWritable } from "@/data/load-books";
 import { entityName, formatMoney } from "@/data/present";
 import { financialStatements, trialBalance } from "@/ledger";
@@ -35,7 +36,7 @@ export const metadata = { title: "Overview" };
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ currency?: string | string[] }>;
+  searchParams?: Promise<{ currency?: string | string[]; range?: string | string[]; from?: string | string[]; to?: string | string[] }>;
 } = {}) {
   const params = (await searchParams) ?? {};
   const { session, books } = await loadAuthorizedBooks();
@@ -61,6 +62,10 @@ export default async function DashboardPage({
   const functionalCurrency = books.entities[0]?.functionalCurrency ?? "";
   const gainLossCurrency = resolveHoldingsDisplayCurrency(one(params.currency), isHoldingsDisplayCurrency(functionalCurrency) ? functionalCurrency : undefined);
   const gainLoss = holdingsGainLoss(books, { individual: false, currency: gainLossCurrency });
+  const resolvedRange = resolveRealizedRange({ range: one(params.range), from: one(params.from), to: one(params.to) });
+  const realized = holdingsRealizedGainLoss(books, { currency: gainLossCurrency, range: resolvedRange.range });
+  const rangeQuery = realizedRangeQuery(resolvedRange.range);
+  const withRange = rangeQuery ? `&${rangeQuery}` : "";
   const currencyNote = individual
     ? "Each chart stays in your reporting currency."
     : booksAreWritable() && !session.demo && !session.demoBooks
@@ -123,11 +128,17 @@ export default async function DashboardPage({
 
       <GainLossPanel
         gainLoss={gainLoss}
+        realized={realized}
         id="gain-loss"
         className="mt-10 scroll-mt-6"
-        currencyHref={(code) => `/dashboard?currency=${code}#gain-loss`}
+        currencyHref={(code) => `/dashboard?currency=${code}${withRange}#gain-loss`}
+        realizedRange={{
+          presetHref: (key) => `/dashboard?currency=${gainLossCurrency}${key === "all" ? "" : `&range=${key}`}#gain-loss`,
+          formPath: "/dashboard#gain-loss",
+          error: resolvedRange.error,
+        }}
         action={
-          <Link href={`/dashboard/sources?currency=${gainLossCurrency}#gain-loss`} className="text-sm text-link underline">
+          <Link href={`/dashboard/sources?currency=${gainLossCurrency}${withRange}#gain-loss`} className="text-sm text-link underline">
             Open holdings
           </Link>
         }
