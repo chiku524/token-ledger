@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Building2, Download, FileSpreadsheet, Calendar } from "lucide-react";
+import { PageHeading } from "@/components/app/page-heading";
 import { MoneyBars } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/frame";
 import { RevaluationForm } from "@/components/record-forms";
@@ -108,12 +109,9 @@ export default async function ReportsPage({
   return (
     <>
       {/* ── Minimal header ──────────────────────────────────────────── */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title="Reports">
           {entity.name} · {entity.reportingFramework}
-        </p>
-      </header>
+        </PageHeading>
 
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
 

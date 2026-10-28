@@ -1,3 +1,4 @@
+import { InfoHint } from "@/components/app/info-hint";
 import { TableCard } from "@/components/app/table-card";
 import { SubmitButton } from "@/components/submit-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,12 +43,14 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
   return (
     <div className="grid max-w-5xl gap-12">
       <section aria-labelledby="shape-heading">
-        <h2 id="shape-heading" className="text-lg font-semibold tracking-tight">
-          Where a connection sits
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          The connection is consent for a company. Accounts hang off it. What was read stays separate from what was posted.
-        </p>
+        <div className="flex items-center gap-1">
+          <h2 id="shape-heading" className="text-lg font-semibold tracking-tight">
+            Where a connection sits
+          </h2>
+          <InfoHint title="Where a connection sits">
+            The connection is consent for a company. Accounts hang off it. What was read stays separate from what was posted.
+          </InfoHint>
+        </div>
         <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <ol className="rounded-xl border border-border bg-card p-5" aria-label="From the company down to an observation">
             {HIERARCHY.map(([title, detail], index) => {
@@ -96,14 +99,16 @@ export function ConnectionGuide({ csrf, canRestartTour }: { csrf: string; canRes
       </section>
 
       <section aria-labelledby="modes-heading">
-        <h2 id="modes-heading" className="text-lg font-semibold tracking-tight">
-          Three ways in
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          A wallet can be verified, by connecting it and signing a one-time message, or watched, by pasting the address.
-          Both stay read-only. Verified means the sign-in controlled the address. Watched means the address was typed,
-          which is the right path for an auditor or a cold wallet.
-        </p>
+        <div className="flex items-center gap-1">
+          <h2 id="modes-heading" className="text-lg font-semibold tracking-tight">
+            Three ways in
+          </h2>
+          <InfoHint title="Three ways in">
+            A wallet can be verified, by connecting it and signing a one-time message, or watched, by pasting the address.
+            Both stay read-only. Verified means the sign-in controlled the address. Watched means the address was typed,
+            which is the right path for an auditor or a cold wallet.
+          </InfoHint>
+        </div>
         <ul className="mt-4 grid gap-3 md:grid-cols-3">
           {MODES.map((mode) => (
             <li key={mode.title} className="rounded-xl border border-border bg-card p-4">

@@ -1,5 +1,6 @@
 import { TrendingUp } from "lucide-react";
 import { EmptyState } from "@/components/app/empty-state";
+import { InfoHint } from "@/components/app/info-hint";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
 import { SegmentedLinks } from "@/components/app/segmented-links";
@@ -220,11 +221,15 @@ function RealizedBlock({ realized, controls }: { realized: RealizedGainLoss; con
 
   return (
     <div className="mt-8" role="group" aria-label={REALIZED_COPY.title}>
-      <h3 className="text-base font-semibold text-foreground">
-        {REALIZED_COPY.title} {"\u00b7"} {currency}
-      </h3>
-      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.description}</p>
-      <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{REALIZED_COPY.rangeNote}</p>
+      <div className="flex items-center gap-1">
+        <h3 className="text-base font-semibold text-foreground">
+          {REALIZED_COPY.title} {"\u00b7"} {currency}
+        </h3>
+        <InfoHint title={`${REALIZED_COPY.title} \u00b7 ${currency}`}>
+          <p>{REALIZED_COPY.description}</p>
+          <p>{REALIZED_COPY.rangeNote}</p>
+        </InfoHint>
+      </div>
 
       {controls ? (
         <div className="mt-4">

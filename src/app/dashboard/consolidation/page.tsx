@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/app/page-heading";
 import { EmptyState } from "@/components/app/empty-state";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -8,7 +9,6 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/components/page-header";
 import { SubmitButton } from "@/components/submit-button";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
@@ -72,12 +72,9 @@ export default async function ConsolidationPage({
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Combined</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeading title="Combined">
           {books.organization.name} · {presentation}
-        </p>
-      </header>
+        </PageHeading>
 
       <Flash error={one(params.error) ?? (parsed.ok ? undefined : parsed.message)} saved={one(params.saved)} />
 

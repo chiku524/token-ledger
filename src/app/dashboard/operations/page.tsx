@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ensureCsrf } from "@/auth/current";
 import { can } from "@/auth/roles";
 import { EmptyState } from "@/components/app/empty-state";
+import { InfoHint } from "@/components/app/info-hint";
 import { SectionHeader } from "@/components/app/section-header";
 import { StatCard } from "@/components/app/stat-card";
 import { StatusBadge, type StatusTone } from "@/components/app/status-badge";
@@ -142,12 +143,14 @@ export default async function OperationsPage({
 
       <Card className={chain ? "mt-8" : undefined}>
         <CardContent className="grid gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">How scheduled sync works</h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            A scheduler pulls every due connection on an interval and records each run here. A run that fails is retried with
-            a growing backoff, and a connection that keeps failing is marked degraded. Every pull is read-only and never posts
-            a journal. Each run keeps its counts; raw payloads are retained for the most recent runs and then age out.
-          </p>
+          <div className="flex items-center gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">How scheduled sync works</h2>
+            <InfoHint title="How scheduled sync works">
+              A scheduler pulls every due connection on an interval and records each run here. A run that fails is retried with
+              a growing backoff, and a connection that keeps failing is marked degraded. Every pull is read-only and never posts
+              a journal. Each run keeps its counts; raw payloads are retained for the most recent runs and then age out.
+            </InfoHint>
+          </div>
           <p className="text-sm text-muted-foreground">
             {queuedEvents === 0
               ? "No signed events are waiting to be matched."

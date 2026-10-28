@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { mePath } from "@/data/me-paths";
 import { Calendar, Download, FileSpreadsheet, Wallet } from "lucide-react";
+import { PageHeading } from "@/components/app/page-heading";
 import { ChartFrame } from "@/components/charts/frame";
 import { MoneyBars, MoneyLine } from "@/components/charts/lazy";
 import { EmptyState } from "@/components/app/empty-state";
@@ -84,10 +85,7 @@ export function IndividualReports({
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">What you hold, what moved, and what it was worth.</p>
-      </header>
+      <PageHeading title="Reports">What you hold, what moved, and what it was worth.</PageHeading>
 
       <Flash error={error} saved={saved} />
 

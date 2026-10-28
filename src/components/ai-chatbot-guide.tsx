@@ -8,6 +8,8 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
+import { InfoHint } from "@/components/app/info-hint";
+import { isLongDescription } from "@/components/app/info-hint-text";
 import { Presence } from "@/components/motion/presence";
 import { TableCard } from "@/components/app/table-card";
 import { SubmitButton } from "@/components/submit-button";
@@ -365,13 +367,18 @@ export function AiChatbotGuide({
           className="grid gap-4"
         >
           <div>
-            <h2 id={`guide-${active}-heading`} className="text-lg font-semibold tracking-tight">
-              <span aria-hidden className="mr-2">
-                {section.emoji}
-              </span>
-              {section.title}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{section.blurb}</p>
+            <div className="flex items-center gap-1">
+              <h2 id={`guide-${active}-heading`} className="text-lg font-semibold tracking-tight">
+                <span aria-hidden className="mr-2">
+                  {section.emoji}
+                </span>
+                {section.title}
+              </h2>
+              {isLongDescription(section.blurb) ? <InfoHint title={section.title}>{section.blurb}</InfoHint> : null}
+            </div>
+            {isLongDescription(section.blurb) ? null : (
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{section.blurb}</p>
+            )}
           </div>
           <SectionBody id={active} accountType={accountType} />
         </m.section>

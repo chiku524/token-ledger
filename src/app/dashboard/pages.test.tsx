@@ -286,6 +286,14 @@ describe("role gating", () => {
       expect(usd).toContain("80.00");
       expect(usd).toContain("BUIDL");
       expect(usd).toContain("Not tax advice");
+      // The long description sits in an info hint beside the heading, not under it.
+      const usdHtml = await renderPage(page, { currency: "USD" });
+      expect(usdHtml).toContain('aria-label="About Realized gain / loss \u00b7 USD"');
+      expect(usdHtml).toContain('aria-label="About Holdings gain / loss \u00b7 USD"');
+      const describedBy = usdHtml.match(/aria-label="About Realized gain \/ loss \u00b7 USD" aria-describedby="([^"]+)"/)?.[1];
+      expect(describedBy).toBeTruthy();
+      expect(usdHtml).toContain(`id="${describedBy}"`);
+      expect(text(usdHtml.slice(usdHtml.indexOf(`id="${describedBy}"`)))).toContain("Not tax advice");
       const myr = await pageText(page, { currency: "MYR" });
       expect(myr).toContain("Realized gain / loss \u00b7 MYR");
       expect(myr).not.toContain("Realized gain / loss \u00b7 USD");
