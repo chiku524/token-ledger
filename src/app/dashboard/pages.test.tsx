@@ -312,6 +312,31 @@ describe("writable books (live owner, database configured)", () => {
     expect(content).not.toContain("This sample is read-only.");
   });
 
+  it("opens one Connect step for an individual, with no company walk-through", async () => {
+    signInLive("owner", { accountType: "individual" });
+    const html = await renderPage(SetupPage as Page);
+    expect(html).toMatch(/>Connect<\/button>/);
+    const content = text(html);
+    expect(content).toContain("Connect your accounts");
+    expect(content).not.toContain("Step 1 of 3");
+    expect(content).not.toMatch(/>Back</);
+  });
+
+  it("leaves Companies and Matching off an individual's overview", async () => {
+    signInLive("owner", { accountType: "individual" });
+    const content = await pageText(OverviewPage as Page);
+    expect(content).not.toContain("Companies");
+    expect(content).not.toContain("Unmatched");
+    expect(content).not.toContain("Matching");
+  });
+
+  it("sends an individual away from Matching, Companies and Approvals", async () => {
+    signInLive("owner", { accountType: "individual" });
+    for (const page of [ReconciliationPage, EntitiesPage, ApprovalsPage]) {
+      expect((await redirectOf((page as Page)({ searchParams: Promise.resolve({}) }))).url).toBe("/dashboard");
+    }
+  });
+
   it("opens the connect flow on Setup", async () => {
     signInLive("admin");
     const html = await renderPage(SetupPage as Page, { step: "exchange" });

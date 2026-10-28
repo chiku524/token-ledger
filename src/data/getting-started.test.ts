@@ -4,6 +4,7 @@ import {
   gettingStartedPhases,
   gettingStartedStep,
   needsConnectionCheck,
+  phaseIndex,
   resolveGettingStartedPhase,
 } from "./getting-started";
 
@@ -71,6 +72,47 @@ describe("resolveGettingStartedPhase", () => {
     expect(resolveGettingStartedPhase(progress, 2)).toBe("journal");
     expect(resolveGettingStartedPhase(progress, 3)).toBe("reports");
     expect(resolveGettingStartedPhase(progress, 99)).toBe("reports");
+  });
+});
+
+describe("the guide for an individual", () => {
+  const checked = {
+    connections: [{ status: "healthy" as const, lastSyncedAt: "2026-10-05T10:00:00.000Z" }],
+    observedBalanceCount: 3,
+  };
+
+  it("has five steps with no Match", () => {
+    expect(gettingStartedPhases("individual")).toEqual(["connect", "check", "holdings", "journal", "reports"]);
+    expect(phaseIndex("reports", "individual")).toBe(4);
+  });
+
+  it("keeps all six steps for an organization, with or without the type", () => {
+    const all = ["connect", "check", "holdings", "match", "journal", "reports"];
+    expect(gettingStartedPhases("organization")).toEqual(all);
+    expect(gettingStartedPhases()).toEqual(all);
+    expect(phaseIndex("reports")).toBe(5);
+  });
+
+  it("walks Holdings, Journal, Reports after Check", () => {
+    expect(resolveGettingStartedPhase(checked, 0, "individual")).toBe("holdings");
+    expect(resolveGettingStartedPhase(checked, 1, "individual")).toBe("journal");
+    expect(resolveGettingStartedPhase(checked, 2, "individual")).toBe("reports");
+    expect(resolveGettingStartedPhase(checked, 99, "individual")).toBe("reports");
+  });
+
+  it("still starts on connect and check", () => {
+    expect(resolveGettingStartedPhase({ connections: [], observedBalanceCount: 0 }, 3, "individual")).toBe("connect");
+  });
+
+  it("does not mention approvals or combined roll-ups", () => {
+    for (const phase of gettingStartedPhases("individual")) {
+      const step = gettingStartedStep(phase, checked, "individual");
+      expect(`${step.title} ${step.body}`).not.toMatch(/approv|combined|companies|matching/i);
+    }
+  });
+
+  it("leaves an organization's wording as it was", () => {
+    expect(gettingStartedStep("journal", checked).body).toBe(gettingStartedStep("journal", checked, "organization").body);
   });
 });
 

@@ -27,6 +27,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isSectionAllowed } from "@/data/account-sections";
+import type { OrganizationAccountType } from "@/data/account-type";
 import { isHiddenForRole } from "@/data/onboarding-sections";
 import type { Role } from "@/auth/roles";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -93,9 +95,12 @@ export type NavAccess = {
   showPlatform: boolean;
   role: Role;
   hiddenTabs?: readonly string[];
+  /** An individual sees a smaller set of sections. Defaults to an organization, which sees all. */
+  accountType?: OrganizationAccountType;
 };
 
-export function navGroups({ showUsers, showOnboarding, showPlatform, role, hiddenTabs = [] }: NavAccess): NavGroup[] {
+export function navGroups({ showUsers, showOnboarding, showPlatform, role, hiddenTabs = [], accountType }: NavAccess): NavGroup[] {
+  const visibleLink = (link: NavLink) => isSectionAllowed(accountType, link.href) && !isHiddenForRole(role, link.href, hiddenTabs);
   const accountLinks: NavLink[] = [
     { href: "/dashboard/guide", label: "Guide", icon: BookOpen },
     { href: "/dashboard/operations", label: "Operations", icon: Activity },
@@ -106,8 +111,8 @@ export function navGroups({ showUsers, showOnboarding, showPlatform, role, hidde
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
   return [
-    ...groups.map((group) => ({ ...group, links: group.links.filter((link) => !isHiddenForRole(role, link.href, hiddenTabs)) })),
-    { label: "Account", links: accountLinks.filter((link) => !isHiddenForRole(role, link.href, hiddenTabs)) },
+    ...groups.map((group) => ({ ...group, links: group.links.filter(visibleLink) })),
+    { label: "Account", links: accountLinks.filter(visibleLink) },
   ].filter((group) => group.links.length > 0);
 }
 

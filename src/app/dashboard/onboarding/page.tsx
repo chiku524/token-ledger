@@ -9,6 +9,7 @@ import { Flash } from "@/components/flash";
 import { SubmitButton } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { loadAuthorizedBooks } from "@/data/authorized-books";
+import { requireSectionAccess } from "@/data/section-access";
 import { booksAreWritable } from "@/data/load-books";
 import { loadOnboardingHiddenTabs } from "@/data/onboarding";
 import { ALWAYS_VISIBLE_SECTIONS, ONBOARDING_SECTIONS } from "@/data/onboarding-sections";
@@ -22,6 +23,7 @@ export default async function OnboardingPage({
   searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 }) {
   const params = await searchParams;
+  await requireSectionAccess("/dashboard/onboarding");
   const { session } = await loadAuthorizedBooks();
   if (!can(session.role, "onboarding.manage")) {
     return (

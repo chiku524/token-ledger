@@ -82,6 +82,7 @@ export function DashboardShell({
           showPlatform={showPlatform}
           role={session.role}
           hiddenTabs={hiddenTabs}
+          accountType={session.accountType}
         />
         <SidebarInset className="min-w-0">
           <DashboardHeader
@@ -93,6 +94,7 @@ export function DashboardShell({
             showPlatform={showPlatform}
             role={session.role}
             hiddenTabs={hiddenTabs}
+            accountType={session.accountType}
           />
           <ExampleBanner origin={origin} notice={notice} />
           {!session.emailVerified && !session.demo ? (
@@ -114,7 +116,7 @@ export function DashboardShell({
           <main id="content" className="dashboard-width px-4 py-6 md:px-8 md:py-8">
             {children}
           </main>
-          {showConnectionTour ? <ConnectionTour csrf={csrf} progress={tourProgress} /> : null}
+          {showConnectionTour ? <ConnectionTour csrf={csrf} progress={tourProgress} accountType={session.accountType} /> : null}
         </SidebarInset>
         <ChatPanel csrf={csrf} enabled={assistantEnabled} memory={assistantMemory} speech={assistantSpeech} canManageAi={assistantManage} />
       </SidebarProvider>

@@ -12,16 +12,33 @@ import { cn } from "@/lib/utils";
 import { personalBooksName, type OrganizationAccountType } from "@/data/account-type";
 import { WATCH_VENUES } from "@/data/connections";
 
-/** The third step is the Company for an organization and a short Details step for an individual. */
-function stepsFor(accountType: OrganizationAccountType): readonly string[] {
-  return ["Type", "Account", accountType === "individual" ? "Details" : "Company", "Connections", "Review"];
+/**
+ * The third step is the Company for an organization and a short Details step for an
+ * individual. Only an organization gets the Connections step here: an individual
+ * connects a wallet or exchange with the Connect dialog right after signing up, when
+ * there is a signed-in session to attach it to.
+ */
+export function stepsFor(accountType: OrganizationAccountType): readonly string[] {
+  return accountType === "individual"
+    ? ["Type", "Account", "Details", "Review"]
+    : ["Type", "Account", "Company", "Connections", "Review"];
 }
 
-export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) {
+export function SignupWizard({
+  csrf,
+  error,
+  defaultAccountType = "organization",
+}: {
+  csrf: string;
+  error?: string;
+  /** Which choice starts selected. Organization, as before, unless a caller says otherwise. */
+  defaultAccountType?: OrganizationAccountType;
+}) {
   const [step, setStep] = useState(0);
-  const [accountType, setAccountType] = useState<OrganizationAccountType>("organization");
+  const [accountType, setAccountType] = useState<OrganizationAccountType>(defaultAccountType);
   const individual = accountType === "individual";
   const STEPS = stepsFor(accountType);
+  const reviewStep = STEPS.length - 1;
   const [wallet, setWallet] = useState(false);
   const [exchange, setExchange] = useState(false);
   const [custodian, setCustodian] = useState(false);
@@ -85,15 +102,24 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
             title="Individual"
             description="Your own holdings. No company details to fill in."
             selected={accountType}
-            onSelect={setAccountType}
+            onSelect={(value) => {
+              setAccountType(value);
+              if (value === "individual") {
+                // Connections are not asked for here, so a choice made earlier must not be submitted.
+                setWallet(false);
+                setExchange(false);
+                setCustodian(false);
+              }
+            }}
           />
         </fieldset>
       </div>
 
       <div hidden={step !== 1} className="grid gap-3">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          This starts a new set of books. You will be the owner. A wallet, exchange, or custodian can be connected on the
-          next steps, or skipped and added later in Settings.
+          {individual
+            ? "This starts your own books. You will be the owner. Right after you sign up you can connect a wallet or an exchange, or skip it and do it later."
+            : "This starts a new set of books. You will be the owner. A wallet, exchange, or custodian can be connected on the next steps, or skipped and added later in Settings."}
         </p>
         <Field label="Your name">
           <Input name="name" required maxLength={80} autoComplete="name" data-step="1" />
@@ -151,6 +177,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
         )}
       </div>
 
+      {individual ? null : (
       <div hidden={step !== 3} className="grid gap-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Connect a wallet, an exchange, a custodian, or all of them. Each one is read-only — scopes are balances and
@@ -239,8 +266,9 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
           </Field>
         </ConnectionChoice>
       </div>
+      )}
 
-      <div hidden={step !== 4} className="grid gap-3 text-sm leading-relaxed">
+      <div hidden={step !== reviewStep} className="grid gap-3 text-sm leading-relaxed">
         <p>
           <span className="text-muted-foreground">Account type. </span>
           {individual ? "Individual" : "Organization"}
@@ -261,7 +289,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
         </p>
         <p>
           <span className="text-muted-foreground">Connections. </span>
-          {connectionSummary(wallet, exchange, custodian)}
+          {individual ? "You will connect a wallet or exchange right after you sign up." : connectionSummary(wallet, exchange, custodian)}
         </p>
         <p className="text-muted-foreground">Creating the account signs you in. Readers are not live yet, so a check sends nothing.</p>
       </div>
@@ -274,7 +302,7 @@ export function SignupWizard({ csrf, error }: { csrf: string; error?: string }) 
         ) : null}
         {step < STEPS.length - 1 ? (
           <Button type="button" onClick={goNext}>
-            {step === 3 ? "Review" : "Continue"}
+            {step === reviewStep - 1 ? "Review" : "Continue"}
           </Button>
         ) : (
           <SubmitButton pendingLabel="Creating account…">

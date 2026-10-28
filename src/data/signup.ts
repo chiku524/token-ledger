@@ -85,7 +85,8 @@ export function parseSignup(formData: FormData): { ok: true; value: ParsedSignup
   const connections: ConnectionDraft[] = [];
   for (const mode of ["watch", "exchange_read", "custodian_read"] as const) {
     const prefix = mode === "watch" ? "wallet" : mode === "exchange_read" ? "exchange" : "custodian";
-    if (formData.get(`${prefix}Enabled`) !== "on") continue;
+    // An individual connects after signing in, with the Connect dialog, so nothing is taken here.
+    if (individual || formData.get(`${prefix}Enabled`) !== "on") continue;
     const parsed = connectionFormSchema.safeParse({
       entityId: PLACEHOLDER_ENTITY,
       mode,

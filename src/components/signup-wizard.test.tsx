@@ -5,7 +5,7 @@ vi.mock("@/app/sign-up/actions", () => ({
   signUpAction: async () => undefined,
 }));
 
-import { SignupWizard } from "./signup-wizard";
+import { SignupWizard, stepsFor } from "./signup-wizard";
 
 describe("SignupWizard", () => {
   it("asks for an account and offers every connection", () => {
@@ -24,6 +24,33 @@ describe("SignupWizard", () => {
     expect(html).toContain("Organization");
     expect(html).toMatch(/<input[^>]*name="accountType"[^>]*checked=""[^>]*value="organization"/);
     expect(html).toMatch(/<input[^>]*name="accountType"[^>]*value="individual"/);
+  });
+
+  it("walks an organization through Type, Account, Company, Connections and Review", () => {
+    expect(stepsFor("organization")).toEqual(["Type", "Account", "Company", "Connections", "Review"]);
+  });
+
+  it("walks an individual through Type, Account, Details and Review, with no Connections step", () => {
+    expect(stepsFor("individual")).toEqual(["Type", "Account", "Details", "Review"]);
+  });
+
+  it("counts four steps and offers no wallet, exchange or custodian fields to an individual", () => {
+    const html = renderToStaticMarkup(<SignupWizard csrf="csrf" defaultAccountType="individual" />);
+    expect(html).toContain("1 of 4");
+    expect(html).not.toContain("1 of 5");
+    expect(html).not.toContain("walletEnabled");
+    expect(html).not.toContain("exchangeEnabled");
+    expect(html).not.toContain("custodianEnabled");
+    expect(html).not.toContain("scopes are balances and movements");
+    expect(html).toContain("right after you sign up");
+    expect(html).not.toContain('name="organizationName"');
+  });
+
+  it("still offers every connection to an organization", () => {
+    const html = renderToStaticMarkup(<SignupWizard csrf="csrf" defaultAccountType="organization" />);
+    expect(html).toContain("walletEnabled");
+    expect(html).toContain("exchangeEnabled");
+    expect(html).toContain("custodianEnabled");
   });
 
   it("keeps the Company step, with its required fields, for an organization", () => {

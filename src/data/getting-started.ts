@@ -1,4 +1,5 @@
 import type { Role } from "@/auth/roles";
+import { DEFAULT_ORGANIZATION_ACCOUNT_TYPE, type OrganizationAccountType } from "@/data/account-type";
 import type { BooksConnection } from "@/data/books";
 
 /** Phases on the empty-to-value path. Later phases unlock as books fill in. */
@@ -76,8 +77,34 @@ const STEPS: Record<GettingStartedPhase, GettingStartedStep> = {
   },
 };
 
+/**
+ * Steps whose wording differs for an individual: there is no second reviewer, no
+ * multi-company roll-up, and (see `phasesFor`) no Matching step at all.
+ */
+const INDIVIDUAL_STEPS: Partial<Record<GettingStartedPhase, Pick<GettingStartedStep, "body">>> = {
+  journal: {
+    body: "Observations stay observed until you post. Use Journal to prepare or post entries for what you hold and what you move. A Check never creates a journal line.",
+  },
+  reports: {
+    body: "Once journals exist, Reports shows trial balance and statements, with CSV or PDF export. You can reopen this guide anytime from Guide.",
+  },
+};
+
+/** Matching is an institution feature, so an individual's guide skips it. */
+const INDIVIDUAL_SKIPPED: readonly GettingStartedPhase[] = ["match"];
+
+const ALL_PHASES: readonly GettingStartedPhase[] = ["connect", "check", "holdings", "match", "journal", "reports"];
+
+function phasesFor(accountType: OrganizationAccountType): GettingStartedPhase[] {
+  return ALL_PHASES.filter((phase) => accountType !== "individual" || !INDIVIDUAL_SKIPPED.includes(phase));
+}
+
 /** Soft phases advanced by explicit Continue (not inferred from books). */
 export const SOFT_PHASES: readonly GettingStartedPhase[] = ["holdings", "match", "journal", "reports"];
+
+function softPhasesFor(accountType: OrganizationAccountType): readonly GettingStartedPhase[] {
+  return SOFT_PHASES.filter((phase) => phasesFor(accountType).includes(phase));
+}
 
 export function canTakeConnectionTour(role: Role): boolean {
   return role === "owner" || role === "admin";
@@ -112,19 +139,22 @@ export function awaitingFirstSuccessfulCheck(
 export function resolveGettingStartedPhase(
   progress: GettingStartedProgress,
   softIndex = 0,
+  accountType: OrganizationAccountType = DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
 ): GettingStartedPhase {
   const live = activeConnections(progress.connections);
   if (live.length === 0) return "connect";
   if (awaitingFirstSuccessfulCheck(live)) return "check";
-  const index = Math.min(Math.max(softIndex, 0), SOFT_PHASES.length - 1);
-  return SOFT_PHASES[index]!;
+  const soft = softPhasesFor(accountType);
+  const index = Math.min(Math.max(softIndex, 0), soft.length - 1);
+  return soft[index]!;
 }
 
 export function gettingStartedStep(
   phase: GettingStartedPhase,
   progress: GettingStartedProgress,
+  accountType: OrganizationAccountType = DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
 ): GettingStartedStep {
-  const step = STEPS[phase];
+  const step = accountType === "individual" ? { ...STEPS[phase], ...INDIVIDUAL_STEPS[phase] } : STEPS[phase];
   if (phase !== "holdings") return step;
 
   if (progress.observedBalanceCount === 0) {
@@ -142,12 +172,15 @@ export function gettingStartedStep(
   };
 }
 
-export function gettingStartedPhases(): GettingStartedPhase[] {
-  return ["connect", "check", "holdings", "match", "journal", "reports"];
+export function gettingStartedPhases(accountType: OrganizationAccountType = DEFAULT_ORGANIZATION_ACCOUNT_TYPE): GettingStartedPhase[] {
+  return phasesFor(accountType);
 }
 
-export function phaseIndex(phase: GettingStartedPhase): number {
-  return gettingStartedPhases().indexOf(phase);
+export function phaseIndex(
+  phase: GettingStartedPhase,
+  accountType: OrganizationAccountType = DEFAULT_ORGANIZATION_ACCOUNT_TYPE,
+): number {
+  return gettingStartedPhases(accountType).indexOf(phase);
 }
 
 export function isSoftPhase(phase: GettingStartedPhase): boolean {

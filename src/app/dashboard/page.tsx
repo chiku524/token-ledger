@@ -28,7 +28,9 @@ export const metadata = { title: "Overview" };
 
 export default async function DashboardPage() {
   const { session, books } = await loadAuthorizedBooks();
-  const exceptions = books.reconciliations.filter((record) => record.status === "exception");
+  // An individual has no Matching, Companies or Combined, so the overview leaves them out.
+  const individual = session.accountType === "individual";
+  const exceptions = individual ? [] : books.reconciliations.filter((record) => record.status === "exception");
   const balances = books.entities.map((entity) => ({
     entity,
     report: trialBalance(books.journalEntries, books.accounts, entity.id),
@@ -41,7 +43,9 @@ export default async function DashboardPage() {
   const composition = compositionPanels(books);
   const activity = journalActivityChart(books);
   const status = reconciliationStatus(books);
-  const currencyNote = booksAreWritable() && !session.demo && !session.demoBooks
+  const currencyNote = individual
+    ? "Each chart stays in your reporting currency."
+    : booksAreWritable() && !session.demo && !session.demoBooks
     ? "Each chart stays in that company's currency. The Combined page converts them into one currency."
     : "Sample figures. Each chart stays in that company's currency. The Combined page converts them with sample rates, not a market price.";
 
@@ -52,15 +56,17 @@ export default async function DashboardPage() {
         title={books.organization.name}
         description={
           books.organization.origin === "example"
-            ? "A sample group: a parent company in Malaysia and a company in Singapore."
+            ? individual
+              ? "Sample figures for a personal account."
+              : "A sample group: a parent company in Malaysia and a company in Singapore."
             : "Saved books for this organization."
         }
       />
 
-      <Stagger className="grid grid-cols-4 gap-2 sm:gap-3">
-        <StatCard label="Companies" value={books.entities.length} />
+      <Stagger className={individual ? "grid grid-cols-2 gap-2 sm:gap-3" : "grid grid-cols-4 gap-2 sm:gap-3"}>
+        {individual ? null : <StatCard label="Companies" value={books.entities.length} />}
         <StatCard label="Wallets and accounts" value={books.sources.length} />
-        <StatCard label="Unmatched" value={exceptions.length} tone={exceptions.length ? "danger" : "success"} />
+        {individual ? null : <StatCard label="Unmatched" value={exceptions.length} tone={exceptions.length ? "danger" : "success"} />}
         <StatCard label="Books" value={inBalance ? "In balance" : "Out of balance"} tone={inBalance ? "success" : "danger"} />
       </Stagger>
 
@@ -68,9 +74,11 @@ export default async function DashboardPage() {
         <Link href="/dashboard/sources#observed-balances" className="text-link underline">
           Holdings
         </Link>
-        <Link href="/dashboard/reconciliation" className="text-link underline">
-          Matching
-        </Link>
+        {individual ? null : (
+          <Link href="/dashboard/reconciliation" className="text-link underline">
+            Matching
+          </Link>
+        )}
         <Link href="/dashboard/ledger" className="text-link underline">
           Journal
         </Link>
@@ -137,7 +145,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-10 grid gap-4 md:grid-cols-2">
-        {balances.map(({ entity, report }) => (
+        {(individual ? [] : balances).map(({ entity, report }) => (
           <Card key={entity.id}>
             <CardContent>
               <p className="label-caps">
@@ -221,7 +229,7 @@ export default async function DashboardPage() {
             ))}
           </section>
 
-          <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_18rem]">
+          <section className={individual ? "mt-4 grid gap-4" : "mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_18rem]"}>
             <ChartFrame
               title="Entries"
               description="Posted entries by month. A count, not a combined total."
@@ -231,13 +239,15 @@ export default async function DashboardPage() {
             >
               <ActivityBars rows={activity.rows} series={activity.series} />
             </ChartFrame>
-            <ChartFrame
-              title="Matching"
-              description="Activity from wallets, exchanges, and custodians compared with the journal."
-              rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
-            >
-              <StatusDonut rows={status.rows} total={status.total} />
-            </ChartFrame>
+            {individual ? null : (
+              <ChartFrame
+                title="Matching"
+                description="Activity from wallets, exchanges, and custodians compared with the journal."
+                rows={status.rows.map((row) => ({ label: row.label, detail: row.formatted }))}
+              >
+                <StatusDonut rows={status.rows} total={status.total} />
+              </ChartFrame>
+            )}
           </section>
         </div>
       </details>
